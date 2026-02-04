@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TituloMinero {
+  id                      String                    @id @default(uuid())
+  numeroTitulo            String                    @unique
+  municipio               String
+  codigoMunicipio         String?
+  estado                  String                    @default("ACTIVO")
+  fechaInicio             DateTime?
+  fechaVencimiento        DateTime?
+  observaciones           String?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  friCapacidad            FRICapacidad[]
+  friEjecucion            FRIEjecucion[]
+  friInventarioMaquinaria FRIInventarioMaquinaria[]
+  friInventarios          FRIInventarios[]
+  friMaquinaria           FRIMaquinaria[]
+  friParadas              FRIParadas[]
+  friProduccion           FRIProduccion[]
+  friProyecciones         FRIProyecciones[]
+  friRegalias             FRIRegalias[]
+  usuarios                Usuario[]
+  puntosReferencia  PuntoReferencia[]
+  registrosCiclos   RegistroCicloProduccion[]
+
+  @@map("titulos_mineros")
+}
+
+model Usuario {
+  id                      String                    @id @default(uuid())
+  email                   String                    @unique
+  password                String
+  nombre                  String
+  rol                     String                    @default("OPERADOR")
+  activo                  Boolean                   @default(true)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  tituloMineroId          String?
+  friCapacidad            FRICapacidad[]
+  friEjecucion            FRIEjecucion[]
+  friInventarioMaquinaria FRIInventarioMaquinaria[]
+  friInventarios          FRIInventarios[]
+  friMaquinaria           FRIMaquinaria[]
+  friParadas              FRIParadas[]
+  friProduccion           FRIProduccion[]
+  friProyecciones         FRIProyecciones[]
+  friRegalias             FRIRegalias[]
+  tituloMinero            TituloMinero?             @relation(fields: [tituloMineroId], references: [id])
+  registrosCiclos   RegistroCicloProduccion[]
+
+  @@map("usuarios")
+}
+
+model FRIProduccion {
+  id                  String       @id @default(uuid())
+  fechaCorte          DateTime
+  mineral             String
+  horasOperativas     Decimal      @db.Decimal(8, 2)
+  unidadMedida        String
+  estado              String       @default("BORRADOR")
+  observaciones       String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  usuarioId           String
+  cantidadProduccion  Decimal      @db.Decimal(15, 4)
+  masaUnitaria        Decimal?     @db.Decimal(15, 4)
+  materialEntraPlanta Decimal?     @db.Decimal(15, 4)
+  materialSalePlanta  Decimal?     @db.Decimal(15, 4)
+  tituloMineroId      String
+  tituloMinero        TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario             Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@index([mineral])
+  @@index([fechaCorte])
+  @@map("fri_produccion")
+}
+
+model FRIInventarios {
+  id                      String       @id @default(uuid())
+  fechaCorte              DateTime
+  mineral                 String
+  unidadMedida            String
+  inventarioInicialAcopio Decimal      @db.Decimal(15, 4)
+  inventarioFinalAcopio   Decimal      @db.Decimal(15, 4)
+  ingresoAcopio           Decimal      @db.Decimal(15, 4)
+  salidaAcopio            Decimal      @db.Decimal(15, 4)
+  estado                  String       @default("BORRADOR")
+  observaciones           String?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  usuarioId               String
+  tituloMineroId          String
+  tituloMinero            TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario                 Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_inventarios")
+}
+
+model FRIParadas {
+  id             String       @id @default(uuid())
+  fechaCorte     DateTime
+  tipoParada     String
+  fechaInicio    DateTime
+  fechaFin       DateTime?
+  horasParadas   Decimal      @db.Decimal(8, 2)
+  motivo         String
+  observaciones  String?
+  estado         String       @default("BORRADOR")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  usuarioId      String
+  tituloMineroId String
+  tituloMinero   TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_paradas")
+}
+
+model FRIEjecucion {
+  id                 String       @id @default(uuid())
+  fechaCorte         DateTime
+  mineral            String
+  denominacionFrente String
+  latitud            Decimal      @db.Decimal(10, 8)
+  longitud           Decimal      @db.Decimal(11, 8)
+  metodoExplotacion  String
+  avanceEjecutado    Decimal      @db.Decimal(10, 2)
+  unidadMedidaAvance String
+  volumenEjecutado   Decimal      @db.Decimal(15, 4)
+  estado             String       @default("BORRADOR")
+  observaciones      String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  usuarioId          String
+  tituloMineroId     String
+  tituloMinero       TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario            Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_ejecucion")
+}
+
+model FRIMaquinaria {
+  id                  String       @id @default(uuid())
+  fechaCorte          DateTime
+  tipoMaquinaria      String
+  cantidad            Int
+  horasOperacion      Decimal      @db.Decimal(8, 2)
+  capacidadTransporte Decimal?     @db.Decimal(10, 2)
+  unidadCapacidad     String?
+  estado              String       @default("BORRADOR")
+  observaciones       String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  usuarioId           String
+  tituloMineroId      String
+  tituloMinero        TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario             Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_maquinaria")
+}
+
+model FRIRegalias {
+  id                      String       @id @default(uuid())
+  fechaCorte              DateTime
+  mineral                 String
+  cantidadExtraida        Decimal      @db.Decimal(15, 4)
+  unidadMedida            String
+  valorDeclaracion        Decimal      @db.Decimal(15, 2)
+  valorContraprestaciones Decimal?     @db.Decimal(15, 2)
+  resolucionUPME          String?
+  estado                  String       @default("BORRADOR")
+  observaciones           String?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  usuarioId               String
+  tituloMineroId          String
+  tituloMinero            TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario                 Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_regalias")
+}
+
+model FRIInventarioMaquinaria {
+  id              String       @id @default(uuid())
+  fechaCorte      DateTime
+  tipoMaquinaria  String
+  marca           String?
+  modelo          String?
+  a_oFabricacion  Int?         @map("añoFabricacion")
+  capacidad       Decimal?     @db.Decimal(10, 2)
+  estadoOperativo String
+  observaciones   String?
+  estado          String       @default("BORRADOR")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  usuarioId       String
+  tituloMineroId  String
+  tituloMinero    TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario         Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_inventario_maquinaria")
+}
+
+model FRICapacidad {
+  id                  String       @id @default(uuid())
+  fechaCorte          DateTime
+  areaProduccion      String
+  tecnologiaUtilizada String
+  capacidadInstalada  Decimal      @db.Decimal(15, 4)
+  unidadMedida        String
+  personalCapacitado  Int
+  certificaciones     String?
+  observaciones       String?
+  estado              String       @default("BORRADOR")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  usuarioId           String
+  tituloMineroId      String
+  tituloMinero        TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario             Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_capacidad")
+}
+
+model FRIProyecciones {
+  id                   String       @id @default(uuid())
+  fechaCorte           DateTime
+  metodoExplotacion    String
+  mineral              String
+  capacidadExtraccion  Decimal      @db.Decimal(15, 4)
+  capacidadTransporte  Decimal      @db.Decimal(15, 4)
+  capacidadBeneficio   Decimal      @db.Decimal(15, 4)
+  proyeccionTopografia String?
+  densidadManto        Decimal?     @db.Decimal(10, 4)
+  cantidadProyectada   Decimal      @db.Decimal(15, 4)
+  observaciones        String?
+  estado               String       @default("BORRADOR")
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  usuarioId            String
+  tituloMineroId       String
+  tituloMinero         TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario              Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("fri_proyecciones")
+}
+
+// ============================================
+// MODELO: PUNTOS DE REFERENCIA
+// Puntos de recolección y acopio para tracking GPS
+// ============================================
+model PuntoReferencia {
+  id                String   @id @default(uuid())
+  nombre            String
+  tipo              String   // "RECOLECCION" o "ACOPIO"
+  tituloMineroId    String
+  
+  // Ubicación geográfica
+  latitud           Decimal  @db.Decimal(10, 8)
+  longitud          Decimal  @db.Decimal(11, 8)
+  radioInfluenciaM  Decimal  @db.Decimal(10, 2) @default(50)
+  
+  // Información adicional
+  descripcion       String?
+  activo            Boolean  @default(true)
+  orden             Int      @default(1)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relación
+  tituloMinero      TituloMinero @relation(fields: [tituloMineroId], references: [id])
+
+  @@index([tituloMineroId])
+  @@index([tipo])
+  @@map("puntos_referencia")
+}
+
+// ============================================
+// MODELO: REGISTRO DE CICLOS DE PRODUCCIÓN
+// Ciclos detectados automáticamente por la app móvil
+// ============================================
+model RegistroCicloProduccion {
+  id                String   @id @default(uuid())
+  fecha             DateTime @default(now())
+  usuarioId         String
+  tituloMineroId    String
+  tipoMaquina       String
+  capacidadMaxM3    Decimal  @db.Decimal(10, 2)
+  
+  // Datos del ciclo
+  numeroCiclo       Int
+  horaInicioCiclo   DateTime
+  horaFinCiclo      DateTime
+  duracionMinutos   Decimal  @db.Decimal(10, 2)
+  
+  // Ubicación del ciclo
+  latitudInicio     Decimal  @db.Decimal(10, 8)
+  longitudInicio    Decimal  @db.Decimal(11, 8)
+  latitudFin        Decimal  @db.Decimal(10, 8)
+  longitudFin       Decimal  @db.Decimal(11, 8)
+  
+  // Puntos de referencia
+  puntoRecoleccion  String
+  puntoAcopio       String
+  
+  // Metadata
+  distanciaRecorrida Decimal? @db.Decimal(10, 2)
+  estadoCiclo       String   @default("COMPLETADO")
+  observaciones     String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relaciones
+  usuario           Usuario       @relation(fields: [usuarioId], references: [id])
+  tituloMinero      TituloMinero  @relation(fields: [tituloMineroId], references: [id])
+
+  @@index([fecha])
+  @@index([usuarioId])
+  @@index([tituloMineroId])
+  @@map("registro_ciclos_produccion")
+}
