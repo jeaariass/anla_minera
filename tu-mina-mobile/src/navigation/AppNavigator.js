@@ -9,6 +9,7 @@ import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import RegistrarPuntoScreen from '../screens/RegistrarPuntoScreen';
 import HistorialPuntosScreen from '../screens/HistorialPuntosScreen';
+import MapaHistorialScreen from '../screens/MapaHistorialScreen';
 
 import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
@@ -60,33 +61,32 @@ const AppNavigator = () => {
         <Stack.Screen
           name="Login"
           component={LoginScreen}
-          options={{
-            headerShown: false,
-          }}
+          options={{ headerShown: false }}
         />
         
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          options={{
-            headerShown: false,
-          }}
+          options={{ headerShown: false }}
         />
 
         <Stack.Screen
           name="RegistrarPunto"
           component={RegistrarPuntoScreen}
-          options={{
-            headerShown: false,
-          }}
+          options={{ headerShown: false }}
         />
 
         <Stack.Screen
           name="HistorialPuntos"
           component={HistorialPuntosScreen}
-          options={{
-            headerShown: false,
-          }}
+          options={{ headerShown: false }}
+        />
+
+        {/* ✅ ESTA ES LA PANTALLA QUE FALTABA */}
+        <Stack.Screen
+          name="MapaHistorial"
+          component={MapaHistorialScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

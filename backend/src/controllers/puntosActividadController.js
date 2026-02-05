@@ -4,8 +4,6 @@ const prisma = new PrismaClient();
 // Registrar punto de actividad
 const registrarPunto = async (req, res) => {
   try {
-    console.log('📥 Body recibido:', req.body);
-    
     const {
       usuarioId,
       tituloMineroId,
@@ -17,15 +15,14 @@ const registrarPunto = async (req, res) => {
       volumenM3
     } = req.body;
 
-    // Validar campos requeridos
     if (!usuarioId || !tituloMineroId || !latitud || !longitud || !categoria) {
       return res.status(400).json({
         success: false,
-        message: 'Faltan campos requeridos'
+        message: 'Faltan campos obligatorios'
       });
     }
 
-    const punto = await prisma.$executeRaw`
+    await prisma.$executeRaw`
       INSERT INTO puntos_actividad (
         usuario_id, titulo_minero_id, latitud, longitud, 
         categoria, descripcion, maquinaria, volumen_m3
@@ -37,10 +34,10 @@ const registrarPunto = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Punto registrado exitosamente'
+      message: '📍 Punto registrado exitosamente'
     });
   } catch (error) {
-    console.error('Error registrando punto:', error);
+    console.error('❌ Error registrando punto:', error);
     res.status(500).json({
       success: false,
       message: 'Error al registrar punto',
@@ -49,11 +46,10 @@ const registrarPunto = async (req, res) => {
   }
 };
 
-// Obtener puntos de un título minero
+// Obtener puntos
 const getPuntos = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
-    console.log('📍 Obteniendo puntos para título:', tituloMineroId);
 
     const puntos = await prisma.$queryRaw`
       SELECT 
@@ -65,54 +61,63 @@ const getPuntos = async (req, res) => {
         categoria,
         descripcion,
         maquinaria,
-        volumen_m3 as "volumen_m3",
+        volumen_m3 as "volumenM3",
         fecha
       FROM puntos_actividad
       WHERE titulo_minero_id = ${tituloMineroId}
       ORDER BY fecha DESC
     `;
 
-    console.log(`✅ ${puntos.length} puntos encontrados`);
-
     res.json({
       success: true,
       data: puntos,
-      total: puntos.length,
+      total: puntos.length
     });
   } catch (error) {
     console.error('❌ Error obteniendo puntos:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener puntos',
-      error: error.message,
+      error: error.message
     });
   }
 };
 
-// Obtener estadísticas
+// Estadísticas de actividad
 const getEstadisticas = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
 
-    const stats = await prisma.$queryRawUnsafe(`
+    const stats = await prisma.$queryRaw`
       SELECT 
-        categoria,
-        COUNT(*)::int as total,
-        COALESCE(SUM(volumen_m3), 0)::float as volumen_total
+        COUNT(*)::INTEGER as "totalPuntos",
+        COALESCE(SUM(volumen_m3), 0)::NUMERIC as "volumenTotal",
+        COUNT(DISTINCT usuario_id)::INTEGER as "usuariosActivos"
       FROM puntos_actividad
-      WHERE titulo_minero_id = '${tituloMineroId}'
-      GROUP BY categoria
-    `);
+      WHERE titulo_minero_id = ${tituloMineroId}
+    `;
+
+    // Convertir a números normales (por si acaso)
+    const result = stats[0] || {
+      totalPuntos: 0,
+      volumenTotal: 0,
+      usuariosActivos: 0
+    };
 
     res.json({
       success: true,
-      data: stats
+      estadisticas: {
+        totalPuntos: Number(result.totalPuntos) || 0,
+        volumenTotal: Number(result.volumenTotal) || 0,
+        usuariosActivos: Number(result.usuariosActivos) || 0
+      }
     });
   } catch (error) {
-    console.error('Error obteniendo estadísticas:', error);
+    console.error('❌ Error obteniendo estadísticas:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener estadísticas'
+      message: 'Error al obtener estadísticas',
+      error: error.message
     });
   }
 };

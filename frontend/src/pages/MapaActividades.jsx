@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Circle, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import axios from 'axios';
+import api from "../services/api";
 import { authService } from '../services/api';
 import { 
   ArrowLeft, 
@@ -12,7 +12,7 @@ import {
   Map as MapIcon,
   Filter
 } from 'lucide-react';
-import './Reportes.css'; // Usar los mismos estilos que Reportes
+import './Reportes.css';
 
 // Fix iconos de Leaflet para Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -39,25 +39,33 @@ const CATEGORIA_LABELS = {
 const MapaActividades = () => {
   const navigate = useNavigate();
   const [user] = useState(authService.getCurrentUser());
-  const [puntos, setPuntos] = useState([]);
+  const [todosLosPuntos, setTodosLosPuntos] = useState([]); // ⬅️ NUEVO: guardar TODOS los puntos
+  const [puntosFiltrados, setPuntosFiltrados] = useState([]); // ⬅️ NUEVO: puntos después del filtro
   const [loading, setLoading] = useState(true);
-  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState(''); // '' = todos
   const [center, setCenter] = useState([5.0689, -75.5174]);
 
+  // Cargar TODOS los puntos una sola vez al inicio
   useEffect(() => {
-    cargarPuntos();
-  }, [filtroCategoria]);
+    cargarTodosLosPuntos();
+  }, []);
 
-  const cargarPuntos = async () => {
+  // Filtrar cuando cambia la categoría
+  useEffect(() => {
+    filtrarPuntos();
+  }, [filtroCategoria, todosLosPuntos]);
+
+  const cargarTodosLosPuntos = async () => {
     try {
-      const params = filtroCategoria ? `?categoria=${filtroCategoria}` : '';
-      const response = await axios.get(
-        `http://localhost:5000/api/actividad/puntos/titulo-816-17${params}`
-      );
+      setLoading(true);
+      
+      // ⬅️ SIN parámetros de filtro - traer TODOS
+      const response = await api.get('/actividad/puntos/titulo-816-17');
       
       if (response.data.success) {
-        setPuntos(response.data.data);
+        setTodosLosPuntos(response.data.data);
         
+        // Centrar en el primer punto si hay datos
         if (response.data.data.length > 0) {
           const firstPoint = response.data.data[0];
           setCenter([parseFloat(firstPoint.latitud), parseFloat(firstPoint.longitud)]);
@@ -68,6 +76,31 @@ const MapaActividades = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ⬅️ NUEVA FUNCIÓN: Filtrar puntos en el frontend
+  const filtrarPuntos = () => {
+    if (!filtroCategoria) {
+      // Sin filtro = mostrar todos
+      setPuntosFiltrados(todosLosPuntos);
+    } else {
+      // Con filtro = mostrar solo los de esa categoría
+      const filtrados = todosLosPuntos.filter(
+        punto => punto.categoria === filtroCategoria
+      );
+      setPuntosFiltrados(filtrados);
+    }
+  };
+
+  // ⬅️ FUNCIÓN ACTUALIZADA: Solo cambia el estado, no recarga
+  const handleFiltroChange = (categoria) => {
+    setFiltroCategoria(categoria);
+  };
+
+  // ⬅️ NUEVA FUNCIÓN: Contar puntos por categoría
+  const contarPorCategoria = (categoria) => {
+    if (!categoria) return todosLosPuntos.length;
+    return todosLosPuntos.filter(p => p.categoria === categoria).length;
   };
 
   const createCustomIcon = (color) => {
@@ -102,18 +135,18 @@ const MapaActividades = () => {
 
   return (
     <div className="reportes-container">
-      {/* Header igual que otras páginas */}
+      {/* Header */}
       <header className="reportes-header">
         <div className="container">
           <div className="header-content">
             <div className="header-left">
               <div className="logo">
-                <img 
-                  src="/logo.png" 
-                  alt="Logo TU MINA" 
-                  width="50" 
+                <img
+                  src={`${import.meta.env.BASE_URL}logo.png`}
+                  alt="Logo TU MINA"
+                  width="50"
                   height="50"
-                  style={{ borderRadius: '8px', objectFit: 'contain' }} 
+                  style={{ borderRadius: '8px', objectFit: 'contain' }}
                 />
               </div>
               <div>
@@ -164,7 +197,8 @@ const MapaActividades = () => {
             <div>
               <h2 className="page-title">🗺️ Mapa de Actividades Mineras</h2>
               <p className="page-subtitle">
-                Visualización georeferenciada de puntos de actividad - Total: {puntos.length} puntos
+                Visualización georeferenciada de puntos de actividad - 
+                Mostrando: {puntosFiltrados.length} de {todosLosPuntos.length} puntos
               </p>
             </div>
           </div>
@@ -178,55 +212,84 @@ const MapaActividades = () => {
 
             <div className="card-body">
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Botón TODOS */}
                 <button
-                  onClick={() => setFiltroCategoria('')}
+                  onClick={() => handleFiltroChange('')}
                   className={!filtroCategoria ? 'btn btn-primary' : 'btn btn-outline'}
                   style={{ 
                     minWidth: '120px',
-                    ...(filtroCategoria === '' && { backgroundColor: '#3D9B9B', borderColor: '#3D9B9B' })
+                    ...(filtroCategoria === '' && { 
+                      backgroundColor: '#3D9B9B', 
+                      borderColor: '#3D9B9B',
+                      color: 'white'
+                    })
                   }}
                 >
-                  Todos ({puntos.length})
+                  Todos ({contarPorCategoria('')})
                 </button>
+
+                {/* Botón EXTRACCIÓN */}
                 <button
-                  onClick={() => setFiltroCategoria('extraccion')}
+                  onClick={() => handleFiltroChange('extraccion')}
                   className={filtroCategoria === 'extraccion' ? 'btn btn-primary' : 'btn btn-outline'}
                   style={{ 
                     minWidth: '120px',
-                    ...(filtroCategoria === 'extraccion' && { backgroundColor: '#e74c3c', borderColor: '#e74c3c' })
+                    ...(filtroCategoria === 'extraccion' && { 
+                      backgroundColor: '#e74c3c', 
+                      borderColor: '#e74c3c',
+                      color: 'white'
+                    })
                   }}
                 >
-                  ⛏️ Extracción
+                  ⛏️ Extracción ({contarPorCategoria('extraccion')})
                 </button>
+
+                {/* Botón ACOPIO */}
                 <button
-                  onClick={() => setFiltroCategoria('acopio')}
+                  onClick={() => handleFiltroChange('acopio')}
                   className={filtroCategoria === 'acopio' ? 'btn btn-primary' : 'btn btn-outline'}
                   style={{ 
                     minWidth: '120px',
-                    ...(filtroCategoria === 'acopio' && { backgroundColor: '#3498db', borderColor: '#3498db' })
+                    ...(filtroCategoria === 'acopio' && { 
+                      backgroundColor: '#3498db', 
+                      borderColor: '#3498db',
+                      color: 'white'
+                    })
                   }}
                 >
-                  📦 Acopio
+                  📦 Acopio ({contarPorCategoria('acopio')})
                 </button>
+
+                {/* Botón PROCESAMIENTO */}
                 <button
-                  onClick={() => setFiltroCategoria('procesamiento')}
+                  onClick={() => handleFiltroChange('procesamiento')}
                   className={filtroCategoria === 'procesamiento' ? 'btn btn-primary' : 'btn btn-outline'}
                   style={{ 
                     minWidth: '120px',
-                    ...(filtroCategoria === 'procesamiento' && { backgroundColor: '#f39c12', borderColor: '#f39c12' })
+                    ...(filtroCategoria === 'procesamiento' && { 
+                      backgroundColor: '#f39c12', 
+                      borderColor: '#f39c12',
+                      color: 'white'
+                    })
                   }}
                 >
-                  ⚙️ Procesamiento
+                  ⚙️ Procesamiento ({contarPorCategoria('procesamiento')})
                 </button>
+
+                {/* Botón INSPECCIÓN */}
                 <button
-                  onClick={() => setFiltroCategoria('inspeccion')}
+                  onClick={() => handleFiltroChange('inspeccion')}
                   className={filtroCategoria === 'inspeccion' ? 'btn btn-primary' : 'btn btn-outline'}
                   style={{ 
                     minWidth: '120px',
-                    ...(filtroCategoria === 'inspeccion' && { backgroundColor: '#27ae60', borderColor: '#27ae60' })
+                    ...(filtroCategoria === 'inspeccion' && { 
+                      backgroundColor: '#27ae60', 
+                      borderColor: '#27ae60',
+                      color: 'white'
+                    })
                   }}
                 >
-                  🔍 Inspección
+                  🔍 Inspección ({contarPorCategoria('inspeccion')})
                 </button>
               </div>
             </div>
@@ -238,32 +301,31 @@ const MapaActividades = () => {
               
               {/* Mapa */}
               <MapContainer
-              center={center}
-              zoom={8}
-              style={{ height: '100%', width: '100%' }}
-            >
-              <LayersControl position="topright">
-                {/* Capa de Mapa Normal */}
-                <LayersControl.BaseLayer name="🗺️ Mapa Normal">
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                </LayersControl.BaseLayer>
+                center={center}
+                zoom={8}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <LayersControl position="topright">
+                  {/* Capa de Mapa Normal */}
+                  <LayersControl.BaseLayer name="🗺️ Mapa Normal">
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                  </LayersControl.BaseLayer>
 
-                {/* Capa Satelital - ACTIVA POR DEFECTO */}
-                <LayersControl.BaseLayer checked name="🛰️ Vista Satelital">
-                  <TileLayer
-                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    maxZoom={19}
-                  />
-                </LayersControl.BaseLayer>
-
-              </LayersControl>
-              
-              {puntos.map((punto) => (
-
+                  {/* Capa Satelital - ACTIVA POR DEFECTO */}
+                  <LayersControl.BaseLayer checked name="🛰️ Vista Satelital">
+                    <TileLayer
+                      attribution='Tiles &copy; Esri'
+                      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                      maxZoom={19}
+                    />
+                  </LayersControl.BaseLayer>
+                </LayersControl>
+                
+                {/* ⬅️ CAMBIADO: Usar puntosFiltrados en vez de puntos */}
+                {puntosFiltrados.map((punto) => (
                   <React.Fragment key={punto.id}>
                     <Marker
                       position={[parseFloat(punto.latitud), parseFloat(punto.longitud)]}
@@ -291,9 +353,9 @@ const MapaActividades = () => {
                             </p>
                           )}
                           
-                          {punto.volumen_m3 && (
+                          {punto.volumenM3 && (
                             <p style={{ margin: '5px 0' }}>
-                              <strong>📊 Volumen:</strong> {punto.volumen_m3} m³
+                              <strong>📊 Volumen:</strong> {punto.volumenM3} m³
                             </p>
                           )}
                           
@@ -347,7 +409,7 @@ const MapaActividades = () => {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                     }}></div>
                     <span style={{ fontSize: '13px' }}>
-                      {CATEGORIA_LABELS[key]}
+                      {CATEGORIA_LABELS[key]} ({contarPorCategoria(key)})
                     </span>
                   </div>
                 ))}
@@ -365,7 +427,7 @@ const MapaActividades = () => {
               <ol className="instruction-list">
                 <li>Usa los filtros para visualizar puntos por categoría de actividad</li>
                 <li>Haz clic en cualquier marcador para ver información detallada</li>
-                <li>Los puntos se registran desde la aplicación móvil para campo - TU MINA</li>
+                <li>Los puntos se registran desde la aplicación móvil TU MINA</li>
                 <li>Los colores indican el tipo de actividad minera realizada</li>
               </ol>
             </div>

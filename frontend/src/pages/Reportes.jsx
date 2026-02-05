@@ -144,8 +144,13 @@ const Reportes = () => {
           <div className="header-content">
             <div className="header-left">
               <div className="logo">
-                <img src="/logo.png" alt="Logo TU MINA" width="50" height="50"
-                 style={{ borderRadius: '8px', objectFit: 'contain' }} />
+                <img
+                  src={`${import.meta.env.BASE_URL}logo.png`}
+                  alt="Logo TU MINA"
+                  width="50"
+                  height="50"
+                  style={{ borderRadius: '8px', objectFit: 'contain' }}
+                />
               </div>
               <div>
                 <h1>TU MINA</h1>

@@ -59,8 +59,13 @@ const Login = () => {
         <div className="login-card">
           <div className="login-header">
             <div className="login-logo">
-              <img src="/logo.png" alt="Logo TU MINA"l width="100" height="100"
-              style={{ borderRadius: '16px', objectFit: 'contain' }} />
+              <img
+                src={`${import.meta.env.BASE_URL}logo.png`}
+                alt="Logo TU MINA"
+                width="50"
+                height="50"
+                style={{ borderRadius: '8px', objectFit: 'contain' }}
+              />
             </div>
             <h1>Sistema TU MINA</h1>
             <p>Agencia Nacional de Minería</p>

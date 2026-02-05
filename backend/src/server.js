@@ -26,9 +26,46 @@ app.use(cors({
     'http://localhost:3000',            // dev local
     'https://ctglobal.com.co',          // dominio raíz
     'https://ctglobal.com.co/TU_MINA',  // ruta del frontend
-    'http://192.168.0.5:3000',      
-    'http://192.168.0.5:8081',      
-    'http://192.168.0.5:19000',     
+
+      // === DESARROLLO LOCAL ===
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://192.168.0.5:3000',      // Frontend local en red
+    'http://192.168.0.5:5000',      // Backend local
+    
+    // === APP MÓVIL - DESARROLLO LOCAL ===
+    'http://192.168.0.5:8081',      // Expo Dev Server
+    'http://192.168.0.5:19000',     // Expo Metro
+    'http://192.168.0.5:19006',     // Expo Web
+    'exp://192.168.0.5:8081',       // Expo protocolo
+
+      // === DESARROLLO LOCAL ===
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://192.168.1.8:3000',      // Frontend local en red
+    'http://192.168.1.8:5000',      // Backend local
+    
+    // === APP MÓVIL - DESARROLLO LOCAL ===
+    'http://192.168.1.8:8081',      // Expo Dev Server
+    'http://192.168.1.8:19000',     // Expo Metro
+    'http://192.168.1.8:19006',     // Expo Web
+    'exp://192.168.1.8:8081',       // Expo protocolo
+
+    // === PRODUCCIÓN - HOSTINGER/VPS ===
+    'https://ctglobal.com.co',               // Frontend producción raíz
+    'https://www.ctglobal.com.co',           // Con www
+    'https://api.ctglobal.com.co',           // API producción
+    'http://200.7.107.14:5000',              // VPS IP directo (si se usa)
+    'http://200.7.107.14:5001',              // VPS IP puerto alternativo
+    
+    // === APP MÓVIL - PRODUCCIÓN ===
+    // Las apps móviles no tienen un "origen" fijo, se permite sin origin
+    
+    // Variable de entorno (opcional)
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -1853,7 +1890,7 @@ app.post('/api/reportes/exportar-pdf', async (req, res) => {
 // INICIAR SERVIDOR
 // ============================================
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n✅ ========================================`);
   console.log(`✅ Servidor ANM-FRI corriendo en puerto ${PORT}`);
   console.log(`✅ ========================================`);

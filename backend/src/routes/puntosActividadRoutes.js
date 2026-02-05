@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const puntosController = require('../controllers/puntosActividadController');
+const controller = require('../controllers/puntosActividadController');
 
-router.post('/punto', puntosController.registrarPunto);
-router.get('/puntos/:tituloMineroId', puntosController.getPuntos);
-router.get('/puntos/:tituloMineroId/estadisticas', puntosController.getEstadisticas);
+// Rutas de actividad (sin middleware de auth por ahora para debugging)
+router.post('/punto', controller.registrarPunto);
+router.get('/puntos/:tituloMineroId', controller.getPuntos);
+router.get('/estadisticas/:tituloMineroId', controller.getEstadisticas);
 
 module.exports = router;
