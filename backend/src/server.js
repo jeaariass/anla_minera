@@ -13,7 +13,7 @@ dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 // ============================================
 // MIDDLEWARE (SOLO UNA VEZ)
@@ -33,7 +33,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://192.168.0.5:3000',      // Frontend local en red
-    'http://192.168.0.5:5000',      // Backend local
+    'http://192.168.0.5:3001',      // Backend local
     
     // === APP MÓVIL - DESARROLLO LOCAL ===
     'http://192.168.0.5:8081',      // Expo Dev Server
@@ -47,7 +47,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://192.168.1.8:3000',      // Frontend local en red
-    'http://192.168.1.8:5000',      // Backend local
+    'http://192.168.1.8:3001',      // Backend local
     
     // === APP MÓVIL - DESARROLLO LOCAL ===
     'http://192.168.1.8:8081',      // Expo Dev Server
@@ -59,7 +59,7 @@ app.use(cors({
     'https://ctglobal.com.co',               // Frontend producción raíz
     'https://www.ctglobal.com.co',           // Con www
     'https://api.ctglobal.com.co',           // API producción
-    'http://200.7.107.14:5000',              // VPS IP directo (si se usa)
+    'http://200.7.107.14:3001',              // VPS IP directo (si se usa)
     'http://200.7.107.14:5001',              // VPS IP puerto alternativo
     
     // === APP MÓVIL - PRODUCCIÓN ===
