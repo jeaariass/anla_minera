@@ -203,7 +203,7 @@ const HistorialPuntosScreen = ({ navigation }) => {
 
       // 1) Siempre generar primero en sandbox de la app
       const tempUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(tempUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      await FileSystem.writeAsStringAsync(tempUri, csv);
 
       // 2) ANDROID: guardar en una carpeta elegida (ideal: Descargas)
       if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
@@ -226,7 +226,7 @@ const HistorialPuntosScreen = ({ navigation }) => {
           'text/csv'
         );
 
-        await FileSystem.writeAsStringAsync(destUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+        await FileSystem.writeAsStringAsync(destUri, csv);
 
         Alert.alert('✅ Exportado', 'CSV guardado en la carpeta seleccionada (recomendado: Descargas).');
         setModalExportar(false);
