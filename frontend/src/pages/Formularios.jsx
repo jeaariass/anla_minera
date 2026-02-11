@@ -55,6 +55,8 @@ const Formularios = () => {
     rechazados: 0,
     porTipo: {}
   });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formErrorBanner, setFormErrorBanner] = useState('');
 
   const tiposFormularios = [
     { id: 'produccion', nombre: 'FRI Producción (Mensual)', icon: <FileText size={32} />, color: '#3b82f6' },
@@ -198,6 +200,67 @@ const Formularios = () => {
     setView('create');
   };
 
+  // Campos que deben ser alfanuméricos (permiten letras, números, espacios y algunos separadores)
+  const ALFANUM_FIELDS = new Set([
+    'denominacionFrente',
+    'tipoMaquinaria',       // OJO: en "maquinaria" es <select>, pero validamos solo si type==="text"
+    'marca',
+    'modelo',
+    'areaProduccion',
+    'tecnologiaUtilizada',
+    'certificaciones',
+    'proyeccionTopografia',
+    'resolucionUPME',
+  ]);
+
+  const validateAlfanumerico = (value) => {
+      if (!value || value.trim() === '') return ''; // vacío lo validaremos después con required
+
+      const v = value.trim();
+
+      // 1) Si es solo números => error (lo que tú pediste)
+      if (/^\d+$/.test(v)) {
+        return 'Este campo debe ser alfanumérico (debe contener al menos una letra).';
+      }
+
+      // 2) Debe contener al menos una letra (puede tener números o no)
+      if (!/[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(v)) {
+        return 'Este campo debe contener letras (puede incluir números).';
+      }
+
+      // 3) Solo permitir letras/números/espacios y separadores comunes
+      // (si quieres ser más estricto, quitamos - . /)
+      if (!/^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s\-./]+$/.test(v)) {
+        return 'Solo se permiten letras y números.';
+      }
+
+      return '';
+      };
+
+    const COORD_5_DECIMALS = /^-?\d+\.\d{5}$/;
+
+  const validateCoord5 = (value, kind /* 'lat' | 'lng' */) => {
+    const v = String(value ?? '').trim();
+    if (!v) return 'Este campo es obligatorio.';
+
+    if (!COORD_5_DECIMALS.test(v)) {
+      return 'Debe tener exactamente 5 decimales (ej: 4.12345).';
+    }
+
+    const n = Number(v);
+    if (Number.isNaN(n)) return 'Coordenada inválida.';
+
+    if (kind === 'lat' && (n < -90 || n > 90)) return 'Latitud fuera de rango (-90 a 90).';
+    if (kind === 'lng' && (n < -180 || n > 180)) return 'Longitud fuera de rango (-180 a 180).';
+
+    return '';
+  };
+
+  const hasErrors = (errs) =>
+  Object.values(errs).some(msg => msg && String(msg).trim().length > 0);
+
+
+
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
     
@@ -206,6 +269,32 @@ const Formularios = () => {
     if (type === 'number' && value !== '') {
       processedValue = parseFloat(value) || 0;
     }
+
+    // Validación alfanumérica SOLO si el campo está en la lista y el input es de texto
+    if (type === 'text' && ALFANUM_FIELDS.has(name)) {
+      const err = validateAlfanumerico(value);
+      setFieldErrors(prev => ({ ...prev, [name]: err }));
+    } else {
+      // si cambia otro tipo de input, no tocamos ese error (o lo limpiamos si era de este name)
+    
+    }
+
+    //  VALIDACIÓN LATITUD (5 decimales)
+    if (name === 'latitud') {
+      const err = /^-?\d+\.\d{5}$/.test(value)
+        ? ''
+        : 'Debe tener exactamente 5 decimales (ej: 4.12345)';
+      setFieldErrors(prev => ({ ...prev, latitud: err }));
+    }
+
+    //  VALIDACIÓN LONGITUD (5 decimales)
+    if (name === 'longitud') {
+      const err = /^-?\d+\.\d{5}$/.test(value)
+        ? ''
+        : 'Debe tener exactamente 5 decimales (ej: -74.12345)';
+      setFieldErrors(prev => ({ ...prev, longitud: err }));
+    }
+
     
     setFormData(prev => ({
       ...prev,
@@ -215,6 +304,21 @@ const Formularios = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const nextErrors = { ...fieldErrors };
+
+    if ('latitud' in formData) nextErrors.latitud = validateCoord5(formData.latitud, 'lat');
+    if ('longitud' in formData) nextErrors.longitud = validateCoord5(formData.longitud, 'lng');
+
+    setFieldErrors(nextErrors);
+
+    if (hasErrors(nextErrors)) {
+      setFormErrorBanner('Hay campos con formato incorrecto. Revisa los marcados en rojo.');
+      return; 
+    }
+
+    setFormErrorBanner('');
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
@@ -797,41 +901,55 @@ const Formularios = () => {
               <input 
                 type="text" 
                 name="denominacionFrente" 
-                className="form-input"
+                className={`form-input ${fieldErrors.denominacionFrente ? 'error' : ''}`}
                 value={formData.denominacionFrente || ''}
                 onChange={handleInputChange}
                 placeholder="Ej: Frente A, Frente Norte"
                 required
               />
+              <div className="field-hint">Ejemplo: Frente A / Norte 2</div>
+              {fieldErrors.denominacionFrente && (
+                <div className="field-error-text">{fieldErrors.denominacionFrente}</div>
+              )}
             </div>
 
             <div className="grid grid-2">
               <div className="form-group">
                 <label className="form-label">Latitud *</label>
-                <input 
-                  type="number" 
-                  name="latitud" 
-                  className="form-input"
-                  value={formData.latitud || ''}
+                <input
+                  type="number"
+                  name="latitud"
+                  value={formData.latitud ?? ''}
                   onChange={handleInputChange}
-                  step="0.00000001"
-                  placeholder="Ej: 4.60971"
+                  className={`form-input ${fieldErrors.latitud ? 'error' : ''}`}
+                  step="0.00001"
+                  min="4"
+                  max="12"
+                  placeholder="Ej: 4.12345"
                   required
                 />
+
+                <div className="field-hint">Formato: 4.00000 a 12.00000 (5 decimales)</div>
+                {fieldErrors.latitud && <div className="field-error-text">{fieldErrors.latitud}</div>}
               </div>
 
               <div className="form-group">
                 <label className="form-label">Longitud *</label>
-                <input 
-                  type="number" 
-                  name="longitud" 
-                  className="form-input"
-                  value={formData.longitud || ''}
+                <input
+                  type="number"
+                  name="longitud"
+                  value={formData.longitud ?? ''}
                   onChange={handleInputChange}
-                  step="0.00000001"
-                  placeholder="Ej: -74.08175"
+                  className={`form-input ${fieldErrors.longitud ? 'error' : ''}`}
+                  step="0.00001"
+                  min="-79"
+                  max="-66"
+                  placeholder="Ej: -74.12345"
                   required
                 />
+
+                <div className="field-hint">Formato: -66.00000 a -79.00000 (5 decimales)</div>
+                {fieldErrors.longitud && <div className="field-error-text">{fieldErrors.longitud}</div>}
               </div>
             </div>
 
@@ -1123,11 +1241,13 @@ const Formularios = () => {
               <input 
                 type="text" 
                 name="resolucionUPME" 
-                className="form-input"
+                className={`form-input ${fieldErrors.resolucionUPME ? 'error' : ''}`}
                 value={formData.resolucionUPME || ''}
                 onChange={handleInputChange}
                 placeholder="Número de resolución"
               />
+              <div className="field-hint">Ejemplo: Resolución 599 </div>
+              {fieldErrors.resolucionUPME && <div className="field-error-text">{fieldErrors.resolucionUPME}</div>}
             </div>
 
             <div className="form-group">
@@ -1165,12 +1285,14 @@ const Formularios = () => {
                 <input 
                   type="text" 
                   name="tipoMaquinaria" 
-                  className="form-input"
+                  className={`form-input ${fieldErrors.tipoMaquinaria ? 'error' : ''}`}
                   value={formData.tipoMaquinaria || ''}
                   onChange={handleInputChange}
                   placeholder="Ej: Excavadora, Cargador"
                   required
                 />
+                <div className="field-hint">Ejemplo: Excavadora, Cargador</div>
+                {fieldErrors.tipoMaquinaria && <div className="field-error-text">{fieldErrors.tipoMaquinaria}</div>}
               </div>
             </div>
 
@@ -1180,11 +1302,13 @@ const Formularios = () => {
                 <input 
                   type="text" 
                   name="marca" 
-                  className="form-input"
+                  className={`form-input ${fieldErrors.marca ? 'error' : ''}`}
                   value={formData.marca || ''}
                   onChange={handleInputChange}
                   placeholder="Ej: Caterpillar, Komatsu"
                 />
+                <div className="field-hint">Ejemplo: Caterpillar / Komatsu</div>
+                {fieldErrors.marca && <div className="field-error-text">{fieldErrors.marca}</div>}    
               </div>
 
               <div className="form-group">
@@ -1192,11 +1316,13 @@ const Formularios = () => {
                 <input 
                   type="text" 
                   name="modelo" 
-                  className="form-input"
+                  className={`form-input ${fieldErrors.modelo ? 'error' : ''}`}
                   value={formData.modelo || ''}
                   onChange={handleInputChange}
                   placeholder="Ej: 320D, PC200"
                 />
+                <div className="field-hint">Ejemplo: 320D / PC200</div>
+                {fieldErrors.modelo && <div className="field-error-text">{fieldErrors.modelo}</div>}
               </div>
             </div>
 
@@ -1282,12 +1408,14 @@ const Formularios = () => {
                 <input 
                   type="text" 
                   name="areaProduccion" 
-                  className="form-input"
+                  className={`form-input ${fieldErrors.areaProduccion ? 'error' : ''}`}
                   value={formData.areaProduccion || ''}
                   onChange={handleInputChange}
                   placeholder="Ej: Zona Norte, Sector A"
                   required
                 />
+                <div className="field-hint">Ejemplo: Zona Norte, Sector A</div>
+                {fieldErrors.areaProduccion && <div className="field-error-text">{fieldErrors.areaProduccion}</div>}
               </div>
             </div>
 
@@ -1296,12 +1424,14 @@ const Formularios = () => {
               <input 
                 type="text" 
                 name="tecnologiaUtilizada" 
-                className="form-input"
+                className={`form-input ${fieldErrors.tecnologiaUtilizada ? 'error' : ''}`}
                 value={formData.tecnologiaUtilizada || ''}
                 onChange={handleInputChange}
                 placeholder="Descripción de la tecnología"
                 required
               />
+              <div className="field-hint">Descripción de la tecnología</div>
+              {fieldErrors.tecnologiaUtilizada && <div className="field-error-text">{fieldErrors.tecnologiaUtilizada}</div>}
             </div>
 
             <div className="grid grid-2">
@@ -1356,11 +1486,13 @@ const Formularios = () => {
               <input 
                 type="text" 
                 name="certificaciones" 
-                className="form-input"
+                className={`form-input ${fieldErrors.certificaciones ? 'error' : ''}`}
                 value={formData.certificaciones || ''}
                 onChange={handleInputChange}
                 placeholder="ISO, RETIE, etc."
               />
+              <div className="field-hint">Ejemplo: ISO, RETIE, etc.</div>
+              {fieldErrors.certificaciones && <div className="field-error-text">{fieldErrors.certificaciones}</div>}
             </div>
 
             <div className="form-group">
@@ -1477,11 +1609,13 @@ const Formularios = () => {
                 <input 
                   type="text" 
                   name="proyeccionTopografia" 
-                  className="form-input"
+                  className={`form-input ${fieldErrors.proyeccionTopografia ? 'error' : ''}`}
                   value={formData.proyeccionTopografia || ''}
                   onChange={handleInputChange}
                   placeholder="Sistema de coordenadas"
                 />
+                <div className="field-hint">Ejemplo: EPGS 9377</div>
+                {fieldErrors.proyeccionTopografiaa && <div className="field-error-text">{fieldErrors.proyeccionTopografia}</div>}
               </div>
 
               <div className="form-group">
@@ -1743,6 +1877,12 @@ const Formularios = () => {
 
               <form onSubmit={handleSubmit} className="formulario-form">
                 {renderFormFields()}
+
+                {formErrorBanner && (
+                  <div className="form-error-banner">
+                    {formErrorBanner}
+                  </div>
+                )}
 
                 <div className="form-actions">
                   <button
