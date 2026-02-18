@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 // SERVICIOS
 const excelReports = require('./services/excelReports');
 const simpleExporter = require('./services/simpleExporter');
+const pdfExporter = require('./services/pdfExporter');
 
 dotenv.config();
 
@@ -1748,7 +1749,7 @@ app.put('/api/fri/:tipo/:id/estado', async (req, res) => {
 // REPORTES Y EXPORTACIÓN
 // ============================================
 
-app.post('/api/reportes/exportar-anm', async (req, res) => {
+app.post('/api/reportes/exportar-excel', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
@@ -1805,7 +1806,7 @@ app.post('/api/reportes/exportar-anm', async (req, res) => {
       return res.status(404).json({ success: false, message: 'No se encontraron datos con los filtros especificados' });
     }
 
-    const workbook = await simpleExporter.generarExcelConsolidado(datosPorTipo);
+    const workbook = await simpleExporter.exportarMultiples(datosPorTipo);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=FRI_ANM_${Date.now()}.xlsx`);
@@ -1821,19 +1822,31 @@ app.post('/api/reportes/exportar-anm', async (req, res) => {
 app.post('/api/reportes/exportar-pdf', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token no proporcionado' 
+      });
+    }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { tipos = [], filtros = {} } = req.body || {};
 
     if (tipos.length === 0) {
-      return res.status(400).json({ success: false, message: 'Debe seleccionar al menos un tipo de formulario' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Debe seleccionar al menos un tipo de formulario' 
+      });
     }
 
+    // Construir whereClauses para filtrar datos
     const whereClauses = {};
     
     if (filtros.fechaInicio && filtros.fechaFin) {
-      whereClauses.fechaCorte = { gte: new Date(filtros.fechaInicio), lte: new Date(filtros.fechaFin) };
+      whereClauses.fechaCorte = { 
+        gte: new Date(filtros.fechaInicio), 
+        lte: new Date(filtros.fechaFin) 
+      };
     } else if (filtros.fechaInicio) {
       whereClauses.fechaCorte = { gte: new Date(filtros.fechaInicio) };
     } else if (filtros.fechaFin) {
@@ -1843,46 +1856,87 @@ app.post('/api/reportes/exportar-pdf', async (req, res) => {
     if (filtros.tituloMineroId) whereClauses.tituloMineroId = filtros.tituloMineroId;
     if (filtros.mineral) whereClauses.mineral = filtros.mineral;
     if (filtros.estado) whereClauses.estado = filtros.estado;
-    if (decoded.rol !== 'ADMIN') whereClauses.usuarioId = decoded.id;
+    
+    // Si no es ADMIN, solo ver sus propios datos
+    if (decoded.rol !== 'ADMIN') {
+      whereClauses.usuarioId = decoded.id;
+    }
 
+    // Obtener datos de cada tipo de formulario seleccionado
     const datosPorTipo = {};
     
     for (const tipo of tipos) {
       let modelo;
+      
       switch(tipo) {
-        case 'produccion': modelo = prisma.fRIProduccion; break;
-        case 'inventarios': modelo = prisma.fRIInventarios; break;
-        case 'paradas': modelo = prisma.fRIParadas; break;
-        case 'ejecucion': modelo = prisma.fRIEjecucion; break;
-        case 'maquinaria': modelo = prisma.fRIMaquinaria; break;
-        case 'regalias': modelo = prisma.fRIRegalias; break;
-        default: continue;
+        case 'produccion':
+          modelo = prisma.fRIProduccion;
+          break;
+        case 'inventarios':
+          modelo = prisma.fRIInventarios;
+          break;
+        case 'paradas':
+          modelo = prisma.fRIParadas;
+          break;
+        case 'ejecucion':
+          modelo = prisma.fRIEjecucion;
+          break;
+        case 'maquinaria':
+          modelo = prisma.fRIMaquinaria;
+          break;
+        case 'regalias':
+          modelo = prisma.fRIRegalias;
+          break;
+        default:
+          continue;
       }
 
+      // Consultar datos con relaciones incluidas
       const datos = await modelo.findMany({
         where: whereClauses,
         include: {
-          usuario: { select: { nombre: true } },
-          tituloMinero: { select: { numeroTitulo: true, municipio: true } }
+          tituloMinero: true,
+          usuario: {
+            select: {
+              nombre: true,
+              email: true
+            }
+          }
         },
         orderBy: { fechaCorte: 'desc' }
       });
 
-      if (datos.length > 0) datosPorTipo[tipo] = datos;
+      if (datos.length > 0) {
+        datosPorTipo[tipo] = datos;
+      }
     }
 
+    // Verificar que hay datos
     if (Object.keys(datosPorTipo).length === 0) {
-      return res.status(404).json({ success: false, message: 'No se encontraron datos con los filtros especificados' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No se encontraron datos con los filtros especificados' 
+      });
     }
 
-    const pdfBuffer = await pdfExporter.generarPDFConsolidado(datosPorTipo);
+    // Generar el PDF
+    const pdfBuffer = await pdfExporter.generarPDFConPlantilla(datosPorTipo, filtros);
 
+    // Configurar headers para descarga
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=FRI_ANM_${Date.now()}.pdf`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Enviar el PDF
     res.send(pdfBuffer);
 
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al generar PDF', error: error.message });
+    console.error('Error al generar PDF:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al generar PDF', 
+      error: error.message 
+    });
   }
 });
 

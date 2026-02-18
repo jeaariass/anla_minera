@@ -116,7 +116,18 @@ export const friService = {
 // SERVICIO DE REPORTES
 export const reportService = {
   getPreview: (params) => api.get('/reports/preview', { params }),
-  exportarExcel: (params) => api.get('/reports/export', { params, responseType: 'blob' })
+  // Exportar a Excel
+  exportarExcel: (payload) => {
+    return api.post('/reportes/exportar-excel', payload, {
+      responseType: 'arraybuffer'
+    });
+  },
+  // Exportar a PDF
+  exportarPDF: (payload) => {
+    return api.post('/reportes/exportar-pdf', payload, {
+      responseType: 'arraybuffer'
+    });
+  }
 };
 
 export const androidService = {

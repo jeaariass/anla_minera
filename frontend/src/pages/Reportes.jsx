@@ -5,13 +5,15 @@ import {
   ArrowLeft, 
   Download, 
   Eye,
+  X,
   FileSpreadsheet,
   Calendar,
   Filter,
   AlertCircle,
   CheckCircle,
   User,
-  LogOut
+  LogOut,
+  FileText
 } from 'lucide-react';
 import './Reportes.css';
 
@@ -86,39 +88,92 @@ const Reportes = () => {
     }
   };
 
-  const handleExportar = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
+  // ✅ DESPUÉS - Mismo formato que handleExportarPDF
+const handleExportar = async () => {
+  try {
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-      const response = await reportService.exportarExcel(filtros);
+    // ✅ Mismo formato que el PDF - el backend espera tipos como array
+    const payload = {
+      tipos: [filtros.tipo],
+      filtros: {
+        fechaInicio: filtros.fechaInicio || undefined,
+        fechaFin: filtros.fechaFin || undefined
+      }
+    };
 
-      const blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      const nombreArchivo = `FRI_${filtros.tipo}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      link.setAttribute('download', nombreArchivo);
-      
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+    const response = await reportService.exportarExcel(payload); // ← CORRECTO
 
-      setSuccess(`✓ Archivo "${nombreArchivo}" descargado correctamente`);
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const nombreArchivo = `FRI_${filtros.tipo}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.setAttribute('download', nombreArchivo);
+    
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
 
-    } catch (err) {
-      console.error('Error exportando:', err);
-      setError(err.response?.data?.message || 'Error al exportar archivo');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setSuccess(`✓ Archivo "${nombreArchivo}" descargado correctamente`);
+
+  } catch (err) {
+    console.error('Error exportando:', err);
+    setError(err.response?.data?.message || 'Error al exportar archivo');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    // Crear el payload con el tipo de formulario en array
+    const payload = {
+      tipos: [filtros.tipo], // El backend espera un array de tipos
+      filtros: {
+        fechaInicio: filtros.fechaInicio || undefined,
+        fechaFin: filtros.fechaFin || undefined
+      }
+    };
+
+    const response = await reportService.exportarPDF(payload);
+
+    const blob = new Blob([response.data], { 
+      type: 'application/pdf' 
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const nombreArchivo = `FRI_${filtros.tipo}_${new Date().toISOString().split('T')[0]}.pdf`;
+    link.setAttribute('download', nombreArchivo);
+    
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    setSuccess(`✓ Archivo PDF "${nombreArchivo}" descargado correctamente`);
+
+  } catch (err) {
+    console.error('Error exportando PDF:', err);
+    setError(err.response?.data?.message || 'Error al exportar archivo PDF');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const limpiarFiltros = () => {
     setFiltros({
@@ -277,36 +332,33 @@ const Reportes = () => {
                   />
                 </div>
               </div>
-
-              <div className="card-actions">
-                <button 
-                  onClick={handleVistaPrevia} 
-                  className="btn btn-secondary"
-                  disabled={loading}
-                >
-                  <Eye size={20} />
-                  {loading ? 'Cargando...' : 'Vista Previa'}
-                </button>
-
-                <button 
-                  onClick={limpiarFiltros} 
-                  className="btn btn-outline"
-                  disabled={loading}
-                >
+                <div className="card-actions">
+                {/* Botón Limpiar - se va a la izquierda automáticamente */}
+                <button onClick={limpiarFiltros} className="btn btn-outline" disabled={loading}>
+                  <X size={18} />
                   Limpiar Filtros
                 </button>
 
-                <button 
-                  onClick={handleExportar} 
-                  className="btn btn-primary"
-                  disabled={loading || preview.total === 0}
-                >
-                  <Download size={20} />
-                  Exportar a Excel
+                {/* Botón Vista Previa - Verde */}
+                <button onClick={handleVistaPrevia} className="btn btn-info" disabled={loading || !filtros.tipo}>
+                  <Eye size={18} />
+                  {loading ? 'Cargando...' : 'Vista Previa'}
                 </button>
+
+                {/* Botón Exportar Excel - Azul */}
+                <button onClick={handleExportar} className="btn btn-primary" disabled={loading || !filtros.tipo}>
+                  <FileSpreadsheet size={18} />
+                  {loading ? 'Generando...' : 'Exportar a Excel'}
+                </button>
+
+                {/* Botón Exportar PDF - Rojo */}
+                <button onClick={handleExportarPDF} className="btn btn-danger" disabled={loading || !filtros.tipo}>
+                  <FileText size={18} />
+                  {loading ? 'Generando...' : 'Exportar a PDF'}
+                </button>
+              </div>      
               </div>
             </div>
-          </div>
 
           {/* Vista Previa */}
           {preview.visible && (

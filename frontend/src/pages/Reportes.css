@@ -331,27 +331,51 @@
 /* Actions */
 .card-actions {
   display: flex;
+  flex-direction: row;        /* Todos en fila horizontal */
+  align-items: center;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: flex-end;  /* Alineados a la derecha */
   flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-color);
 }
 
+/* ==========================================
+   ACTIONS - BOTONES
+   ========================================== */
+
+.card-actions {
+  display: flex;
+  flex-direction: row;        /* Todos en fila horizontal */
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;  /* Alineados a la derecha */
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-color);
+}
+
+/* Botón base - igual al resto de la página */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px 28px;
+  gap: 8px;
+  padding: 12px 24px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  white-space: nowrap;
 }
 
+/* Efecto onda al hacer clic */
 .btn::before {
   content: '';
   position: absolute;
@@ -376,6 +400,34 @@
   transform: none !important;
 }
 
+/* Limpiar Filtros - Blanco con borde */
+.btn-outline {
+  background: white;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  margin-right: auto; /* Se va a la izquierda */
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--background);
+  border-color: var(--text-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Vista Previa - Verde */
+.btn-info {
+  background: linear-gradient(135deg, #48bb78, #38a169);
+  color: white;
+  box-shadow: 0 4px 14px rgba(72, 187, 120, 0.4);
+}
+
+.btn-info:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
+}
+
+/* Exportar Excel - Azul */
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   color: white;
@@ -383,21 +435,38 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
 }
 
-.btn-secondary {
-  background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));
+/* Exportar PDF - Rojo */
+.btn-danger {
+  background: linear-gradient(135deg, #fc8181, #f56565);
   color: white;
-  box-shadow: 0 4px 14px rgba(72, 187, 120, 0.4);
+  box-shadow: 0 4px 14px rgba(245, 101, 101, 0.4);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 101, 101, 0.5);
 }
 
+/* Responsive - En móvil se apilan */
+@media (max-width: 768px) {
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .btn-outline {
+    margin-right: 0;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Botón con Outline (si se usa en el futuro) */
 .btn-outline {
   background: white;
   color: var(--text-secondary);
@@ -511,10 +580,9 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
+@media (min-width: 769px) {
+  .card-actions .btn-secondary {
+    margin-right: auto;  /* Empuja Limpiar a la izquierda */
   }
 
   .page-title-section {
