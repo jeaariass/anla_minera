@@ -101,7 +101,19 @@ const getColumnas = (tipo) => {
       'Valor_Contraprestaciones',
       'Resolucion_UPME',
       'Estado'
-    ]
+    ],
+    puntosActividad: [
+    'Fecha',
+    'Usuario_id',
+    'Titulo_minero_id',
+    'Categoria',
+    'Descripcion',
+    'Maquinaria',
+    'Volumen_m3',
+    'Latitud',
+    'Longitud'
+  ]
+
   };
   return columnas[tipo] || [];
 };
@@ -111,8 +123,17 @@ const transformarDatos = (datos, tipo) => {
   return datos.map(registro => {
     const formatearFecha = (fecha) => {
       if (!fecha) return '';
-      return new Date(fecha).toLocaleDateString('es-CO');
+      return new Date(fecha).toLocaleString('es-CO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
     };
+
 
     const formatearNumero = (numero) => {
       if (numero === null || numero === undefined) return '';
@@ -218,6 +239,36 @@ const transformarDatos = (datos, tipo) => {
           Resolucion_UPME: registro.resolucionUPME || '',
           Estado: base.Estado
         };
+      case 'puntosActividad':
+        return {
+          Fecha: registro.fecha
+            ? new Date(registro.fecha).toLocaleString('es-CO', {
+                timeZone: 'America/Bogota',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              })
+            : '',
+          Usuario_id: registro.usuario_id || '',
+          Titulo_minero_id: registro.titulo_minero_id || '',
+          Categoria: registro.categoria || '',
+          Descripcion: registro.descripcion || '',
+          Maquinaria: registro.maquinaria || '',
+          Volumen_m3: (registro.volumen_m3 === null || registro.volumen_m3 === undefined)
+            ? ''
+            : registro.volumen_m3,
+          Latitud: (registro.latitud === null || registro.latitud === undefined)
+            ? ''
+            : registro.latitud,
+          Longitud: (registro.longitud === null || registro.longitud === undefined)
+            ? ''
+            : registro.longitud
+        };
+
+
       
       default:
         return base;
@@ -244,7 +295,8 @@ exports.getPreview = async (req, res) => {
       paradas: prisma.fRIParadas,
       ejecucion: prisma.fRIEjecucion,
       maquinaria: prisma.fRIMaquinaria,
-      regalias: prisma.fRIRegalias
+      regalias: prisma.fRIRegalias,
+      puntosActividad: prisma.puntos_actividad
     };
 
     const modelo = modelos[tipo];
@@ -252,29 +304,44 @@ exports.getPreview = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Tipo inválido' });
     }
 
+    // ✅ Campo fecha según el tipo
+    const campoFecha = (tipo === 'puntosActividad') ? 'fecha' : 'fechaCorte';
+
     // Filtros
     const filtros = {};
+
+    // ✅ Rango fechas (usa campoFecha correcto)
     if (fechaInicio && fechaFin) {
-      filtros.fechaCorte = {
+      filtros[campoFecha] = {
         gte: new Date(fechaInicio),
         lte: new Date(fechaFin)
       };
+    } else if (fechaInicio) {
+      filtros[campoFecha] = { gte: new Date(fechaInicio) };
+    } else if (fechaFin) {
+      filtros[campoFecha] = { lte: new Date(fechaFin) };
     }
 
-    // Si no es admin, solo sus registros
+    // ✅ Si no es admin, solo sus registros (usuarioId vs usuario_id)
     if (decoded.rol !== 'ADMIN') {
-      filtros.usuarioId = decoded.id;
+      if (tipo === 'puntosActividad') filtros.usuario_id = decoded.id;
+      else filtros.usuarioId = decoded.id;
+    }
+
+    // ✅ Query base
+    const query = {
+      where: filtros,
+      orderBy: { [campoFecha]: 'desc' },
+      take: 100
+    };
+
+    // ✅ Solo tablas FRI tienen relación tituloMinero
+    if (tipo !== 'puntosActividad') {
+      query.include = { tituloMinero: true };
     }
 
     // Obtener datos
-    const datos = await modelo.findMany({
-      where: filtros,
-      include: {
-        tituloMinero: true
-      },
-      orderBy: { fechaCorte: 'desc' },
-      take: 100 // Límite de 100 para preview
-    });
+    const datos = await modelo.findMany(query);
 
     const columnas = getColumnas(tipo);
     const registros = transformarDatos(datos, tipo);
@@ -291,6 +358,7 @@ exports.getPreview = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error al obtener datos', error: error.message });
   }
 };
+
 
 // EXPORTAR - Generar Excel
 exports.exportarExcel = async (req, res) => {
@@ -311,7 +379,8 @@ exports.exportarExcel = async (req, res) => {
       paradas: prisma.fRIParadas,
       ejecucion: prisma.fRIEjecucion,
       maquinaria: prisma.fRIMaquinaria,
-      regalias: prisma.fRIRegalias
+      regalias: prisma.fRIRegalias,
+      puntosActividad: prisma.puntos_actividad
     };
 
     const modelo = modelos[tipo];
@@ -321,25 +390,40 @@ exports.exportarExcel = async (req, res) => {
 
     // Filtros
     const filtros = {};
+
+    // Campo fecha según el tipo
+    const campoFecha = (tipo === 'puntosActividad') ? 'fecha' : 'fechaCorte';
+
+    // Rango fechas
     if (fechaInicio && fechaFin) {
-      filtros.fechaCorte = {
+      filtros[campoFecha] = {
         gte: new Date(fechaInicio),
         lte: new Date(fechaFin)
       };
     }
 
+    // Usuario según el tipo
     if (decoded.rol !== 'ADMIN') {
-      filtros.usuarioId = decoded.id;
+      if (tipo === 'puntosActividad') {
+        filtros.usuario_id = decoded.id;     // tabla puntos_actividad
+      } else {
+        filtros.usuarioId = decoded.id;      // tablas FRI
+      }
     }
 
     // Obtener datos
-    const datos = await modelo.findMany({
+    const query = {
       where: filtros,
-      include: {
-        tituloMinero: true
-      },
-      orderBy: { fechaCorte: 'asc' }
-    });
+      orderBy: { [campoFecha]: 'asc' }
+    };
+
+    // Solo las tablas FRI tienen relación tituloMinero
+    if (tipo !== 'puntosActividad') {
+      query.include = { tituloMinero: true };
+    }
+
+    const datos = await modelo.findMany(query);
+
 
     if (datos.length === 0) {
       return res.status(404).json({ success: false, message: 'No hay datos para exportar' });

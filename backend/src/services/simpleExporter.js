@@ -42,6 +42,41 @@ class SimpleExporter {
     return workbook;
   }
 
+  // Exportar Puntos de Actividad
+  async exportarPuntosActividad(datos) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Registro de Información');
+
+    worksheet.columns = [
+      { header: 'Fecha', key: 'fecha', width: 22 },
+      { header: 'Titulo_minero_id', key: 'titulo_minero_id', width: 22 },
+      { header: 'Categoria', key: 'categoria', width: 18 },
+      { header: 'Descripcion', key: 'descripcion', width: 35 },
+      { header: 'Latitud', key: 'latitud', width: 15 },
+      { header: 'Longitud', key: 'longitud', width: 15 },
+      { header: 'Maquinaria', key: 'maquinaria', width: 20 },
+      { header: 'Volumen_m3', key: 'volumen_m3', width: 14 },
+    ];
+
+    datos.forEach(dato => {
+      worksheet.addRow({
+        fecha: new Date(dato.fecha).toLocaleString('es-CO'),
+        titulo_minero_id: dato.titulo_minero_id,
+        categoria: dato.categoria ?? '',
+        descripcion: dato.descripcion ?? '',
+        latitud: dato.latitud ?? '',
+        longitud: dato.longitud ?? '',
+        maquinaria: dato.maquinaria ?? '',
+        volumen_m3: dato.volumen_m3 ?? '',
+      });
+    });
+
+    return workbook;
+  }
+
+
+
+
   // Exportar Inventarios - FORMATO EXACTO ANM
   async exportarInventarios(datos) {
     const workbook = new ExcelJS.Workbook();
@@ -236,6 +271,12 @@ class SimpleExporter {
       const wb = await this.exportarRegalias(datosPorTipo.regalias);
       const sheet = wb.worksheets[0];
       workbook.addWorksheet(sheet, 'REGALÍAS');
+    }
+
+    if (datosPorTipo.puntosActividad?.length > 0) {
+      const wb = await this.exportarPuntosActividad(datosPorTipo.puntosActividad);
+      const sheet = wb.worksheets[0];
+      workbook.addWorksheet(sheet, 'PUNTOS ACTIVIDAD');
     }
 
     return workbook;

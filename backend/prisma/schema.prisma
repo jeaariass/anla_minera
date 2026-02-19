@@ -304,21 +304,6 @@ model RegistroCicloProduccion {
   
   // Ubicación del ciclo
   latitudInicio     Decimal  @db.Decimal(10, 8)
-  longitudInicio    Decimal  @db.Decimal(11, 8)
-  latitudFin        Decimal  @db.Decimal(10, 8)
-  longitudFin       Decimal  @db.Decimal(11, 8)
-  
-  // Puntos de referencia
-  puntoRecoleccion  String
-  puntoAcopio       String
-  
-  // Metadata
-  distanciaRecorrida Decimal? @db.Decimal(10, 2)
-  estadoCiclo       String   @default("COMPLETADO")
-  observaciones     String?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
 
   // Relaciones
   usuario           Usuario       @relation(fields: [usuarioId], references: [id])

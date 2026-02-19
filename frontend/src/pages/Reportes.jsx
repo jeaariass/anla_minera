@@ -42,7 +42,8 @@ const Reportes = () => {
     { value: 'paradas', label: 'Paradas' },
     { value: 'ejecucion', label: 'Ejecución' },
     { value: 'maquinaria', label: 'Maquinaria' },
-    { value: 'regalias', label: 'Regalías' }
+    { value: 'regalias', label: 'Regalías' },
+    { value: 'puntosActividad',label: 'Puntos de actividad' }
   ];
 
   const handleFiltroChange = (e) => {
