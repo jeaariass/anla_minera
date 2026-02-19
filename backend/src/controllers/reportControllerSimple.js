@@ -202,14 +202,15 @@ const transformarDatos = (datos, tipo) => {
           Municipio_de_extraccion: base.Municipio_de_extraccion,
           Codigo_Municipio_extraccion: base.Codigo_Municipio_extraccion,
           Denominacion_Frente: registro.denominacionFrente || '',
-          Latitud: formatearNumero(registro.latitud),
-          Longitud: formatearNumero(registro.longitud),
+          Latitud: registro.latitud != null ? Number(registro.latitud) : '',
+          Longitud: registro.longitud != null ? Number(registro.longitud) : '',
           Metodo_Explotacion: registro.metodoExplotacion || '',
-          Avance_Ejecutado: formatearNumero(registro.avanceEjecutado),
+          Avance_Ejecutado: registro.avanceEjecutado != null ? Number(registro.avanceEjecutado) : '',
           Unidad_medida_avance: registro.unidadMedidaAvance || '',
-          Volumen_Ejecutado: formatearNumero(registro.volumenEjecutado),
+          Volumen_Ejecutado: registro.volumenEjecutado != null ? Number(registro.volumenEjecutado) : '',
           Estado: base.Estado
         };
+
       
       case 'maquinaria':
         return {
