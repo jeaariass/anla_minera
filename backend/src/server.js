@@ -1,13 +1,18 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 // SERVICIOS
-const excelReports = require('./services/excelReports');
-const simpleExporter = require('./services/simpleExporter');
+const excelReports = require("./services/excelReports");
+const simpleExporter = require("./services/simpleExporter");
+
+const {
+  authMiddleware,
+  roleMiddleware,
+} = require("./middleware/authMiddleware");
 
 dotenv.config();
 
@@ -21,101 +26,103 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-  origin: [
-    'http://localhost:3000',            // dev local
-    'https://ctglobal.com.co',          // dominio raíz
-    'https://ctglobal.com.co/TU_MINA',  // ruta del frontend
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // dev local
+      "https://ctglobal.com.co", // dominio raíz
+      "https://ctglobal.com.co/TU_MINA", // ruta del frontend
 
       // === DESARROLLO LOCAL ===
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://192.168.0.5:3000',      // Frontend local en red
-    'http://192.168.0.5:3001',      // Backend local
-    
-    // === APP MÓVIL - DESARROLLO LOCAL ===
-    'http://192.168.0.5:8081',      // Expo Dev Server
-    'http://192.168.0.5:19000',     // Expo Metro
-    'http://192.168.0.5:19006',     // Expo Web
-    'exp://192.168.0.5:8081',       // Expo protocolo
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://192.168.0.5:3000", // Frontend local en red
+      "http://192.168.0.5:3001", // Backend local
+
+      // === APP MÓVIL - DESARROLLO LOCAL ===
+      "http://192.168.0.5:8081", // Expo Dev Server
+      "http://192.168.0.5:19000", // Expo Metro
+      "http://192.168.0.5:19006", // Expo Web
+      "exp://192.168.0.5:8081", // Expo protocolo
 
       // === DESARROLLO LOCAL ===
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://192.168.1.8:3000',      // Frontend local en red
-    'http://192.168.1.8:3001',      // Backend local
-    
-    // === APP MÓVIL - DESARROLLO LOCAL ===
-    'http://192.168.1.8:8081',      // Expo Dev Server
-    'http://192.168.1.8:19000',     // Expo Metro
-    'http://192.168.1.8:19006',     // Expo Web
-    'exp://192.168.1.8:8081',       // Expo protocolo
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://192.168.1.8:3000", // Frontend local en red
+      "http://192.168.1.8:3001", // Backend local
 
-    // === PRODUCCIÓN - HOSTINGER/VPS ===
-    'https://ctglobal.com.co',               // Frontend producción raíz
-    'https://www.ctglobal.com.co',           // Con www
-    'https://api.ctglobal.com.co',           // API producción
-    'http://200.7.107.14:3001',              // VPS IP directo (si se usa)
-    'http://200.7.107.14:5001',              // VPS IP puerto alternativo
-    
-    // === APP MÓVIL - PRODUCCIÓN ===
-    // Las apps móviles no tienen un "origen" fijo, se permite sin origin
-    
-    // Variable de entorno (opcional)
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+      // === APP MÓVIL - DESARROLLO LOCAL ===
+      "http://192.168.1.8:8081", // Expo Dev Server
+      "http://192.168.1.8:19000", // Expo Metro
+      "http://192.168.1.8:19006", // Expo Web
+      "exp://192.168.1.8:8081", // Expo protocolo
+
+      // === PRODUCCIÓN - HOSTINGER/VPS ===
+      "https://ctglobal.com.co", // Frontend producción raíz
+      "https://www.ctglobal.com.co", // Con www
+      "https://api.ctglobal.com.co", // API producción
+      "http://200.7.107.14:3001", // VPS IP directo (si se usa)
+      "http://200.7.107.14:5001", // VPS IP puerto alternativo
+
+      // === APP MÓVIL - PRODUCCIÓN ===
+      // Las apps móviles no tienen un "origen" fijo, se permite sin origin
+
+      // Variable de entorno (opcional)
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 // ============================================
 // IMPORTAR Y REGISTRAR RUTAS
 // ============================================
-const androidRoutes = require('./routes/androidRoutes');
-const puntosActividadRoutes = require('./routes/puntosActividadRoutes');
-const reportRoutesSimple = require('./routes/reportRoutesSimple');
+const androidRoutes = require("./routes/androidRoutes");
+const puntosActividadRoutes = require("./routes/puntosActividadRoutes");
+const reportRoutesSimple = require("./routes/reportRoutesSimple");
 
-app.use('/api/android', androidRoutes);
-app.use('/api/actividad', puntosActividadRoutes);
-app.use('/api/reports', reportRoutesSimple);
+app.use("/api/android", androidRoutes);
+app.use("/api/actividad", puntosActividadRoutes);
+app.use("/api/reports", reportRoutesSimple);
 
 // ============================================
 // RUTAS BÁSICAS
 // ============================================
-app.get('/', (req, res) => {
-  res.json({ 
-    mensaje: '🚀 Servidor ANM-FRI funcionando!',
-    fecha: new Date().toISOString()
+app.get("/", (req, res) => {
+  res.json({
+    mensaje: "🚀 Servidor ANM-FRI funcionando!",
+    fecha: new Date().toISOString(),
   });
 });
 
 // ... resto del código continúa igual
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK',
-    database: 'Conectado',
-    version: '1.0.0'
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "OK",
+    database: "Conectado",
+    version: "1.0.0",
   });
 });
 
-app.get('/api/test-db', async (req, res) => {
+app.get("/api/test-db", async (req, res) => {
   try {
     const count = await prisma.usuario.count();
-    res.json({ 
+    res.json({
       success: true,
-      message: '✅ Conexión a base de datos exitosa',
-      totalUsuarios: count
+      message: "✅ Conexión a base de datos exitosa",
+      totalUsuarios: count,
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: '❌ Error al conectar con la base de datos',
-      error: error.message
+      message: "❌ Error al conectar con la base de datos",
+      error: error.message,
     });
   }
 });
@@ -124,57 +131,63 @@ app.get('/api/test-db', async (req, res) => {
 // RUTAS DE AUTENTICACIÓN
 // ============================================
 
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { email, password, nombre, rol, tituloMineroId } = req.body;
+app.post(
+  "/api/auth/register",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { email, password, nombre, rol, tituloMineroId } = req.body;
 
-    if (!email || !password || !nombre) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email, contraseña y nombre son obligatorios'
-      });
-    }
-
-    const usuarioExiste = await prisma.usuario.findUnique({ where: { email } });
-
-    if (usuarioExiste) {
-      return res.status(400).json({
-        success: false,
-        message: 'El email ya está registrado'
-      });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    const nuevoUsuario = await prisma.usuario.create({
-      data: {
-        email,
-        password: passwordHash,
-        nombre,
-        rol: rol || 'OPERADOR',
-        tituloMineroId: tituloMineroId || null
+      if (!email || !password || !nombre) {
+        return res.status(400).json({
+          success: false,
+          message: "Email, contraseña y nombre son obligatorios",
+        });
       }
-    });
 
-    const { password: _, ...usuarioSinPassword } = nuevoUsuario;
+      const usuarioExiste = await prisma.usuario.findUnique({
+        where: { email },
+      });
 
-    res.status(201).json({
-      success: true,
-      message: '✅ Usuario creado exitosamente',
-      usuario: usuarioSinPassword
-    });
+      if (usuarioExiste) {
+        return res.status(400).json({
+          success: false,
+          message: "El email ya está registrado",
+        });
+      }
 
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear usuario',
-      error: error.message
-    });
-  }
-});
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
 
-app.post('/api/auth/login', async (req, res) => {
+      const nuevoUsuario = await prisma.usuario.create({
+        data: {
+          email,
+          password: passwordHash,
+          nombre,
+          rol: rol || "OPERADOR",
+          tituloMineroId: tituloMineroId || null,
+        },
+      });
+
+      const { password: _, ...usuarioSinPassword } = nuevoUsuario;
+
+      res.status(201).json({
+        success: true,
+        message: "✅ Usuario creado exitosamente",
+        usuario: usuarioSinPassword,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al crear usuario",
+        error: error.message,
+      });
+    }
+  },
+);
+
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -186,16 +199,24 @@ app.post('/api/auth/login', async (req, res) => {
             id: true,
             numeroTitulo: true,
             municipio: true,
-            codigoMunicipio: true
-          }
-        }
-      }
+            codigoMunicipio: true,
+          },
+        },
+      },
     });
 
     if (!usuario) {
       return res.status(401).json({
         success: false,
-        message: 'Email o contraseña incorrectos'
+        message: "Email o contraseña incorrectos",
+      });
+    }
+
+    // NUEVA VALIDACIÓN
+    if (!usuario.activo) {
+      return res.status(403).json({
+        success: false,
+        message: "Usuario desactivado. Contacte al administrador",
       });
     }
 
@@ -204,78 +225,62 @@ app.post('/api/auth/login', async (req, res) => {
     if (!passwordValida) {
       return res.status(401).json({
         success: false,
-        message: 'Email o contraseña incorrectos'
+        message: "Email o contraseña incorrectos",
       });
     }
 
     const token = jwt.sign(
-      { 
-        id: usuario.id, 
-        email: usuario.email, 
+      {
+        id: usuario.id,
+        email: usuario.email,
         rol: usuario.rol,
-        tituloMineroId: usuario.tituloMineroId
+        tituloMineroId: usuario.tituloMineroId,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: "24h" },
     );
 
     res.json({
       success: true,
-      message: 'Login exitoso',
+      message: "Login exitoso",
       token,
       usuario: {
         id: usuario.id,
         nombre: usuario.nombre,
         email: usuario.email,
         rol: usuario.rol,
-        tituloMinero: usuario.tituloMinero
-      }
+        tituloMinero: usuario.tituloMinero,
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error en el servidor',
-      error: error.message
+      message: "Error en el servidor",
+      error: error.message,
     });
   }
 });
 
-app.get('/api/auth/perfil', async (req, res) => {
+app.get("/api/auth/perfil", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token no proporcionado'
-      });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const usuario = await prisma.usuario.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        nombre: true,
-        rol: true,
-        activo: true,
-        createdAt: true
-      }
-    });
+    const usuario = req.user; // viene del middleware
 
     res.json({
       success: true,
-      usuario
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        activo: usuario.activo,
+        createdAt: usuario.createdAt,
+      },
     });
-
   } catch (error) {
-    res.status(401).json({
+    res.status(500).json({
       success: false,
-      message: 'Token inválido o expirado',
-      error: error.message
+      message: "Error en el servidor",
+      error: error.message,
     });
   }
 });
@@ -284,31 +289,34 @@ app.get('/api/auth/perfil', async (req, res) => {
 // FRI PRODUCCIÓN
 // ============================================
 
-app.post('/api/fri/produccion', async (req, res) => {
+app.post("/api/fri/produccion", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { 
-      mineral, 
-      horasOperativas, 
-      unidadMedida, 
-      cantidadProduccion, 
-      materialEntraPlanta, 
-      materialSalePlanta, 
-      masaUnitaria, 
-      observaciones 
+    const {
+      mineral,
+      horasOperativas,
+      unidadMedida,
+      cantidadProduccion,
+      materialEntraPlanta,
+      materialSalePlanta,
+      masaUnitaria,
+      observaciones,
     } = req.body;
 
     if (!mineral || !horasOperativas || !unidadMedida || !cantidadProduccion) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+    // Usuario que viene del middleware
+    const usuario = req.user;
+
+    if (!usuario.tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIProduccion.create({
@@ -318,110 +326,179 @@ app.post('/api/fri/produccion', async (req, res) => {
         horasOperativas: parseFloat(horasOperativas),
         unidadMedida,
         cantidadProduccion: parseFloat(cantidadProduccion),
-        materialEntraPlanta: materialEntraPlanta ? parseFloat(materialEntraPlanta) : null,
-        materialSalePlanta: materialSalePlanta ? parseFloat(materialSalePlanta) : null,
+        materialEntraPlanta: materialEntraPlanta
+          ? parseFloat(materialEntraPlanta)
+          : null,
+        materialSalePlanta: materialSalePlanta
+          ? parseFloat(materialSalePlanta)
+          : null,
         masaUnitaria: masaUnitaria ? parseFloat(masaUnitaria) : null,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: usuario.id, // 👈 usamos req.user
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Producción creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Producción creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/produccion', async (req, res) => {
+app.get("/api/fri/produccion", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIProduccion.findMany({
       where: filtros,
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json({ success: true, total: fris.length, fris });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/produccion/:id', async (req, res) => {
+app.put("/api/fri/produccion/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIProduccion.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIProduccion.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    const { mineral, horasOperativas, unidadMedida, cantidadProduccion, materialEntraPlanta, materialSalePlanta, masaUnitaria, observaciones } = req.body;
+    // Autorización
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
+
+    const {
+      mineral,
+      horasOperativas,
+      unidadMedida,
+      cantidadProduccion,
+      materialEntraPlanta,
+      materialSalePlanta,
+      masaUnitaria,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIProduccion.update({
       where: { id },
       data: {
         mineral,
-        horasOperativas: horasOperativas ? parseFloat(horasOperativas) : undefined,
+        horasOperativas: horasOperativas
+          ? parseFloat(horasOperativas)
+          : undefined,
         unidadMedida,
-        cantidadProduccion: cantidadProduccion ? parseFloat(cantidadProduccion) : undefined,
-        materialEntraPlanta: materialEntraPlanta ? parseFloat(materialEntraPlanta) : null,
-        materialSalePlanta: materialSalePlanta ? parseFloat(materialSalePlanta) : null,
+        cantidadProduccion: cantidadProduccion
+          ? parseFloat(cantidadProduccion)
+          : undefined,
+        materialEntraPlanta: materialEntraPlanta
+          ? parseFloat(materialEntraPlanta)
+          : null,
+        materialSalePlanta: materialSalePlanta
+          ? parseFloat(materialSalePlanta)
+          : null,
         masaUnitaria: masaUnitaria ? parseFloat(masaUnitaria) : null,
-        observaciones,
-        updatedAt: new Date()
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/produccion/:id', async (req, res) => {
+app.delete("/api/fri/produccion/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIProduccion.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIProduccion.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
+    }
+
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
     }
 
     await prisma.fRIProduccion.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
 
+    res.json({
+      success: true,
+      message: "✅ FRI eliminado",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -429,133 +506,219 @@ app.delete('/api/fri/produccion/:id', async (req, res) => {
 // FRI INVENTARIOS
 // ============================================
 
-app.post('/api/fri/inventarios', async (req, res) => {
+app.post("/api/fri/inventarios", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const {
+      mineral,
+      unidadMedida,
+      inventarioInicialAcopio,
+      inventarioFinalAcopio,
+      ingresoAcopio,
+      salidaAcopio,
+      observaciones,
+    } = req.body;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { mineral, unidadMedida, inventarioInicialAcopio, inventarioFinalAcopio, ingresoAcopio, salidaAcopio, observaciones } = req.body;
-
-    if (!mineral || inventarioInicialAcopio === undefined || inventarioFinalAcopio === undefined) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+    if (
+      !mineral ||
+      inventarioInicialAcopio === undefined ||
+      inventarioFinalAcopio === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+    });
+
     if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIInventarios.create({
       data: {
         fechaCorte: new Date(),
         mineral,
-        unidadMedida: unidadMedida || 'TONELADAS',
+        unidadMedida: unidadMedida || "TONELADAS",
         inventarioInicialAcopio: parseFloat(inventarioInicialAcopio),
         inventarioFinalAcopio: parseFloat(inventarioFinalAcopio),
         ingresoAcopio: ingresoAcopio ? parseFloat(ingresoAcopio) : 0,
         salidaAcopio: salidaAcopio ? parseFloat(salidaAcopio) : 0,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: req.user.id, // viene del middleware
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Inventarios creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Inventarios creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/inventarios', async (req, res) => {
+app.get("/api/fri/inventarios", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIInventarios.findMany({
       where: filtros,
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    res.json({ success: true, total: fris.length, fris });
-
+    res.json({
+      success: true,
+      total: fris.length,
+      fris,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/inventarios/:id', async (req, res) => {
+app.put("/api/fri/inventarios/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIInventarios.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIInventarios.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    const { mineral, unidadMedida, inventarioInicialAcopio, inventarioFinalAcopio, ingresoAcopio, salidaAcopio, observaciones } = req.body;
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
+
+    const {
+      mineral,
+      unidadMedida,
+      inventarioInicialAcopio,
+      inventarioFinalAcopio,
+      ingresoAcopio,
+      salidaAcopio,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIInventarios.update({
       where: { id },
       data: {
         mineral,
         unidadMedida,
-        inventarioInicialAcopio: inventarioInicialAcopio ? parseFloat(inventarioInicialAcopio) : undefined,
-        inventarioFinalAcopio: inventarioFinalAcopio ? parseFloat(inventarioFinalAcopio) : undefined,
-        ingresoAcopio: ingresoAcopio ? parseFloat(ingresoAcopio) : undefined,
-        salidaAcopio: salidaAcopio ? parseFloat(salidaAcopio) : undefined,
-        observaciones,
-        updatedAt: new Date()
+        inventarioInicialAcopio:
+          inventarioInicialAcopio !== undefined
+            ? parseFloat(inventarioInicialAcopio)
+            : undefined,
+        inventarioFinalAcopio:
+          inventarioFinalAcopio !== undefined
+            ? parseFloat(inventarioFinalAcopio)
+            : undefined,
+        ingresoAcopio:
+          ingresoAcopio !== undefined ? parseFloat(ingresoAcopio) : undefined,
+        salidaAcopio:
+          salidaAcopio !== undefined ? parseFloat(salidaAcopio) : undefined,
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/inventarios/:id', async (req, res) => {
+app.delete("/api/fri/inventarios/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIInventarios.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIInventarios.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    await prisma.fRIInventarios.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
+    // Control de autorización
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
 
+    await prisma.fRIInventarios.delete({
+      where: { id },
+    });
+
+    res.json({
+      success: true,
+      message: "✅ FRI eliminado",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -563,22 +726,33 @@ app.delete('/api/fri/inventarios/:id', async (req, res) => {
 // FRI PARADAS
 // ============================================
 
-app.post('/api/fri/paradas', async (req, res) => {
+app.post("/api/fri/paradas", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { tipoParada, fechaInicio, fechaFin, horasParadas, motivo, observaciones } = req.body;
+    const {
+      tipoParada,
+      fechaInicio,
+      fechaFin,
+      horasParadas,
+      motivo,
+      observaciones,
+    } = req.body;
 
     if (!tipoParada || !fechaInicio || !horasParadas || !motivo) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+    });
+
     if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIParadas.create({
@@ -589,62 +763,88 @@ app.post('/api/fri/paradas', async (req, res) => {
         fechaFin: fechaFin ? new Date(fechaFin) : null,
         horasParadas: parseFloat(horasParadas),
         motivo,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: req.user.id,
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Paradas creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Paradas creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/paradas', async (req, res) => {
+app.get("/api/fri/paradas", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIParadas.findMany({
       where: filtros,
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json({ success: true, total: fris.length, fris });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/paradas/:id', async (req, res) => {
+app.put("/api/fri/paradas/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIParadas.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIParadas.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    const { tipoParada, fechaInicio, fechaFin, horasParadas, motivo, observaciones } = req.body;
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
+
+    const {
+      tipoParada,
+      fechaInicio,
+      fechaFin,
+      horasParadas,
+      motivo,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIParadas.update({
       where: { id },
@@ -654,40 +854,68 @@ app.put('/api/fri/paradas/:id', async (req, res) => {
         fechaFin: fechaFin ? new Date(fechaFin) : null,
         horasParadas: horasParadas ? parseFloat(horasParadas) : undefined,
         motivo,
-        observaciones,
-        updatedAt: new Date()
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/paradas/:id', async (req, res) => {
+app.delete("/api/fri/paradas/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIParadas.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIParadas.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    await prisma.fRIParadas.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
 
+    await prisma.fRIParadas.delete({
+      where: { id },
+    });
+
+    res.json({
+      success: true,
+      message: "✅ FRI eliminado",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -695,22 +923,34 @@ app.delete('/api/fri/paradas/:id', async (req, res) => {
 // FRI EJECUCIÓN
 // ============================================
 
-app.post('/api/fri/ejecucion', async (req, res) => {
+app.post("/api/fri/ejecucion", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { mineral, denominacionFrente, latitud, longitud, metodoExplotacion, avanceEjecutado, unidadMedidaAvance, volumenEjecutado, observaciones } = req.body;
+    const {
+      mineral,
+      denominacionFrente,
+      latitud,
+      longitud,
+      metodoExplotacion,
+      avanceEjecutado,
+      unidadMedidaAvance,
+      volumenEjecutado,
+      observaciones,
+    } = req.body;
 
     if (!mineral || !denominacionFrente || !metodoExplotacion) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+    const usuario = req.user;
+
+    if (!usuario.tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIEjecucion.create({
@@ -722,64 +962,95 @@ app.post('/api/fri/ejecucion', async (req, res) => {
         longitud: parseFloat(longitud) || 0,
         metodoExplotacion,
         avanceEjecutado: parseFloat(avanceEjecutado) || 0,
-        unidadMedidaAvance: unidadMedidaAvance || 'm',
+        unidadMedidaAvance: unidadMedidaAvance || "m",
         volumenEjecutado: parseFloat(volumenEjecutado) || 0,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: usuario.id,
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Ejecución creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Ejecución creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/ejecucion', async (req, res) => {
+app.get("/api/fri/ejecucion", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIEjecucion.findMany({
       where: filtros,
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    res.json({ success: true, total: fris.length, fris });
-
+    res.json({
+      success: true,
+      total: fris.length,
+      fris,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/ejecucion/:id', async (req, res) => {
+app.put("/api/fri/ejecucion/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIEjecucion.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIEjecucion.findUnique({
+      where: { id },
+    });
+
+    if (
+      !friExistente ||
+      (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
     }
 
-    const { mineral, denominacionFrente, latitud, longitud, metodoExplotacion, avanceEjecutado, unidadMedidaAvance, volumenEjecutado, observaciones } = req.body;
+    const {
+      mineral,
+      denominacionFrente,
+      latitud,
+      longitud,
+      metodoExplotacion,
+      avanceEjecutado,
+      unidadMedidaAvance,
+      volumenEjecutado,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIEjecucion.update({
       where: { id },
@@ -789,43 +1060,77 @@ app.put('/api/fri/ejecucion/:id', async (req, res) => {
         latitud: latitud ? parseFloat(latitud) : undefined,
         longitud: longitud ? parseFloat(longitud) : undefined,
         metodoExplotacion,
-        avanceEjecutado: avanceEjecutado ? parseFloat(avanceEjecutado) : undefined,
+        avanceEjecutado: avanceEjecutado
+          ? parseFloat(avanceEjecutado)
+          : undefined,
         unidadMedidaAvance,
-        volumenEjecutado: volumenEjecutado ? parseFloat(volumenEjecutado) : undefined,
-        observaciones,
-        updatedAt: new Date()
+        volumenEjecutado: volumenEjecutado
+          ? parseFloat(volumenEjecutado)
+          : undefined,
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/ejecucion/:id', async (req, res) => {
+app.delete("/api/fri/ejecucion/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIEjecucion.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIEjecucion.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    await prisma.fRIEjecucion.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
 
+    await prisma.fRIEjecucion.delete({
+      where: { id },
+    });
+
+    res.json({
+      success: true,
+      message: "✅ FRI eliminado",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -833,22 +1138,31 @@ app.delete('/api/fri/ejecucion/:id', async (req, res) => {
 // FRI MAQUINARIA
 // ============================================
 
-app.post('/api/fri/maquinaria', async (req, res) => {
+app.post("/api/fri/maquinaria", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { tipoMaquinaria, cantidad, horasOperacion, capacidadTransporte, unidadCapacidad, observaciones } = req.body;
+    const {
+      tipoMaquinaria,
+      cantidad,
+      horasOperacion,
+      capacidadTransporte,
+      unidadCapacidad,
+      observaciones,
+    } = req.body;
 
     if (!tipoMaquinaria || !cantidad || !horasOperacion) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+    const usuario = req.user;
+
+    if (!usuario.tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIMaquinaria.create({
@@ -857,64 +1171,98 @@ app.post('/api/fri/maquinaria', async (req, res) => {
         tipoMaquinaria,
         cantidad: parseInt(cantidad),
         horasOperacion: parseFloat(horasOperacion),
-        capacidadTransporte: capacidadTransporte ? parseFloat(capacidadTransporte) : null,
+        capacidadTransporte: capacidadTransporte
+          ? parseFloat(capacidadTransporte)
+          : null,
         unidadCapacidad: unidadCapacidad || null,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: usuario.id,
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Maquinaria creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Maquinaria creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/maquinaria', async (req, res) => {
+app.get("/api/fri/maquinaria", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIMaquinaria.findMany({
       where: filtros,
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    res.json({ success: true, total: fris.length, fris });
-
+    res.json({
+      success: true,
+      total: fris.length,
+      fris,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/maquinaria/:id', async (req, res) => {
+app.put("/api/fri/maquinaria/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIMaquinaria.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIMaquinaria.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    const { tipoMaquinaria, cantidad, horasOperacion, capacidadTransporte, unidadCapacidad, observaciones } = req.body;
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
+
+    const {
+      tipoMaquinaria,
+      cantidad,
+      horasOperacion,
+      capacidadTransporte,
+      unidadCapacidad,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIMaquinaria.update({
       where: { id },
@@ -922,42 +1270,70 @@ app.put('/api/fri/maquinaria/:id', async (req, res) => {
         tipoMaquinaria,
         cantidad: cantidad ? parseInt(cantidad) : undefined,
         horasOperacion: horasOperacion ? parseFloat(horasOperacion) : undefined,
-        capacidadTransporte: capacidadTransporte ? parseFloat(capacidadTransporte) : null,
+        capacidadTransporte: capacidadTransporte
+          ? parseFloat(capacidadTransporte)
+          : null,
         unidadCapacidad,
-        observaciones,
-        updatedAt: new Date()
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/maquinaria/:id', async (req, res) => {
+app.delete("/api/fri/maquinaria/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIMaquinaria.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIMaquinaria.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
+    }
+
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
     }
 
     await prisma.fRIMaquinaria.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
 
+    res.json({
+      success: true,
+      message: "✅ FRI eliminado",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -965,22 +1341,32 @@ app.delete('/api/fri/maquinaria/:id', async (req, res) => {
 // FRI REGALÍAS
 // ============================================
 
-app.post('/api/fri/regalias', async (req, res) => {
+app.post("/api/fri/regalias", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { mineral, cantidadExtraida, unidadMedida, valorDeclaracion, valorContraprestaciones, resolucionUPME, observaciones } = req.body;
+    const {
+      mineral,
+      cantidadExtraida,
+      unidadMedida,
+      valorDeclaracion,
+      valorContraprestaciones,
+      resolucionUPME,
+      observaciones,
+    } = req.body;
 
     if (!mineral || !cantidadExtraida || !valorDeclaracion) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+    const usuario = req.user;
+
+    if (!usuario.tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIRegalias.create({
@@ -988,112 +1374,182 @@ app.post('/api/fri/regalias', async (req, res) => {
         fechaCorte: new Date(),
         mineral,
         cantidadExtraida: parseFloat(cantidadExtraida),
-        unidadMedida: unidadMedida || 'Kilogramos',
+        unidadMedida: unidadMedida || "Kilogramos",
         valorDeclaracion: parseFloat(valorDeclaracion),
-        valorContraprestaciones: valorContraprestaciones ? parseFloat(valorContraprestaciones) : null,
-        resolucionUPME: resolucionUPME != null && resolucionUPME !== '' ? String(resolucionUPME) : null,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        valorContraprestaciones: valorContraprestaciones
+          ? parseFloat(valorContraprestaciones)
+          : null,
+        resolucionUPME:
+          resolucionUPME != null && resolucionUPME !== ""
+            ? String(resolucionUPME)
+            : null,
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: usuario.id,
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Regalías creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Regalías creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/regalias', async (req, res) => {
+app.get("/api/fri/regalias", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIRegalias.findMany({
       where: filtros,
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json({ success: true, total: fris.length, fris });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/regalias/:id', async (req, res) => {
+app.put("/api/fri/regalias/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
+    const decodedUser = req.user;
 
     const friExistente = await prisma.fRIRegalias.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
     }
 
-    const { mineral, cantidadExtraida, unidadMedida, valorDeclaracion, valorContraprestaciones, resolucionUPME, observaciones } = req.body;
+    if (
+      decodedUser.rol !== "ADMIN" &&
+      friExistente.usuarioId !== decodedUser.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado",
+      });
+    }
+
+    const {
+      mineral,
+      cantidadExtraida,
+      unidadMedida,
+      valorDeclaracion,
+      valorContraprestaciones,
+      resolucionUPME,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIRegalias.update({
       where: { id },
       data: {
         mineral,
-        cantidadExtraida: cantidadExtraida ? parseFloat(cantidadExtraida) : undefined,
+        cantidadExtraida: cantidadExtraida
+          ? parseFloat(cantidadExtraida)
+          : undefined,
         unidadMedida,
-        valorDeclaracion: valorDeclaracion ? parseFloat(valorDeclaracion) : undefined,
-        valorContraprestaciones: valorContraprestaciones ? parseFloat(valorContraprestaciones) : null,
+        valorDeclaracion: valorDeclaracion
+          ? parseFloat(valorDeclaracion)
+          : undefined,
+        valorContraprestaciones: valorContraprestaciones
+          ? parseFloat(valorContraprestaciones)
+          : null,
         resolucionUPME,
-        observaciones,
-        updatedAt: new Date()
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/regalias/:id', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+app.delete(
+  "/api/fri/regalias/:id",
+  authMiddleware,
+  roleMiddleware(["ADMIN", "USER"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { id } = req.params;
+      const friExistente = await prisma.fRIRegalias.findUnique({
+        where: { id },
+      });
 
-    const friExistente = await prisma.fRIRegalias.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+      if (!friExistente) {
+        return res.status(404).json({
+          success: false,
+          message: "FRI no encontrado",
+        });
+      }
+
+      if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: "No autorizado",
+        });
+      }
+
+      await prisma.fRIRegalias.delete({ where: { id } });
+
+      res.json({ success: true, message: "✅ FRI eliminado" });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al eliminar FRI",
+        error: error.message,
+      });
     }
-
-    await prisma.fRIRegalias.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
-
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
-  }
-});
+  },
+);
 
 // ============================================
 // ENDPOINTS FALTANTES PARA AGREGAR A SERVER.JS
@@ -1104,30 +1560,37 @@ app.delete('/api/fri/regalias/:id', async (req, res) => {
 // FRI CAPACIDAD (NUEVO)
 // ============================================
 
-app.post('/api/fri/capacidad', async (req, res) => {
+app.post("/api/fri/capacidad", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { 
-      areaProduccion, 
-      tecnologiaUtilizada, 
-      capacidadInstalada, 
-      unidadMedida, 
-      personalCapacitado, 
-      certificaciones, 
-      observaciones 
+    const {
+      areaProduccion,
+      tecnologiaUtilizada,
+      capacidadInstalada,
+      unidadMedida,
+      personalCapacitado,
+      certificaciones,
+      observaciones,
     } = req.body;
 
-    if (!areaProduccion || !tecnologiaUtilizada || !capacidadInstalada || !unidadMedida || !personalCapacitado) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+    if (
+      !areaProduccion ||
+      !tecnologiaUtilizada ||
+      !capacidadInstalada ||
+      !unidadMedida ||
+      !personalCapacitado
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Faltan campos obligatorios" });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+    const usuario = req.user;
+
+    if (!usuario.tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRICapacidad.create({
@@ -1139,106 +1602,153 @@ app.post('/api/fri/capacidad', async (req, res) => {
         unidadMedida,
         personalCapacitado: parseInt(personalCapacitado),
         certificaciones: certificaciones || null,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones != null ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: usuario.id,
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Capacidad creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Capacidad creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/capacidad', async (req, res) => {
+app.get("/api/fri/capacidad", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRICapacidad.findMany({
       where: filtros,
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json({ success: true, total: fris.length, fris });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/capacidad/:id', async (req, res) => {
+app.put("/api/fri/capacidad/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
+    const usuario = req.user;
 
-    const friExistente = await prisma.fRICapacidad.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    // Buscar el FRI
+    const friExistente = await prisma.fRICapacidad.findUnique({
+      where: { id },
+    });
+
+    // Verificar existencia y permisos
+    if (!friExistente) {
+      return res
+        .status(404)
+        .json({ success: false, message: "FRI no encontrado" });
     }
 
-    const { areaProduccion, tecnologiaUtilizada, capacidadInstalada, unidadMedida, personalCapacitado, certificaciones, observaciones } = req.body;
+    if (usuario.rol !== "ADMIN" && friExistente.usuarioId !== usuario.id) {
+      return res.status(403).json({ success: false, message: "No autorizado" });
+    }
 
+    // Extraer datos del body
+    const {
+      areaProduccion,
+      tecnologiaUtilizada,
+      capacidadInstalada,
+      unidadMedida,
+      personalCapacitado,
+      certificaciones,
+      observaciones,
+    } = req.body;
+
+    // Actualizar el FRI
     const friActualizado = await prisma.fRICapacidad.update({
       where: { id },
       data: {
         areaProduccion,
         tecnologiaUtilizada,
-        capacidadInstalada: capacidadInstalada ? parseFloat(capacidadInstalada) : undefined,
+        capacidadInstalada: capacidadInstalada
+          ? parseFloat(capacidadInstalada)
+          : undefined,
         unidadMedida,
-        personalCapacitado: personalCapacitado ? parseInt(personalCapacitado) : undefined,
+        personalCapacitado: personalCapacitado
+          ? parseInt(personalCapacitado)
+          : undefined,
         certificaciones,
-        observaciones,
-        updatedAt: new Date()
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/capacidad/:id', async (req, res) => {
+app.delete("/api/fri/capacidad/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRICapacidad.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRICapacidad.findUnique({
+      where: { id },
+    });
+
+    if (
+      !friExistente ||
+      (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id)
+    ) {
+      return res.status(403).json({ success: false, message: "No autorizado" });
     }
 
     await prisma.fRICapacidad.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
-
+    res.json({ success: true, message: "✅ FRI eliminado" });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -1246,147 +1756,210 @@ app.delete('/api/fri/capacidad/:id', async (req, res) => {
 // FRI PROYECCIONES (NUEVO)
 // ============================================
 
-app.post('/api/fri/proyecciones', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { 
-      metodoExplotacion, 
-      mineral, 
-      capacidadExtraccion, 
-      capacidadTransporte, 
-      capacidadBeneficio, 
-      proyeccionTopografia, 
-      densidadManto, 
-      cantidadProyectada, 
-      observaciones 
-    } = req.body;
-
-    if (!metodoExplotacion || !mineral || !capacidadExtraccion || !capacidadTransporte || !capacidadBeneficio || !cantidadProyectada) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
-    }
-
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
-    }
-
-    const nuevoFRI = await prisma.fRIProyecciones.create({
-      data: {
-        fechaCorte: new Date(),
+app.post(
+  "/api/fri/proyecciones",
+  authMiddleware,
+  roleMiddleware(["ADMIN", "MINERO"]),
+  async (req, res) => {
+    try {
+      const {
         metodoExplotacion,
         mineral,
-        capacidadExtraccion: parseFloat(capacidadExtraccion),
-        capacidadTransporte: parseFloat(capacidadTransporte),
-        capacidadBeneficio: parseFloat(capacidadBeneficio),
-        proyeccionTopografia: proyeccionTopografia || null,
-        densidadManto: densidadManto ? parseFloat(densidadManto) : null,
-        cantidadProyectada: parseFloat(cantidadProyectada),
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
-      },
-      include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        capacidadExtraccion,
+        capacidadTransporte,
+        capacidadBeneficio,
+        proyeccionTopografia,
+        densidadManto,
+        cantidadProyectada,
+        observaciones,
+      } = req.body;
+
+      if (
+        !metodoExplotacion ||
+        !mineral ||
+        !capacidadExtraccion ||
+        !capacidadTransporte ||
+        !capacidadBeneficio ||
+        !cantidadProyectada
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Faltan campos obligatorios" });
       }
-    });
 
-    res.status(201).json({ success: true, message: '✅ FRI Proyecciones creado', fri: nuevoFRI });
+      const usuario = req.user;
+      if (!usuario.tituloMineroId) {
+        return res.status(400).json({
+          success: false,
+          message: "Usuario debe estar asociado a un título minero",
+        });
+      }
 
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
-  }
-});
+      const nuevoFRI = await prisma.fRIProyecciones.create({
+        data: {
+          fechaCorte: new Date(),
+          metodoExplotacion,
+          mineral,
+          capacidadExtraccion: parseFloat(capacidadExtraccion),
+          capacidadTransporte: parseFloat(capacidadTransporte),
+          capacidadBeneficio: parseFloat(capacidadBeneficio),
+          proyeccionTopografia: proyeccionTopografia || null,
+          densidadManto: densidadManto ? parseFloat(densidadManto) : null,
+          cantidadProyectada: parseFloat(cantidadProyectada),
+          observaciones: observaciones != null ? String(observaciones) : "",
+          estado: "BORRADOR",
+          usuarioId: usuario.id,
+          tituloMineroId: usuario.tituloMineroId,
+        },
+        include: {
+          usuario: {
+            select: { id: true, nombre: true, email: true, rol: true },
+          },
+          tituloMinero: {
+            select: { id: true, numeroTitulo: true, municipio: true },
+          },
+        },
+      });
 
-app.get('/api/fri/proyecciones', async (req, res) => {
+      res.status(201).json({
+        success: true,
+        message: "✅ FRI Proyecciones creado",
+        fri: nuevoFRI,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al crear FRI",
+        error: error.message,
+      });
+    }
+  },
+);
+
+app.get("/api/fri/proyecciones", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {};
 
     const fris = await prisma.fRIProyecciones.findMany({
       where: filtros,
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json({ success: true, total: fris.length, fris });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/proyecciones/:id', async (req, res) => {
+app.put("/api/fri/proyecciones/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIProyecciones.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIProyecciones.findUnique({
+      where: { id },
+    });
+
+    if (
+      !friExistente ||
+      (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id)
+    ) {
+      return res.status(403).json({ success: false, message: "No autorizado" });
     }
 
-    const { metodoExplotacion, mineral, capacidadExtraccion, capacidadTransporte, capacidadBeneficio, proyeccionTopografia, densidadManto, cantidadProyectada, observaciones } = req.body;
+    const {
+      metodoExplotacion,
+      mineral,
+      capacidadExtraccion,
+      capacidadTransporte,
+      capacidadBeneficio,
+      proyeccionTopografia,
+      densidadManto,
+      cantidadProyectada,
+      observaciones,
+    } = req.body;
 
     const friActualizado = await prisma.fRIProyecciones.update({
       where: { id },
       data: {
         metodoExplotacion,
         mineral,
-        capacidadExtraccion: capacidadExtraccion ? parseFloat(capacidadExtraccion) : undefined,
-        capacidadTransporte: capacidadTransporte ? parseFloat(capacidadTransporte) : undefined,
-        capacidadBeneficio: capacidadBeneficio ? parseFloat(capacidadBeneficio) : undefined,
+        capacidadExtraccion: capacidadExtraccion
+          ? parseFloat(capacidadExtraccion)
+          : undefined,
+        capacidadTransporte: capacidadTransporte
+          ? parseFloat(capacidadTransporte)
+          : undefined,
+        capacidadBeneficio: capacidadBeneficio
+          ? parseFloat(capacidadBeneficio)
+          : undefined,
         proyeccionTopografia,
         densidadManto: densidadManto ? parseFloat(densidadManto) : null,
-        cantidadProyectada: cantidadProyectada ? parseFloat(cantidadProyectada) : undefined,
-        observaciones,
-        updatedAt: new Date()
+        cantidadProyectada: cantidadProyectada
+          ? parseFloat(cantidadProyectada)
+          : undefined,
+        observaciones:
+          observaciones != null ? String(observaciones) : undefined,
+        updatedAt: new Date(),
       },
       include: {
         usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: "✅ FRI actualizado",
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar FRI",
+      error: error.message,
+    });
   }
 });
 
-app.delete('/api/fri/proyecciones/:id', async (req, res) => {
+app.delete("/api/fri/proyecciones/:id", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { id } = req.params;
 
-    const friExistente = await prisma.fRIProyecciones.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+    const friExistente = await prisma.fRIProyecciones.findUnique({
+      where: { id },
+    });
+
+    if (!friExistente) {
+      return res.status(404).json({
+        success: false,
+        message: "FRI no encontrado",
+      });
+    }
+
+    if (req.user.rol !== "ADMIN" && friExistente.usuarioId !== req.user.id) {
+      return res.status(403).json({ success: false, message: "No autorizado" });
     }
 
     await prisma.fRIProyecciones.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
-
+    res.json({ success: true, message: "✅ FRI eliminado" });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar FRI",
+      error: error.message,
+    });
   }
 });
 
@@ -1394,148 +1967,228 @@ app.delete('/api/fri/proyecciones/:id', async (req, res) => {
 // FRI INVENTARIO MAQUINARIA (NUEVO)
 // ============================================
 
-app.post('/api/fri/inventario-maquinaria', async (req, res) => {
+app.post("/api/fri/inventario-maquinaria", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const usuario = req.user;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { 
-      tipoMaquinaria, 
-      marca, 
-      modelo, 
-      anoFabricacion, 
-      capacidad, 
-      estadoOperativo, 
-      observaciones 
+    const {
+      tipoMaquinaria,
+      marca,
+      modelo,
+      anoFabricacion,
+      capacidad,
+      estadoOperativo,
+      observaciones,
     } = req.body;
 
     if (!tipoMaquinaria || !estadoOperativo) {
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios",
+      });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { id: decoded.id } });
-    if (!usuario || !usuario.tituloMineroId) {
-      return res.status(400).json({ success: false, message: 'Usuario debe estar asociado a un título minero' });
+    if (!usuario.tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Usuario debe estar asociado a un título minero",
+      });
     }
 
     const nuevoFRI = await prisma.fRIInventarioMaquinaria.create({
       data: {
         fechaCorte: new Date(),
         tipoMaquinaria,
-        marca: marca != null && marca !== '' ? String(marca) : null,
-        modelo: modelo != null && modelo !== '' ? String(modelo) : null,
-        a_oFabricacion: anoFabricacion != null && anoFabricacion !== ''
-          ? parseInt(anoFabricacion, 10)
-          : null,capacidad: capacidad ? parseFloat(capacidad) : null,
+        marca: marca ? String(marca) : null,
+        modelo: modelo ? String(modelo) : null,
+        a_oFabricacion: anoFabricacion ? parseInt(anoFabricacion, 10) : null,
+        capacidad: capacidad ? parseFloat(capacidad) : null,
         estadoOperativo,
-        observaciones: observaciones != null ? String(observaciones) : '',
-        estado: 'BORRADOR',
-        usuarioId: decoded.id,
-        tituloMineroId: usuario.tituloMineroId
+        observaciones: observaciones ? String(observaciones) : "",
+        estado: "BORRADOR",
+        usuarioId: usuario.id,
+        tituloMineroId: usuario.tituloMineroId,
       },
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
+      },
     });
 
-    res.status(201).json({ success: true, message: '✅ FRI Inventario Maquinaria creado', fri: nuevoFRI });
-
+    res.status(201).json({
+      success: true,
+      message: "✅ FRI Inventario Maquinaria creado",
+      fri: nuevoFRI,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear FRI', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al crear FRI",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/inventario-maquinaria', async (req, res) => {
+app.get("/api/fri/inventario-maquinaria", authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const usuario = req.user;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtros = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtros = usuario.rol !== "ADMIN" ? { usuarioId: usuario.id } : {};
 
     const fris = await prisma.fRIInventarioMaquinaria.findMany({
       where: filtros,
       include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
+        usuario: {
+          select: { id: true, nombre: true, email: true, rol: true },
+        },
+        tituloMinero: {
+          select: { id: true, numeroTitulo: true, municipio: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    res.json({ success: true, total: fris.length, fris });
-
+    res.json({
+      success: true,
+      total: fris.length,
+      fris,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener FRIs', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener FRIs",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/inventario-maquinaria/:id', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+app.put(
+  "/api/fri/inventario-maquinaria/:id",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const usuario = req.user;
+      const { id } = req.params;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { id } = req.params;
+      const friExistente = await prisma.fRIInventarioMaquinaria.findUnique({
+        where: { id },
+      });
 
-    const friExistente = await prisma.fRIInventarioMaquinaria.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
-    }
+      if (!friExistente) {
+        return res.status(404).json({
+          success: false,
+          message: "FRI no encontrado",
+        });
+      }
 
-    const { tipoMaquinaria, marca, modelo, anoFabricacion, capacidad, estadoOperativo, observaciones } = req.body;
+      if (usuario.rol !== "ADMIN" && friExistente.usuarioId !== usuario.id) {
+        return res.status(403).json({
+          success: false,
+          message: "No autorizado",
+        });
+      }
 
-    const friActualizado = await prisma.fRIInventarioMaquinaria.update({
-      where: { id },
-      data: {
+      const {
         tipoMaquinaria,
         marca,
         modelo,
-        anoFabricacion: anoFabricacion ? parseInt(anoFabricacion) : null,
-        capacidad: capacidad ? parseFloat(capacidad) : null,
+        anoFabricacion,
+        capacidad,
         estadoOperativo,
         observaciones,
-        updatedAt: new Date()
-      },
-      include: {
-        usuario: { select: { id: true, nombre: true, email: true, rol: true } },
-        tituloMinero: { select: { id: true, numeroTitulo: true, municipio: true } }
-      }
-    });
+      } = req.body;
 
-    res.json({ success: true, message: '✅ FRI actualizado', fri: friActualizado });
+      const friActualizado = await prisma.fRIInventarioMaquinaria.update({
+        where: { id },
+        data: {
+          tipoMaquinaria,
+          marca,
+          modelo,
+          a_oFabricacion: anoFabricacion ? parseInt(anoFabricacion, 10) : null,
+          capacidad: capacidad ? parseFloat(capacidad) : null,
+          estadoOperativo,
+          observaciones:
+            observaciones != null ? String(observaciones) : undefined,
+          updatedAt: new Date(),
+        },
+        include: {
+          usuario: {
+            select: { id: true, nombre: true, email: true, rol: true },
+          },
+          tituloMinero: {
+            select: { id: true, numeroTitulo: true, municipio: true },
+          },
+        },
+      });
 
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar FRI', error: error.message });
-  }
-});
-
-app.delete('/api/fri/inventario-maquinaria/:id', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { id } = req.params;
-
-    const friExistente = await prisma.fRIInventarioMaquinaria.findUnique({ where: { id } });
-    if (!friExistente || (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id)) {
-      return res.status(403).json({ success: false, message: 'No autorizado' });
+      res.json({
+        success: true,
+        message: "✅ FRI actualizado",
+        fri: friActualizado,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al actualizar FRI",
+        error: error.message,
+      });
     }
+  },
+);
 
-    await prisma.fRIInventarioMaquinaria.delete({ where: { id } });
-    res.json({ success: true, message: '✅ FRI eliminado' });
+app.delete(
+  "/api/fri/inventario-maquinaria/:id",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const usuario = req.user;
+      const { id } = req.params;
 
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar FRI', error: error.message });
-  }
-});
+      const friExistente = await prisma.fRIInventarioMaquinaria.findUnique({
+        where: { id },
+      });
+
+      // 🔍 Primero verificamos si existe
+      if (!friExistente) {
+        return res.status(404).json({
+          success: false,
+          message: "FRI no encontrado",
+        });
+      }
+
+      // 🔒 Solo ADMIN o dueño puede eliminar
+      if (usuario.rol !== "ADMIN" && friExistente.usuarioId !== usuario.id) {
+        return res.status(403).json({
+          success: false,
+          message: "No autorizado",
+        });
+      }
+
+      await prisma.fRIInventarioMaquinaria.delete({
+        where: { id },
+      });
+
+      res.json({
+        success: true,
+        message: "✅ FRI eliminado",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al eliminar FRI",
+        error: error.message,
+      });
+    }
+  },
+);
 
 // ============================================
 // INSTRUCCIONES DE IMPLEMENTACIÓN:
-// 
+//
 // 1. Abre backend/src/server.js
 // 2. Busca la sección: "// ============================================"
 //                       "// ESTADÍSTICAS Y UTILIDADES"
@@ -1548,7 +2201,7 @@ app.delete('/api/fri/inventario-maquinaria/:id', async (req, res) => {
 // ESTADÍSTICAS Y UTILIDADES
 // ============================================
 
-app.get('/api/usuarios', async (req, res) => {
+app.get("/api/usuarios", async (req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany({
       select: {
@@ -1560,42 +2213,60 @@ app.get('/api/usuarios', async (req, res) => {
         tituloMinero: {
           select: {
             numeroTitulo: true,
-            municipio: true
-          }
-        }
+            municipio: true,
+          },
+        },
       },
-      orderBy: { nombre: 'asc' }
+      orderBy: { nombre: "asc" },
     });
 
     res.json({ success: true, total: usuarios.length, usuarios });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener usuarios', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener usuarios",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/titulos-mineros', async (req, res) => {
+app.get("/api/titulos-mineros", async (req, res) => {
   try {
     const titulos = await prisma.tituloMinero.findMany({
-      orderBy: { numeroTitulo: 'asc' }
+      orderBy: { numeroTitulo: "asc" },
     });
 
     res.json({ success: true, total: titulos.length, titulos });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener títulos mineros', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener títulos mineros",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/estadisticas', async (req, res) => {
+app.get("/api/fri/estadisticas", async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Token no proporcionado" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const filtro = decoded.rol !== 'ADMIN' ? { usuarioId: decoded.id } : {};
+    const filtro = decoded.rol !== "ADMIN" ? { usuarioId: decoded.id } : {};
 
-    const [totalTitulos, totalUsuarios, produccion, inventarios, paradas, ejecucion, maquinaria, regalias] = await Promise.all([
+    const [
+      totalTitulos,
+      totalUsuarios,
+      produccion,
+      inventarios,
+      paradas,
+      ejecucion,
+      maquinaria,
+      regalias,
+    ] = await Promise.all([
       prisma.tituloMinero.count(),
       prisma.usuario.count(),
       prisma.fRIProduccion.count({ where: filtro }),
@@ -1603,50 +2274,92 @@ app.get('/api/fri/estadisticas', async (req, res) => {
       prisma.fRIParadas.count({ where: filtro }),
       prisma.fRIEjecucion.count({ where: filtro }),
       prisma.fRIMaquinaria.count({ where: filtro }),
-      prisma.fRIRegalias.count({ where: filtro })
+      prisma.fRIRegalias.count({ where: filtro }),
     ]);
 
-    const totalFRIs = produccion + inventarios + paradas + ejecucion + maquinaria + regalias;
+    const totalFRIs =
+      produccion + inventarios + paradas + ejecucion + maquinaria + regalias;
 
     res.json({
       success: true,
       estadisticas: {
-        sistema: { titulosMineros: totalTitulos, usuarios: totalUsuarios, totalFRIs },
-        porTipo: { produccion, inventarios, paradas, ejecucion, maquinaria, regalias }
-      }
+        sistema: {
+          titulosMineros: totalTitulos,
+          usuarios: totalUsuarios,
+          totalFRIs,
+        },
+        porTipo: {
+          produccion,
+          inventarios,
+          paradas,
+          ejecucion,
+          maquinaria,
+          regalias,
+        },
+      },
     });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener estadísticas",
+      error: error.message,
+    });
   }
 });
 
-app.get('/api/fri/borradores/count', async (req, res) => {
+app.get("/api/fri/borradores/count", async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Token no proporcionado" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const [produccion, inventarios, paradas, ejecucion, maquinaria, regalias] = await Promise.all([
-      prisma.fRIProduccion.count({ where: { usuarioId: decoded.id, estado: 'BORRADOR' } }),
-      prisma.fRIInventarios.count({ where: { usuarioId: decoded.id, estado: 'BORRADOR' } }),
-      prisma.fRIParadas.count({ where: { usuarioId: decoded.id, estado: 'BORRADOR' } }),
-      prisma.fRIEjecucion.count({ where: { usuarioId: decoded.id, estado: 'BORRADOR' } }),
-      prisma.fRIMaquinaria.count({ where: { usuarioId: decoded.id, estado: 'BORRADOR' } }),
-      prisma.fRIRegalias.count({ where: { usuarioId: decoded.id, estado: 'BORRADOR' } })
-    ]);
+    const [produccion, inventarios, paradas, ejecucion, maquinaria, regalias] =
+      await Promise.all([
+        prisma.fRIProduccion.count({
+          where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        }),
+        prisma.fRIInventarios.count({
+          where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        }),
+        prisma.fRIParadas.count({
+          where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        }),
+        prisma.fRIEjecucion.count({
+          where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        }),
+        prisma.fRIMaquinaria.count({
+          where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        }),
+        prisma.fRIRegalias.count({
+          where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        }),
+      ]);
 
-    const total = produccion + inventarios + paradas + ejecucion + maquinaria + regalias;
+    const total =
+      produccion + inventarios + paradas + ejecucion + maquinaria + regalias;
 
     res.json({
       success: true,
       total,
-      detalles: { produccion, inventarios, paradas, ejecucion, maquinaria, regalias }
+      detalles: {
+        produccion,
+        inventarios,
+        paradas,
+        ejecucion,
+        maquinaria,
+        regalias,
+      },
     });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al contar borradores', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al contar borradores",
+      error: error.message,
+    });
   }
 });
 
@@ -1654,23 +2367,57 @@ app.get('/api/fri/borradores/count', async (req, res) => {
 // CAMBIO DE ESTADOS
 // ============================================
 
-app.post('/api/fri/enviar-borradores', async (req, res) => {
+app.post("/api/fri/enviar-borradores", async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Token no proporcionado" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const [produccionActualizados, inventariosActualizados, paradasActualizadas, ejecucionActualizados, maquinariaActualizados, regaliasActualizados] = await Promise.all([
-      prisma.fRIProduccion.updateMany({ where: { usuarioId: decoded.id, estado: 'BORRADOR' }, data: { estado: 'ENVIADO', updatedAt: new Date() } }),
-      prisma.fRIInventarios.updateMany({ where: { usuarioId: decoded.id, estado: 'BORRADOR' }, data: { estado: 'ENVIADO', updatedAt: new Date() } }),
-      prisma.fRIParadas.updateMany({ where: { usuarioId: decoded.id, estado: 'BORRADOR' }, data: { estado: 'ENVIADO', updatedAt: new Date() } }),
-      prisma.fRIEjecucion.updateMany({ where: { usuarioId: decoded.id, estado: 'BORRADOR' }, data: { estado: 'ENVIADO', updatedAt: new Date() } }),
-      prisma.fRIMaquinaria.updateMany({ where: { usuarioId: decoded.id, estado: 'BORRADOR' }, data: { estado: 'ENVIADO', updatedAt: new Date() } }),
-      prisma.fRIRegalias.updateMany({ where: { usuarioId: decoded.id, estado: 'BORRADOR' }, data: { estado: 'ENVIADO', updatedAt: new Date() } })
+    const [
+      produccionActualizados,
+      inventariosActualizados,
+      paradasActualizadas,
+      ejecucionActualizados,
+      maquinariaActualizados,
+      regaliasActualizados,
+    ] = await Promise.all([
+      prisma.fRIProduccion.updateMany({
+        where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        data: { estado: "ENVIADO", updatedAt: new Date() },
+      }),
+      prisma.fRIInventarios.updateMany({
+        where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        data: { estado: "ENVIADO", updatedAt: new Date() },
+      }),
+      prisma.fRIParadas.updateMany({
+        where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        data: { estado: "ENVIADO", updatedAt: new Date() },
+      }),
+      prisma.fRIEjecucion.updateMany({
+        where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        data: { estado: "ENVIADO", updatedAt: new Date() },
+      }),
+      prisma.fRIMaquinaria.updateMany({
+        where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        data: { estado: "ENVIADO", updatedAt: new Date() },
+      }),
+      prisma.fRIRegalias.updateMany({
+        where: { usuarioId: decoded.id, estado: "BORRADOR" },
+        data: { estado: "ENVIADO", updatedAt: new Date() },
+      }),
     ]);
 
-    const totalActualizados = produccionActualizados.count + inventariosActualizados.count + paradasActualizadas.count + ejecucionActualizados.count + maquinariaActualizados.count + regaliasActualizados.count;
+    const totalActualizados =
+      produccionActualizados.count +
+      inventariosActualizados.count +
+      paradasActualizadas.count +
+      ejecucionActualizados.count +
+      maquinariaActualizados.count +
+      regaliasActualizados.count;
 
     res.json({
       success: true,
@@ -1681,66 +2428,88 @@ app.post('/api/fri/enviar-borradores', async (req, res) => {
         paradas: paradasActualizadas.count,
         ejecucion: ejecucionActualizados.count,
         maquinaria: maquinariaActualizados.count,
-        regalias: regaliasActualizados.count
-      }
+        regalias: regaliasActualizados.count,
+      },
     });
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al enviar borradores', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al enviar borradores",
+      error: error.message,
+    });
   }
 });
 
-app.put('/api/fri/:tipo/:id/estado', async (req, res) => {
+app.put("/api/fri/:tipo/:id/estado", async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Token no proporcionado" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { tipo, id } = req.params;
     const { estado } = req.body;
 
-    const estadosValidos = ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO'];
+    const estadosValidos = ["BORRADOR", "ENVIADO", "APROBADO", "RECHAZADO"];
     if (!estadosValidos.includes(estado)) {
-      return res.status(400).json({ success: false, message: 'Estado inválido' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Estado inválido" });
     }
 
     const modelos = {
-      'produccion': prisma.fRIProduccion,
-      'inventarios': prisma.fRIInventarios,
-      'paradas': prisma.fRIParadas,
-      'ejecucion': prisma.fRIEjecucion,
-      'maquinaria': prisma.fRIMaquinaria,
-      'regalias': prisma.fRIRegalias,
-      'capacidad': prisma.fRICapacidad,
+      produccion: prisma.fRIProduccion,
+      inventarios: prisma.fRIInventarios,
+      paradas: prisma.fRIParadas,
+      ejecucion: prisma.fRIEjecucion,
+      maquinaria: prisma.fRIMaquinaria,
+      regalias: prisma.fRIRegalias,
+      capacidad: prisma.fRICapacidad,
       "inventario-maquinaria": prisma.fRIInventarioMaquinaria,
       inventarioMaquinaria: prisma.fRIInventarioMaquinaria,
-      'proyecciones': prisma.fRIProyecciones,
+      proyecciones: prisma.fRIProyecciones,
     };
 
     const modelo = modelos[tipo];
     if (!modelo) {
-      return res.status(400).json({ success: false, message: 'Tipo de FRI inválido' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Tipo de FRI inválido" });
     }
 
     const friExistente = await modelo.findUnique({ where: { id } });
     if (!friExistente) {
-      return res.status(404).json({ success: false, message: 'FRI no encontrado' });
+      return res
+        .status(404)
+        .json({ success: false, message: "FRI no encontrado" });
     }
 
-    if (decoded.rol !== 'ADMIN' && friExistente.usuarioId !== decoded.id) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para cambiar el estado de este FRI' });
+    if (decoded.rol !== "ADMIN" && friExistente.usuarioId !== decoded.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes permiso para cambiar el estado de este FRI",
+      });
     }
 
     const friActualizado = await modelo.update({
       where: { id },
       data: { estado, updatedAt: new Date() },
-      include: { usuario: { select: { id: true, nombre: true } } }
+      include: { usuario: { select: { id: true, nombre: true } } },
     });
 
-    res.json({ success: true, message: `✅ Estado cambiado a ${estado}`, fri: friActualizado });
-
+    res.json({
+      success: true,
+      message: `✅ Estado cambiado a ${estado}`,
+      fri: friActualizado,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al cambiar estado', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al cambiar estado",
+      error: error.message,
+    });
   }
 });
 
@@ -1748,149 +2517,492 @@ app.put('/api/fri/:tipo/:id/estado', async (req, res) => {
 // REPORTES Y EXPORTACIÓN
 // ============================================
 
-app.post('/api/reportes/exportar-anm', async (req, res) => {
+app.post("/api/reportes/exportar-anm", async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Token no proporcionado" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { tipos = [], filtros = {} } = req.body || {};
 
     if (tipos.length === 0) {
-      return res.status(400).json({ success: false, message: 'Debe seleccionar al menos un tipo de formulario' });
+      return res.status(400).json({
+        success: false,
+        message: "Debe seleccionar al menos un tipo de formulario",
+      });
     }
 
     const whereClauses = {};
-    
+
     if (filtros.fechaInicio && filtros.fechaFin) {
-      whereClauses.fechaCorte = { gte: new Date(filtros.fechaInicio), lte: new Date(filtros.fechaFin) };
+      whereClauses.fechaCorte = {
+        gte: new Date(filtros.fechaInicio),
+        lte: new Date(filtros.fechaFin),
+      };
     } else if (filtros.fechaInicio) {
       whereClauses.fechaCorte = { gte: new Date(filtros.fechaInicio) };
     } else if (filtros.fechaFin) {
       whereClauses.fechaCorte = { lte: new Date(filtros.fechaFin) };
     }
 
-    if (filtros.tituloMineroId) whereClauses.tituloMineroId = filtros.tituloMineroId;
+    if (filtros.tituloMineroId)
+      whereClauses.tituloMineroId = filtros.tituloMineroId;
     if (filtros.mineral) whereClauses.mineral = filtros.mineral;
     if (filtros.estado) whereClauses.estado = filtros.estado;
-    if (decoded.rol !== 'ADMIN') whereClauses.usuarioId = decoded.id;
+    if (decoded.rol !== "ADMIN") whereClauses.usuarioId = decoded.id;
 
     const datosPorTipo = {};
-    
+
     for (const tipo of tipos) {
       let modelo;
-      switch(tipo) {
-        case 'produccion': modelo = prisma.fRIProduccion; break;
-        case 'inventarios': modelo = prisma.fRIInventarios; break;
-        case 'paradas': modelo = prisma.fRIParadas; break;
-        case 'ejecucion': modelo = prisma.fRIEjecucion; break;
-        case 'maquinaria': modelo = prisma.fRIMaquinaria; break;
-        case 'regalias': modelo = prisma.fRIRegalias; break;
-        default: continue;
+      switch (tipo) {
+        case "produccion":
+          modelo = prisma.fRIProduccion;
+          break;
+        case "inventarios":
+          modelo = prisma.fRIInventarios;
+          break;
+        case "paradas":
+          modelo = prisma.fRIParadas;
+          break;
+        case "ejecucion":
+          modelo = prisma.fRIEjecucion;
+          break;
+        case "maquinaria":
+          modelo = prisma.fRIMaquinaria;
+          break;
+        case "regalias":
+          modelo = prisma.fRIRegalias;
+          break;
+        default:
+          continue;
       }
 
       const datos = await modelo.findMany({
         where: whereClauses,
         include: {
           usuario: { select: { nombre: true } },
-          tituloMinero: { select: { numeroTitulo: true, municipio: true, codigoMunicipio: true } }
+          tituloMinero: {
+            select: {
+              numeroTitulo: true,
+              municipio: true,
+              codigoMunicipio: true,
+            },
+          },
         },
-        orderBy: { fechaCorte: 'desc' }
+        orderBy: { fechaCorte: "desc" },
       });
 
       if (datos.length > 0) datosPorTipo[tipo] = datos;
     }
 
     if (Object.keys(datosPorTipo).length === 0) {
-      return res.status(404).json({ success: false, message: 'No se encontraron datos con los filtros especificados' });
+      return res.status(404).json({
+        success: false,
+        message: "No se encontraron datos con los filtros especificados",
+      });
     }
 
     const workbook = await simpleExporter.generarExcelConsolidado(datosPorTipo);
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=FRI_ANM_${Date.now()}.xlsx`);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=FRI_ANM_${Date.now()}.xlsx`,
+    );
 
     await workbook.xlsx.write(res);
     res.end();
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al generar Excel', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al generar Excel",
+      error: error.message,
+    });
   }
 });
 
-app.post('/api/reportes/exportar-pdf', async (req, res) => {
+app.post("/api/reportes/exportar-pdf", async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Token no proporcionado' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Token no proporcionado" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { tipos = [], filtros = {} } = req.body || {};
 
     if (tipos.length === 0) {
-      return res.status(400).json({ success: false, message: 'Debe seleccionar al menos un tipo de formulario' });
+      return res.status(400).json({
+        success: false,
+        message: "Debe seleccionar al menos un tipo de formulario",
+      });
     }
 
     const whereClauses = {};
-    
+
     if (filtros.fechaInicio && filtros.fechaFin) {
-      whereClauses.fechaCorte = { gte: new Date(filtros.fechaInicio), lte: new Date(filtros.fechaFin) };
+      whereClauses.fechaCorte = {
+        gte: new Date(filtros.fechaInicio),
+        lte: new Date(filtros.fechaFin),
+      };
     } else if (filtros.fechaInicio) {
       whereClauses.fechaCorte = { gte: new Date(filtros.fechaInicio) };
     } else if (filtros.fechaFin) {
       whereClauses.fechaCorte = { lte: new Date(filtros.fechaFin) };
     }
 
-    if (filtros.tituloMineroId) whereClauses.tituloMineroId = filtros.tituloMineroId;
+    if (filtros.tituloMineroId)
+      whereClauses.tituloMineroId = filtros.tituloMineroId;
     if (filtros.mineral) whereClauses.mineral = filtros.mineral;
     if (filtros.estado) whereClauses.estado = filtros.estado;
-    if (decoded.rol !== 'ADMIN') whereClauses.usuarioId = decoded.id;
+    if (decoded.rol !== "ADMIN") whereClauses.usuarioId = decoded.id;
 
     const datosPorTipo = {};
-    
+
     for (const tipo of tipos) {
       let modelo;
-      switch(tipo) {
-        case 'produccion': modelo = prisma.fRIProduccion; break;
-        case 'inventarios': modelo = prisma.fRIInventarios; break;
-        case 'paradas': modelo = prisma.fRIParadas; break;
-        case 'ejecucion': modelo = prisma.fRIEjecucion; break;
-        case 'maquinaria': modelo = prisma.fRIMaquinaria; break;
-        case 'regalias': modelo = prisma.fRIRegalias; break;
-        default: continue;
+      switch (tipo) {
+        case "produccion":
+          modelo = prisma.fRIProduccion;
+          break;
+        case "inventarios":
+          modelo = prisma.fRIInventarios;
+          break;
+        case "paradas":
+          modelo = prisma.fRIParadas;
+          break;
+        case "ejecucion":
+          modelo = prisma.fRIEjecucion;
+          break;
+        case "maquinaria":
+          modelo = prisma.fRIMaquinaria;
+          break;
+        case "regalias":
+          modelo = prisma.fRIRegalias;
+          break;
+        default:
+          continue;
       }
 
       const datos = await modelo.findMany({
         where: whereClauses,
         include: {
           usuario: { select: { nombre: true } },
-          tituloMinero: { select: { numeroTitulo: true, municipio: true } }
+          tituloMinero: { select: { numeroTitulo: true, municipio: true } },
         },
-        orderBy: { fechaCorte: 'desc' }
+        orderBy: { fechaCorte: "desc" },
       });
 
       if (datos.length > 0) datosPorTipo[tipo] = datos;
     }
 
     if (Object.keys(datosPorTipo).length === 0) {
-      return res.status(404).json({ success: false, message: 'No se encontraron datos con los filtros especificados' });
+      return res.status(404).json({
+        success: false,
+        message: "No se encontraron datos con los filtros especificados",
+      });
     }
 
     const pdfBuffer = await pdfExporter.generarPDFConsolidado(datosPorTipo);
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=FRI_ANM_${Date.now()}.pdf`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=FRI_ANM_${Date.now()}.pdf`,
+    );
     res.send(pdfBuffer);
-
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al generar PDF', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error al generar PDF",
+      error: error.message,
+    });
   }
 });
+
+//------------------------------------------------------------
+// CRUD MÓDULO DE GESTIÓN DE USUARIOS
+
+// Listar usuarios
+app.get(
+  "/api/list-users",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const usuarios = await prisma.usuario.findMany({
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          rol: true,
+          activo: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      res.json({
+        success: true,
+        total: usuarios.length,
+        usuarios,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al obtener usuarios",
+        error: error.message,
+      });
+    }
+  },
+);
+
+// Crear usuarios
+app.post(
+  "/api/list-users",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { email, password, nombre, rol, tituloMineroId } = req.body;
+
+      if (!email || !password || !nombre || !rol) {
+        return res.status(400).json({
+          success: false,
+          message: "Faltan campos obligatorios",
+        });
+      }
+
+      const usuarioExistente = await prisma.usuario.findUnique({
+        where: { email },
+      });
+
+      if (usuarioExistente) {
+        return res.status(400).json({
+          success: false,
+          message: "El correo ya está registrado",
+        });
+      }
+
+      const bcrypt = require("bcrypt");
+      const hash = await bcrypt.hash(password, 10);
+
+      const nuevoUsuario = await prisma.usuario.create({
+        data: {
+          email,
+          password: hash,
+          nombre,
+          rol,
+          activo: true,
+          tituloMineroId: tituloMineroId || null,
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Usuario creado correctamente",
+        usuario: {
+          id: nuevoUsuario.id,
+          email: nuevoUsuario.email,
+          nombre: nuevoUsuario.nombre,
+          rol: nuevoUsuario.rol,
+          activo: nuevoUsuario.activo,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error al crear usuario",
+        error: error.message,
+      });
+    }
+  },
+);
+
+// Activar/desactivar usuario
+app.patch(
+  "/api/list-users/:id/status",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const usuario = await prisma.usuario.findUnique({
+        where: { id },
+      });
+
+      if (!usuario) {
+        return res.status(404).json({
+          success: false,
+          message: "Usuario no encontrado",
+        });
+      }
+
+      // Alterna el estado
+      const usuarioActualizado = await prisma.usuario.update({
+        where: { id },
+        data: {
+          activo: !usuario.activo,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: `Usuario ${
+          usuarioActualizado.activo ? "activado" : "desactivado"
+        } correctamente`,
+        usuario: {
+          id: usuarioActualizado.id,
+          nombre: usuarioActualizado.nombre,
+          email: usuarioActualizado.email,
+          activo: usuarioActualizado.activo,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error cambiando estado del usuario",
+        error: error.message,
+      });
+    }
+  },
+);
+
+// Actualizar datos de usuario
+app.put(
+  "/api/list-users/:id",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { nombre, rol, tituloMineroId, password } = req.body;
+
+      const usuario = await prisma.usuario.findUnique({
+        where: { id },
+      });
+
+      if (!usuario) {
+        return res.status(404).json({
+          success: false,
+          message: "Usuario no encontrado",
+        });
+      }
+
+      // ⚠ Evitar que un admin se quite su propio rol accidentalmente
+      if (req.user.id === id && rol && rol !== "ADMIN") {
+        return res.status(400).json({
+          success: false,
+          message: "No puedes cambiar tu propio rol",
+        });
+      }
+
+      let dataToUpdate = {
+        nombre,
+        rol,
+        tituloMineroId,
+      };
+
+      // Si se envía password, se hashea
+      if (password) {
+        const bcrypt = require("bcrypt");
+        dataToUpdate.password = await bcrypt.hash(password, 10);
+      }
+
+      const usuarioActualizado = await prisma.usuario.update({
+        where: { id },
+        data: dataToUpdate,
+      });
+
+      res.json({
+        success: true,
+        message: "Usuario actualizado correctamente",
+        usuario: {
+          id: usuarioActualizado.id,
+          nombre: usuarioActualizado.nombre,
+          email: usuarioActualizado.email,
+          rol: usuarioActualizado.rol,
+          activo: usuarioActualizado.activo,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error actualizando usuario",
+        error: error.message,
+      });
+    }
+  },
+);
+
+// Crear titulos mineros
+app.post(
+  "/api/titulos",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const {
+        numeroTitulo,
+        municipio,
+        codigoMunicipio,
+        fechaInicio,
+        fechaVencimiento,
+        observaciones,
+      } = req.body;
+
+      if (!numeroTitulo || !municipio) {
+        return res.status(400).json({
+          success: false,
+          message: "Número y municipio son obligatorios",
+        });
+      }
+
+      const existe = await prisma.tituloMinero.findUnique({
+        where: { numeroTitulo },
+      });
+
+      if (existe) {
+        return res.status(400).json({
+          success: false,
+          message: "El número de título ya existe",
+        });
+      }
+
+      const titulo = await prisma.tituloMinero.create({
+        data: {
+          numeroTitulo,
+          municipio,
+          codigoMunicipio,
+          fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+          fechaVencimiento: fechaVencimiento
+            ? new Date(fechaVencimiento)
+            : null,
+          observaciones,
+        },
+      });
+
+      res.status(201).json({ success: true, titulo });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+);
 
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n✅ ========================================`);
   console.log(`✅ Servidor ANM-FRI corriendo en puerto ${PORT}`);
   console.log(`✅ ========================================`);
