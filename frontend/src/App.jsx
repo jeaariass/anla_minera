@@ -7,7 +7,10 @@ import Home from './pages/Home';
 import Formularios from './pages/Formularios';
 import Dashboard from './pages/Dashboard';
 import Reportes from './pages/Reportes';
-import MapaActividades from './pages/MapaActividades'; // ⚠️ NUEVO
+import MapaActividades from './pages/MapaActividades'; 
+import ResumenOperacion from './pages/ResumenOperacion'; 
+import FormulariosOperacion from './pages/FormulariosOperacion'; 
+import DashboardOperacion from './pages/DashboardOperacion';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -72,6 +75,35 @@ function App() {
           element={
             <ProtectedRoute>
               <MapaActividades />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ NUEVA RUTA: Resumen Operación */}
+        <Route
+          path="/resumen-operacion"
+          element={
+            <ProtectedRoute>
+              <ResumenOperacion />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* ✅ NUEVA RUTA: Formularios de Operación */}
+        <Route
+          path="/formularios-operacion"
+          element={
+            <ProtectedRoute>
+              <FormulariosOperacion />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard-operacion"
+          element={
+            <ProtectedRoute>
+              <DashboardOperacion />
             </ProtectedRoute>
           }
         />

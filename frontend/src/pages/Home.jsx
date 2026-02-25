@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService, friService } from '../services/api';
+import api from '../services/api';
 import { 
   FileText, 
   BarChart3, 
@@ -21,7 +22,10 @@ import {
   DollarSign,
   Layers,
   Zap,
-  Map
+  Map,
+  Activity,
+  MapPin,
+  Clock
 } from 'lucide-react';
 import './Home.css';
 
@@ -34,7 +38,10 @@ const Home = () => {
     enviados: 0,
     aprobados: 0,
     rechazados: 0,
-    porTipo: {}
+    porTipo: {},
+    paradasHoy: 0,
+    minutosParadoHoy: 0,
+    puntosHoy: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +67,9 @@ const Home = () => {
         'ejecucion',
         'maquinaria',
         'regalias',
-        'capacidad'
+        'capacidad',
+        'inventarioMaquinaria',
+        'proyecciones'
       ];
 
       const statsData = {
@@ -98,6 +107,29 @@ const Home = () => {
           statsData.porTipo[tipo] = 0;
         }
       }
+
+      // ── Operación hoy (Colombia) ──
+      const hoy = (() => {
+        const local = new Date(Date.now() - 5 * 3600000);
+        return local.toISOString().split('T')[0];
+      })();
+      const tituloId = authService.getCurrentUser()?.tituloMinero?.id
+                    || authService.getCurrentUser()?.tituloMineroId
+                    || 'titulo-816-17';
+      try {
+        const [rParadas, rPuntos] = await Promise.all([
+          api.get(`/paradas/${tituloId}?dia=${hoy}`),
+          api.get(`/actividad/puntos/${tituloId}?dia=${hoy}`),
+        ]);
+        if (rParadas.data.success) {
+          const pHoy = rParadas.data.data ?? [];
+          statsData.paradasHoy       = pHoy.length;
+          statsData.minutosParadoHoy = pHoy.reduce((a, p) => a + (Number(p.minutesParo) || 0), 0);
+        }
+        if (rPuntos.data.success) {
+          statsData.puntosHoy = (rPuntos.data.data ?? []).length;
+        }
+      } catch (_) { /* no bloquea si falla */ }
 
       setStats(statsData);
     } catch (error) {
@@ -138,12 +170,28 @@ const Home = () => {
       gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     },
     {
-    icon: <Map size={32} />,
-    title: 'Mapa de Actividades',
-    description: 'Visualizar puntos georeferenciados',
-    path: '/mapa',
-    color: '#06b6d4',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #06b6d4 100%)',
+      icon: <Activity size={32} />,
+      title: 'Formularios de Operación',
+      description: 'Registrar, editar y eliminar paradas y puntos de actividad',
+      path: '/formularios-operacion',
+      color: '#e74c3c',
+      gradient: 'linear-gradient(135deg, #e74c3c 0%, #f39c12 100%)',
+    },
+    {
+      icon: <BarChart3 size={32} />,
+      title: 'Dashboard Operación',
+      description: 'Gráficos y análisis de paradas y puntos de actividad',
+      path: '/dashboard-operacion',
+      color: '#8b5cf6',
+      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+    },
+    {
+      icon: <Map size={32} />,
+      title: 'Exportar Reportes',
+      description: 'Visualizar puntos georeferenciados y mapa de Actividades',
+      path: '/mapa',
+      color: '#06b6d4',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #06b6d4 100%)',
     },
   ];
 
@@ -154,7 +202,9 @@ const Home = () => {
     { id: 'ejecucion', nombre: 'Ejecución', icon: <Settings size={20} />, color: '#f59e0b' },
     { id: 'maquinaria', nombre: 'Maquinaria', icon: <Truck size={20} />, color: '#8b5cf6' },
     { id: 'regalias', nombre: 'Regalías', icon: <DollarSign size={20} />, color: '#ec4899' },
-    { id: 'capacidad', nombre: 'Capacidad', icon: <Zap size={20} />, color: '#84cc16' }
+    { id: 'capacidad', nombre: 'Capacidad', icon: <Zap size={20} />, color: '#84cc16' },
+    { id: 'inventarioMaquinaria', nombre: 'Inventario Maquinaria', icon: <Layers size={20} />, color: '#06b6d4' },
+    { id: 'proyecciones', nombre: 'Proyecciones', icon: <TrendingUp size={20} />, color: '#8b5cf6' }
   ];
 
   if (loading) {
@@ -244,7 +294,7 @@ const Home = () => {
                 <div className="stat-content">
                   <p className="stat-label">Total Formularios</p>
                   <h3 className="stat-value">{stats.totalFormularios}</h3>
-                  <p className="stat-desc">En toda la plataforma</p>
+                  <p className="stat-desc"></p>
                 </div>
               </div>
 
@@ -256,7 +306,7 @@ const Home = () => {
                 <div className="stat-content">
                   <p className="stat-label">Borradores</p>
                   <h3 className="stat-value">{stats.borradores}</h3>
-                  <p className="stat-desc">Pendientes de enviar</p>
+                  <p className="stat-desc"> </p>
                 </div>
               </div>
 
@@ -268,19 +318,31 @@ const Home = () => {
                 <div className="stat-content">
                   <p className="stat-label">Enviados</p>
                   <h3 className="stat-value">{stats.enviados}</h3>
-                  <p className="stat-desc">En revisión</p>
+                  <p className="stat-desc"> </p>
                 </div>
               </div>
 
-              {/* Aprobados */}
-              <div className="stat-card" style={{ borderLeft: '4px solid #10b981' }}>
-                <div className="stat-icon" style={{ background: '#d1fae5' }}>
-                  <CheckCircle size={28} color="#10b981" />
+              {/* Paradas hoy */}
+              <div className="stat-card" style={{ borderLeft: '4px solid #e74c3c' }}>
+                <div className="stat-icon" style={{ background: '#fee2e2' }}>
+                  <Clock size={28} color="#e74c3c" />
                 </div>
                 <div className="stat-content">
-                  <p className="stat-label">Aprobados</p>
-                  <h3 className="stat-value">{stats.aprobados}</h3>
-                  <p className="stat-desc">Completados</p>
+                  <p className="stat-label">Min Parado</p>
+                  <h3 className="stat-value">{stats.minutosParadoHoy}</h3>
+                  <p className="stat-desc">{stats.paradasHoy} paro{stats.paradasHoy !== 1 ? 's' : ''} registrado{stats.paradasHoy !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+
+              {/* Puntos hoy */}
+              <div className="stat-card" style={{ borderLeft: '4px solid #2563eb' }}>
+                <div className="stat-icon" style={{ background: '#dbeafe' }}>
+                  <MapPin size={28} color="#2563eb" />
+                </div>
+                <div className="stat-content">
+                  <p className="stat-label">Puntos</p>
+                  <h3 className="stat-value">{stats.puntosHoy}</h3>
+                  <p className="stat-desc">Actividad registrada hoy</p>
                 </div>
               </div>
 
