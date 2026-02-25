@@ -12,7 +12,7 @@ import { Platform } from 'react-native';
 const __DEV__ = process.env.NODE_ENV === 'development';
 
 // TU CONFIGURACIÓN LOCAL (⚠️ Cambia esto si tu IP cambia)
-const LOCAL_IP = '192.168.1.8';
+const LOCAL_IP = '192.168.1.6';
 const LOCAL_PORT = '3001';
 
 // PRODUCCIÓN: Tu servidor VPS
