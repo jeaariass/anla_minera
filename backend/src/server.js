@@ -52,14 +52,14 @@ app.use(
       "http://127.0.0.1:3000",
       "http://localhost:5173",
       "http://127.0.0.1:5173",
-      "http://192.168.1.8:3000", // Frontend local en red
-      "http://192.168.1.8:3001", // Backend local
+      "http://192.168.1.6:3000", // Frontend local en red
+      "http://192.168.1.6:3001", // Backend local
 
       // === APP MÓVIL - DESARROLLO LOCAL ===
-      "http://192.168.1.8:8081", // Expo Dev Server
-      "http://192.168.1.8:19000", // Expo Metro
-      "http://192.168.1.8:19006", // Expo Web
-      "exp://192.168.1.8:8081", // Expo protocolo
+      "http://192.168.1.6:8081", // Expo Dev Server
+      "http://192.168.1.6:19000", // Expo Metro
+      "http://192.168.1.6:19006", // Expo Web
+      "exp://192.168.1.6:8081", // Expo protocolo
 
       // === PRODUCCIÓN - HOSTINGER/VPS ===
       "https://ctglobal.com.co", // Frontend producción raíz
@@ -85,10 +85,12 @@ app.use(
 const androidRoutes = require("./routes/androidRoutes");
 const puntosActividadRoutes = require("./routes/puntosActividadRoutes");
 const reportRoutesSimple = require("./routes/reportRoutesSimple");
+const paradasRoutes = require("./routes/paradasRoutes");
 
 app.use("/api/android", androidRoutes);
 app.use("/api/actividad", puntosActividadRoutes);
 app.use("/api/reports", reportRoutesSimple);
+app.use("/api/paradas", paradasRoutes);
 
 // ============================================
 // RUTAS BÁSICAS
