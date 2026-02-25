@@ -362,6 +362,35 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.actionArrow}>→</Text>
         </TouchableOpacity>
 
+        {/* ── Paradas ── */}
+        <TouchableOpacity
+          style={[styles.actionCard, { backgroundColor: '#e74c3c' }]}
+          onPress={() => navigation.navigate('RegistrarParada')}
+        >
+          <View style={styles.actionIcon}>
+            <Text style={styles.actionIconText}>🛑</Text>
+          </View>
+          <View style={styles.actionBody}>
+            <Text style={styles.actionTitle}>Registrar Paro</Text>
+            <Text style={styles.actionDesc}>Registrar tiempo de inactividad</Text>
+          </View>
+          <Text style={styles.actionArrow}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionCard, { backgroundColor: '#f97316' }]}
+          onPress={() => navigation.navigate('HistorialParadas')}
+        >
+          <View style={styles.actionIcon}>
+            <Text style={styles.actionIconText}>📋</Text>
+          </View>
+          <View style={styles.actionBody}>
+            <Text style={styles.actionTitle}>Historial de Paros</Text>
+            <Text style={styles.actionDesc}>Consultar paros registrados</Text>
+          </View>
+          <Text style={styles.actionArrow}>→</Text>
+        </TouchableOpacity>
+
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>🚪 Cerrar Sesión</Text>

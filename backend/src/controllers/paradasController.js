@@ -2,6 +2,27 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// ─── Helpers timezone Colombia (UTC-5, sin DST) ───────────────────────────────
+
+/**
+ * Convierte cualquier JS Date a un string "YYYY-MM-DD HH:MM:SS" en hora Colombia.
+ * Ese string se pasa como ::TIMESTAMP a PostgreSQL para que lo guarde SIN conversión.
+ */
+const toColombiaStr = (date) => {
+  // Colombia = UTC-5 → restar 5h al timestamp UTC
+  const local = new Date(date.getTime() - 5 * 3600000);
+  const yyyy  = local.getUTCFullYear();
+  const mm    = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const dd    = String(local.getUTCDate()).padStart(2, '0');
+  const hh    = String(local.getUTCHours()).padStart(2, '0');
+  const min   = String(local.getUTCMinutes()).padStart(2, '0');
+  const ss    = String(local.getUTCSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+};
+
+/** Devuelve "YYYY-MM-DD" según hora Colombia de ahora mismo */
+const colombiaToday = () => toColombiaStr(new Date()).split(' ')[0];
+
 // ============================================
 // GET /api/paradas/motivos
 // ============================================
@@ -49,7 +70,7 @@ const registrarParada = async (req, res) => {
     if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
       return res.status(400).json({
         success: false,
-        message: 'Formato de fecha inválido. Usa ISO 8601 (ej: 2025-02-24T10:30:00.000Z)'
+        message: 'Formato de fecha inválido. Usa ISO 8601 (ej: 2025-02-24T10:30:00.000-05:00)'
       });
     }
 
@@ -60,30 +81,31 @@ const registrarParada = async (req, res) => {
       });
     }
 
-    // Verificar motivo y obtener nombre
+    // ── Strings Colombia para almacenar como TIMESTAMP naive ──────────────────
+    const inicioStr = toColombiaStr(fechaInicio);
+    const finStr    = toColombiaStr(fechaFin);
+    const diaStr    = inicioStr.split(' ')[0];   // "YYYY-MM-DD"
+
+    // Verificar motivo
     const motivoRow = await prisma.$queryRaw`
       SELECT codigo, nombre FROM paradas_motivos
       WHERE id = ${motivoId}::UUID LIMIT 1
     `;
-
-    if (motivoRow.length === 0) {
+    if (motivoRow.length === 0)
       return res.status(400).json({ success: false, message: 'El motivo seleccionado no existe' });
-    }
 
-    if (motivoRow[0].codigo === 'OTRO' && (!motivoOtro || !motivoOtro.trim())) {
+    if (motivoRow[0].codigo === 'OTRO' && (!motivoOtro || !motivoOtro.trim()))
       return res.status(400).json({
         success: false,
         message: 'Debes describir el motivo cuando seleccionas "Otro"'
       });
-    }
 
-    // Nombre legible para guardar denormalizado
     const motivoNombre = motivoRow[0].codigo === 'OTRO'
       ? motivoOtro.trim()
       : motivoRow[0].nombre;
 
     if (puntoActividadId) {
-      await prisma.$executeRaw`
+      await prisma.$executeRawUnsafe(`
         INSERT INTO paradas_actividad (
           usuario_id, titulo_minero_id,
           punto_actividad_id,
@@ -91,27 +113,27 @@ const registrarParada = async (req, res) => {
           inicio, fin, dia,
           observaciones, estado, enviado_at
         ) VALUES (
-          ${usuarioId}, ${tituloMineroId},
-          ${puntoActividadId}::UUID,
-          ${motivoId}::UUID, ${motivoNombre}, ${motivoOtro || null},
-          ${fechaInicio}, ${fechaFin}, ${fechaInicio}::DATE,
-          ${observaciones || null}, 'ENVIADO', NOW()
+          '${usuarioId}', '${tituloMineroId}',
+          '${puntoActividadId}'::UUID,
+          '${motivoId}'::UUID, $1, $2,
+          '${inicioStr}'::TIMESTAMP, '${finStr}'::TIMESTAMP, '${diaStr}'::DATE,
+          $3, 'ENVIADO', NOW()
         )
-      `;
+      `, motivoNombre, motivoOtro || null, observaciones || null);
     } else {
-      await prisma.$executeRaw`
+      await prisma.$executeRawUnsafe(`
         INSERT INTO paradas_actividad (
           usuario_id, titulo_minero_id,
           motivo_id, motivo_nombre, motivo_otro,
           inicio, fin, dia,
           observaciones, estado, enviado_at
         ) VALUES (
-          ${usuarioId}, ${tituloMineroId},
-          ${motivoId}::UUID, ${motivoNombre}, ${motivoOtro || null},
-          ${fechaInicio}, ${fechaFin}, ${fechaInicio}::DATE,
-          ${observaciones || null}, 'ENVIADO', NOW()
+          '${usuarioId}', '${tituloMineroId}',
+          '${motivoId}'::UUID, $1, $2,
+          '${inicioStr}'::TIMESTAMP, '${finStr}'::TIMESTAMP, '${diaStr}'::DATE,
+          $3, 'ENVIADO', NOW()
         )
-      `;
+      `, motivoNombre, motivoOtro || null, observaciones || null);
     }
 
     const minutos = Math.round((fechaFin - fechaInicio) / 60000);
@@ -129,7 +151,7 @@ const registrarParada = async (req, res) => {
 
 // ============================================
 // GET /api/paradas/:tituloMineroId
-// Devuelve los campos exactos que usa HistorialParadasScreen
+// Retorna inicio/fin como strings Colombia (sin Z)
 // ============================================
 const getParadas = async (req, res) => {
   try {
@@ -137,15 +159,8 @@ const getParadas = async (req, res) => {
     const { dia, usuarioId } = req.query;
 
     let whereExtra = '';
-
-    if (dia) {
-      // Filtra por día específico: ?dia=2025-02-24
-      whereExtra += ` AND pa.dia = '${dia}'::DATE`;
-    }
-
-    if (usuarioId) {
-      whereExtra += ` AND pa.usuario_id = '${usuarioId}'`;
-    }
+    if (dia)       whereExtra += ` AND pa.dia = '${dia}'::DATE`;
+    if (usuarioId) whereExtra += ` AND pa.usuario_id = '${usuarioId}'`;
 
     const paradas = await prisma.$queryRawUnsafe(`
       SELECT
@@ -160,13 +175,13 @@ const getParadas = async (req, res) => {
           WHEN pm.codigo = 'OTRO' THEN pa.motivo_otro
           ELSE pa.motivo_nombre
         END                          AS "motivoDisplay",
-        pa.inicio,
-        pa.fin,
-        pa.dia,
+        TO_CHAR(pa.inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS inicio,
+        TO_CHAR(pa.fin,    'YYYY-MM-DD"T"HH24:MI:SS') AS fin,
+        TO_CHAR(pa.dia,    'YYYY-MM-DD')               AS dia,
         pa.minutos_paro              AS "minutesParo",
         pa.observaciones,
         pa.estado,
-        pa.created_at                AS "createdAt"
+        TO_CHAR(pa.created_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS "createdAt"
       FROM paradas_actividad pa
       JOIN paradas_motivos pm ON pm.id = pa.motivo_id
       WHERE pa.titulo_minero_id = '${tituloMineroId}'
@@ -174,11 +189,7 @@ const getParadas = async (req, res) => {
       ORDER BY pa.inicio DESC
     `);
 
-    res.json({
-      success: true,
-      data:    paradas,
-      total:   paradas.length,
-    });
+    res.json({ success: true, data: paradas, total: paradas.length });
   } catch (error) {
     console.error('❌ Error obteniendo paradas:', error);
     res.status(500).json({ success: false, message: 'Error al obtener paradas', error: error.message });
@@ -187,18 +198,18 @@ const getParadas = async (req, res) => {
 
 // ============================================
 // GET /api/paradas/resumen/:tituloMineroId
-// Resumen del día para el dashboard
 // ============================================
 const getResumenDia = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
     const { dia } = req.query;
 
-    const fecha = dia || new Date().toISOString().split('T')[0];
+    // Si no viene `dia`, usa la fecha Colombia de hoy
+    const fecha = dia || colombiaToday();
 
     const resumen = await prisma.$queryRaw`
       SELECT
-        COUNT(*)::INTEGER           AS "totalParadas",
+        COUNT(*)::INTEGER                      AS "totalParadas",
         COALESCE(SUM(minutos_paro), 0)::INTEGER AS "totalMinutos"
       FROM paradas_actividad
       WHERE titulo_minero_id = ${tituloMineroId}
@@ -220,36 +231,30 @@ const getResumenDia = async (req, res) => {
   }
 };
 
-
 // ============================================
 // PUT /api/paradas/:id
-// Solo editable si es del mismo día
+// Solo editable si el paro es del mismo día Colombia
 // ============================================
 const editarParada = async (req, res) => {
   try {
     const { id } = req.params;
     const { motivoId, motivoOtro, inicio, fin, observaciones } = req.body;
 
-    if (!motivoId || !inicio || !fin) {
+    if (!motivoId || !inicio || !fin)
       return res.status(400).json({ success: false, message: 'Faltan campos obligatorios.' });
-    }
 
     // Verificar que existe
     const existing = await prisma.$queryRaw`
-      SELECT id, dia FROM paradas_actividad WHERE id = ${id}::UUID LIMIT 1
+      SELECT id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
+      FROM paradas_actividad
+      WHERE id = ${id}::UUID LIMIT 1
     `;
     if (existing.length === 0)
       return res.status(404).json({ success: false, message: 'Paro no encontrado.' });
 
-    // Verificar que es del día de hoy
-    const diaRegistro = new Date(existing[0].dia);
-    const hoy = new Date();
-    const esHoy =
-      diaRegistro.getFullYear() === hoy.getFullYear() &&
-      diaRegistro.getMonth()    === hoy.getMonth()    &&
-      diaRegistro.getDate()     === hoy.getDate();
-
-    if (!esHoy) {
+    // Comparar día Colombia con hoy Colombia
+    const diaRegistro = String(existing[0].dia).split('T')[0];
+    if (diaRegistro !== colombiaToday()) {
       return res.status(403).json({
         success: false,
         message: 'Solo se pueden editar paros registrados hoy.'
@@ -264,7 +269,12 @@ const editarParada = async (req, res) => {
     if (fechaFin <= fechaInicio)
       return res.status(400).json({ success: false, message: 'El fin debe ser posterior al inicio.' });
 
-    // Verificar motivo y recalcular nombre denormalizado
+    // Strings Colombia para el UPDATE
+    const inicioStr = toColombiaStr(fechaInicio);
+    const finStr    = toColombiaStr(fechaFin);
+    const diaStr    = inicioStr.split(' ')[0];
+
+    // Verificar motivo
     const motivoRow = await prisma.$queryRaw`
       SELECT codigo, nombre FROM paradas_motivos WHERE id = ${motivoId}::UUID LIMIT 1
     `;
@@ -278,18 +288,18 @@ const editarParada = async (req, res) => {
       ? motivoOtro.trim()
       : motivoRow[0].nombre;
 
-    await prisma.$executeRaw`
+    await prisma.$executeRawUnsafe(`
       UPDATE paradas_actividad SET
-        motivo_id     = ${motivoId}::UUID,
-        motivo_nombre = ${motivoNombre},
-        motivo_otro   = ${motivoOtro || null},
-        inicio        = ${fechaInicio},
-        fin           = ${fechaFin},
-        dia           = ${fechaInicio}::DATE,
-        observaciones = ${observaciones || null},
+        motivo_id     = '${motivoId}'::UUID,
+        motivo_nombre = $1,
+        motivo_otro   = $2,
+        inicio        = '${inicioStr}'::TIMESTAMP,
+        fin           = '${finStr}'::TIMESTAMP,
+        dia           = '${diaStr}'::DATE,
+        observaciones = $3,
         updated_at    = NOW()
-      WHERE id = ${id}::UUID
-    `;
+      WHERE id = '${id}'::UUID
+    `, motivoNombre, motivoOtro || null, observaciones || null);
 
     const minutos = Math.round((fechaFin - fechaInicio) / 60000);
     res.json({ success: true, message: '✅ Paro actualizado', data: { minutosRegistrados: minutos } });
@@ -300,4 +310,40 @@ const editarParada = async (req, res) => {
   }
 };
 
-module.exports = { getMotivos, registrarParada, getParadas, getResumenDia, editarParada };
+
+// ============================================
+// DELETE /api/paradas/:id
+// Solo eliminable si es del mismo día Colombia
+// ============================================
+const eliminarParada = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.$queryRaw`
+      SELECT id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
+      FROM paradas_actividad
+      WHERE id = ${id}::UUID LIMIT 1
+    `;
+    if (existing.length === 0)
+      return res.status(404).json({ success: false, message: 'Paro no encontrado.' });
+
+    const diaRegistro = String(existing[0].dia).split('T')[0];
+    if (diaRegistro !== colombiaToday()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Solo se pueden eliminar paros registrados hoy.'
+      });
+    }
+
+    await prisma.$executeRaw`
+      DELETE FROM paradas_actividad WHERE id = ${id}::UUID
+    `;
+
+    res.json({ success: true, message: '🗑️ Paro eliminado correctamente.' });
+  } catch (error) {
+    console.error('❌ Error eliminando parada:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar el paro', error: error.message });
+  }
+};
+
+module.exports = { getMotivos, registrarParada, getParadas, getResumenDia, editarParada, eliminarParada };

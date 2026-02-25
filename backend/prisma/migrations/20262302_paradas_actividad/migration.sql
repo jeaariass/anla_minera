@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS paradas_actividad (
   usuario_id         VARCHAR(255) NOT NULL,
   titulo_minero_id   VARCHAR(255) NOT NULL,
   motivo_id          UUID        NOT NULL,
-  motivo_nombre      VARCHAR(120) NULL,   -- ✅ nombre legible (catálogo o texto libre)
+  motivo_nombre      VARCHAR(120) NULL,   
   motivo_otro        TEXT        NULL,
   inicio             TIMESTAMP   NOT NULL,
   fin                TIMESTAMP   NOT NULL,

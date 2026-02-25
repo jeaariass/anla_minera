@@ -6,7 +6,8 @@ const {
   registrarParada,
   getParadas,
   getResumenDia,
-  editarParada,        // ✅ NUEVO
+  editarParada,
+  eliminarParada,
 } = require('../controllers/paradasController');
 
 // GET  /api/paradas/motivos
@@ -15,8 +16,11 @@ router.get('/motivos', getMotivos);
 // POST /api/paradas
 router.post('/', registrarParada);
 
-// PUT  /api/paradas/:id      ← editar (solo mismo día)
+// PUT  /api/paradas/:id   ← editar (solo mismo día)
 router.put('/:id', editarParada);
+
+// DELETE /api/paradas/:id ← eliminar (solo mismo día)
+router.delete('/:id', eliminarParada);
 
 // GET  /api/paradas/resumen/:tituloMineroId
 router.get('/resumen/:tituloMineroId', getResumenDia);
