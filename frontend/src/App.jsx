@@ -1,41 +1,49 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { tienePermiso } from "./utils/permissions";
 
 // Pages
-import Login from './pages/Login';
-import Home from './pages/Home';
-import Formularios from './pages/Formularios';
-import Dashboard from './pages/Dashboard';
-import Reportes from './pages/Reportes';
-import MapaActividades from './pages/MapaActividades'; 
-import ResumenOperacion from './pages/ResumenOperacion'; 
-import FormulariosOperacion from './pages/FormulariosOperacion'; 
-import DashboardOperacion from './pages/DashboardOperacion';
+import Login from "./pages/Login";
+import Home from "./pages/Home";
+import Formularios from "./pages/Formularios";
+import Dashboard from "./pages/Dashboard";
+import Reportes from "./pages/Reportes";
+import MapaActividades from "./pages/MapaActividades";
+import ResumenOperacion from "./pages/ResumenOperacion";
+import FormulariosOperacion from "./pages/FormulariosOperacion";
+import DashboardOperacion from "./pages/DashboardOperacion";
 
-// Protected Route Component
+import Usuarios from "./pages/Usuarios";
+// Solo verifica que haya sesión activa
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = !!localStorage.getItem('token');
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  
+  const isAuthenticated = !!localStorage.getItem("token");
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+  return children;
+};
+
+// Verifica sesión Y permiso por rol
+const RoleProtectedRoute = ({ children, permiso }) => {
+  const isAuthenticated = !!localStorage.getItem("token");
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!tienePermiso(permiso)) return <Navigate to="/home" replace />;
   return children;
 };
 
 function App() {
-  // Función para verificar autenticación
-  const isAuthenticated = () => {
-    return !!localStorage.getItem('token');
-  };
+  const isAuthenticated = () => !!localStorage.getItem("token");
 
   return (
-    <Router>
+    <Router basename="/TU_MINA">
       <Routes>
-        {/* Public Routes */}
+        {/* Pública */}
         <Route path="/" element={<Login />} />
-        
-        {/* Protected Routes */}
+
+        {/* Home — solo requiere estar autenticado */}
         <Route
           path="/home"
           element={
@@ -44,79 +52,85 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
         <Route
           path="/formularios"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_FORMULARIOS">
               <Formularios />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
+
+        {/* Dashboard FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_DASHBOARD">
               <Dashboard />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
+
+        {/* Reportes — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
         <Route
           path="/reportes"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_REPORTES">
               <Reportes />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
-        
-        {/* ⚠️ NUEVA RUTA: Mapa de Actividades */}
+
+        {/* Mapa — ADMIN, ASESOR, JEFE_PLANTA, OPERARIO */}
         <Route
           path="/mapa"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_MAPA">
               <MapaActividades />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
 
-        {/* ✅ NUEVA RUTA: Resumen Operación */}
+        {/* Operación — todos los roles */}
         <Route
           path="/resumen-operacion"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
               <ResumenOperacion />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
-        
-        {/* ✅ NUEVA RUTA: Formularios de Operación */}
         <Route
           path="/formularios-operacion"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
               <FormulariosOperacion />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
-
         <Route
           path="/dashboard-operacion"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
               <DashboardOperacion />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
-        
-        {/* Catch all - redirect to home or login */}
+        <Route
+          path="/usuarios"
+          element={
+            <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS">
+              <Usuarios />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Catch all */}
         <Route
           path="*"
-          element={
-            <Navigate 
-              to={isAuthenticated() ? "/home" : "/"} 
-              replace 
-            />
-          }
+          element={<Navigate to={isAuthenticated() ? "/home" : "/"} replace />}
         />
       </Routes>
     </Router>

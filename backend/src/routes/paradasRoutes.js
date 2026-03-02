@@ -1,6 +1,10 @@
 // backend/src/routes/paradasRoutes.js
-const express = require('express');
-const router  = express.Router();
+const express = require("express");
+const router = express.Router();
+const {
+  authMiddleware,
+  permisoMiddleware,
+} = require("../middleware/authMiddleware");
 const {
   getMotivos,
   registrarParada,
@@ -8,24 +12,49 @@ const {
   getResumenDia,
   editarParada,
   eliminarParada,
-} = require('../controllers/paradasController');
+} = require("../controllers/paradasController");
 
-// GET  /api/paradas/motivos
-router.get('/motivos', getMotivos);
+// Catálogo de motivos — cualquier usuario autenticado puede consultarlo
+router.get("/motivos", authMiddleware, getMotivos);
 
-// POST /api/paradas
-router.post('/', registrarParada);
+// Registrar parada
+router.post(
+  "/",
+  authMiddleware,
+  permisoMiddleware("CREAR_FORMULARIO_OPERATIVO"),
+  registrarParada,
+);
 
-// PUT  /api/paradas/:id   ← editar (solo mismo día)
-router.put('/:id', editarParada);
+// Editar parada (solo mismo día)
+router.put(
+  "/:id",
+  authMiddleware,
+  permisoMiddleware("EDITAR_FORMULARIO_OPERATIVO"),
+  editarParada,
+);
 
-// DELETE /api/paradas/:id ← eliminar (solo mismo día)
-router.delete('/:id', eliminarParada);
+// Eliminar parada (solo mismo día)
+router.delete(
+  "/:id",
+  authMiddleware,
+  permisoMiddleware("ELIMINAR_FORMULARIO_OPERATIVO"),
+  eliminarParada,
+);
 
-// GET  /api/paradas/resumen/:tituloMineroId
-router.get('/resumen/:tituloMineroId', getResumenDia);
+// Resumen del día
+router.get(
+  "/resumen/:tituloMineroId",
+  authMiddleware,
+  permisoMiddleware("VER_ESTADISTICAS_OPERATIVAS"),
+  getResumenDia,
+);
 
-// GET  /api/paradas/:tituloMineroId
-router.get('/:tituloMineroId', getParadas);
+// Historial de paradas
+router.get(
+  "/:tituloMineroId",
+  authMiddleware,
+  permisoMiddleware("VER_FORMULARIO_OPERATIVO"),
+  getParadas,
+);
 
 module.exports = router;

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService, reportService } from '../services/api';
-import { 
-  ArrowLeft, 
-  Download, 
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService, reportService } from "../services/api";
+import {
+  ArrowLeft,
+  Download,
   Eye,
   FileSpreadsheet,
   Calendar,
@@ -11,56 +11,56 @@ import {
   AlertCircle,
   CheckCircle,
   User,
-  LogOut
-} from 'lucide-react';
-import './Reportes.css';
+  LogOut,
+} from "lucide-react";
+import "./Reportes.css";
 
 const Reportes = () => {
   const navigate = useNavigate();
   const [user] = useState(authService.getCurrentUser());
-  
+
   const [filtros, setFiltros] = useState({
-    tipo: 'produccion',
-    fechaInicio: '',
-    fechaFin: ''
+    tipo: "produccion",
+    fechaInicio: "",
+    fechaFin: "",
   });
-  
+
   const [preview, setPreview] = useState({
     visible: false,
     columnas: [],
     registros: [],
-    total: 0
+    total: 0,
   });
-  
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const tiposFormularios = [
-    { value: 'produccion', label: 'Producción' },
-    { value: 'inventarios', label: 'Inventarios' },
-    { value: 'paradas', label: 'Paradas' },
-    { value: 'ejecucion', label: 'Ejecución' },
-    { value: 'maquinaria', label: 'Maquinaria' },
-    { value: 'regalias', label: 'Regalías' },
-    { value: 'puntosActividad',label: 'Puntos de actividad' }
+    { value: "produccion", label: "Producción" },
+    { value: "inventarios", label: "Inventarios" },
+    { value: "paradas", label: "Paradas" },
+    { value: "ejecucion", label: "Ejecución" },
+    { value: "maquinaria", label: "Maquinaria" },
+    { value: "regalias", label: "Regalías" },
+    { value: "puntosActividad", label: "Puntos de actividad" },
   ];
 
   const handleFiltroChange = (e) => {
     const { name, value } = e.target;
-    setFiltros(prev => ({
+    setFiltros((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
   };
 
   const handleVistaPrevia = async () => {
     try {
       setLoading(true);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       const response = await reportService.getPreview(filtros);
 
@@ -69,18 +69,18 @@ const Reportes = () => {
           visible: true,
           columnas: response.data.columnas,
           registros: response.data.registros,
-          total: response.data.total
+          total: response.data.total,
         });
-        
+
         if (response.data.total === 0) {
-          setError('No se encontraron registros con los filtros seleccionados');
+          setError("No se encontraron registros con los filtros seleccionados");
         } else {
           setSuccess(`✓ Se encontraron ${response.data.total} registros`);
         }
       }
     } catch (err) {
-      console.error('Error en vista previa:', err);
-      setError(err.response?.data?.message || 'Error al cargar vista previa');
+      console.error("Error en vista previa:", err);
+      setError(err.response?.data?.message || "Error al cargar vista previa");
       setPreview({ visible: false, columnas: [], registros: [], total: 0 });
     } finally {
       setLoading(false);
@@ -90,32 +90,31 @@ const Reportes = () => {
   const handleExportar = async () => {
     try {
       setLoading(true);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       const response = await reportService.exportarExcel(filtros);
 
-      const blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      
+
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      
-      const nombreArchivo = `FRI_${filtros.tipo}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      link.setAttribute('download', nombreArchivo);
-      
+
+      const nombreArchivo = `FRI_${filtros.tipo}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      link.setAttribute("download", nombreArchivo);
+
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
       setSuccess(`✓ Archivo "${nombreArchivo}" descargado correctamente`);
-
     } catch (err) {
-      console.error('Error exportando:', err);
-      setError(err.response?.data?.message || 'Error al exportar archivo');
+      console.error("Error exportando:", err);
+      setError(err.response?.data?.message || "Error al exportar archivo");
     } finally {
       setLoading(false);
     }
@@ -123,18 +122,18 @@ const Reportes = () => {
 
   const limpiarFiltros = () => {
     setFiltros({
-      tipo: 'produccion',
-      fechaInicio: '',
-      fechaFin: ''
+      tipo: "produccion",
+      fechaInicio: "",
+      fechaFin: "",
     });
     setPreview({ visible: false, columnas: [], registros: [], total: 0 });
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
   };
 
   const handleLogout = () => {
     authService.logout();
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -150,7 +149,7 @@ const Reportes = () => {
                   alt="Logo TU MINA"
                   width="50"
                   height="50"
-                  style={{ borderRadius: '8px', objectFit: 'contain' }}
+                  style={{ borderRadius: "8px", objectFit: "contain" }}
                 />
               </div>
               <div>
@@ -158,18 +157,18 @@ const Reportes = () => {
                 <p>Desarrollado por CTGlobal</p>
               </div>
             </div>
-            
+
             <div className="header-right">
               <div className="user-info">
                 <div className="user-avatar">
                   <User size={20} />
                 </div>
                 <div className="user-details">
-                  <p className="user-name">{user?.nombre || 'Usuario'}</p>
-                  <p className="user-role">{user?.rol || 'ROL'}</p>
+                  <p className="user-name">{user?.nombre || "Usuario"}</p>
+                  <p className="user-role">{user?.rol || "ROL"}</p>
                 </div>
               </div>
-              
+
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} />
                 Salir
@@ -182,10 +181,12 @@ const Reportes = () => {
       {/* Main Content */}
       <main className="reportes-main">
         <div className="container">
-
           {/* Breadcrumb */}
           <div className="breadcrumb">
-            <button onClick={() => navigate('/home')} className="breadcrumb-link">
+            <button
+              onClick={() => navigate("/home")}
+              className="breadcrumb-link"
+            >
               <ArrowLeft size={18} />
               Volver al Home
             </button>
@@ -200,7 +201,9 @@ const Reportes = () => {
             </div>
             <div>
               <h2 className="page-title">📥 Exportar Reportes ANM</h2>
-              <p className="page-subtitle">Genera reportes de tus formularios FRI en formato Excel</p>
+              <p className="page-subtitle">
+                Genera reportes de tus formularios FRI en formato Excel
+              </p>
             </div>
           </div>
 
@@ -240,7 +243,7 @@ const Reportes = () => {
                     className="form-control"
                     disabled={loading}
                   >
-                    {tiposFormularios.map(tipo => (
+                    {tiposFormularios.map((tipo) => (
                       <option key={tipo.value} value={tipo.value}>
                         {tipo.label}
                       </option>
@@ -280,25 +283,25 @@ const Reportes = () => {
               </div>
 
               <div className="card-actions">
-                <button 
-                  onClick={handleVistaPrevia} 
+                <button
+                  onClick={handleVistaPrevia}
                   className="btn btn-secondary"
                   disabled={loading}
                 >
                   <Eye size={20} />
-                  {loading ? 'Cargando...' : 'Vista Previa'}
+                  {loading ? "Cargando..." : "Vista Previa"}
                 </button>
 
-                <button 
-                  onClick={limpiarFiltros} 
+                <button
+                  onClick={limpiarFiltros}
                   className="btn btn-outline"
                   disabled={loading}
                 >
                   Limpiar Filtros
                 </button>
 
-                <button 
-                  onClick={handleExportar} 
+                <button
+                  onClick={handleExportar}
                   className="btn btn-primary"
                   disabled={loading || preview.total === 0}
                 >
@@ -334,7 +337,9 @@ const Reportes = () => {
                           <tr key={rowIndex}>
                             {Object.values(registro).map((valor, colIndex) => (
                               <td key={colIndex}>
-                                {valor !== null && valor !== undefined ? String(valor) : '-'}
+                                {valor !== null && valor !== undefined
+                                  ? String(valor)
+                                  : "-"}
                               </td>
                             ))}
                           </tr>
@@ -352,7 +357,10 @@ const Reportes = () => {
                 {preview.total > 100 && (
                   <div className="info-note">
                     <AlertCircle size={16} />
-                    <span>Se muestran los primeros 100 registros. Al exportar se incluirán todos los {preview.total} registros.</span>
+                    <span>
+                      Se muestran los primeros 100 registros. Al exportar se
+                      incluirán todos los {preview.total} registros.
+                    </span>
                   </div>
                 )}
               </div>
@@ -373,7 +381,6 @@ const Reportes = () => {
               </ol>
             </div>
           </div>
-
         </div>
       </main>
     </div>

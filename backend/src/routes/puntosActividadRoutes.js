@@ -1,27 +1,54 @@
 // backend/src/routes/puntosActividadRoutes.js
-const express    = require('express');
-const router     = express.Router();
-const controller = require('../controllers/puntosActividadController');
+const express = require("express");
+const router = express.Router();
+const {
+  authMiddleware,
+  permisoMiddleware,
+} = require("../middleware/authMiddleware");
+const controller = require("../controllers/puntosActividadController");
 
-// GET  /api/actividad/items/:categoria  → catálogo de ítems por categoría
-router.get('/items/:categoria', controller.getItems);
+// Catálogos — cualquier usuario autenticado puede consultarlos
+router.get("/items/:categoria", authMiddleware, controller.getItems);
+router.get("/maquinaria", authMiddleware, controller.getMaquinaria);
 
-// GET  /api/actividad/maquinaria        → catálogo de maquinaria
-router.get('/maquinaria', controller.getMaquinaria);
+// Registrar punto
+router.post(
+  "/punto",
+  authMiddleware,
+  permisoMiddleware("CREAR_FORMULARIO_OPERATIVO"),
+  controller.registrarPunto,
+);
 
-// POST /api/actividad/punto             → registrar punto
-router.post('/punto', controller.registrarPunto);
+// Editar punto (solo mismo día)
+router.put(
+  "/:id",
+  authMiddleware,
+  permisoMiddleware("EDITAR_FORMULARIO_OPERATIVO"),
+  controller.editarPunto,
+);
 
-// PUT  /api/actividad/:id               → editar punto (solo mismo día)
-router.put('/:id', controller.editarPunto);
+// Eliminar punto (solo mismo día)
+router.delete(
+  "/:id",
+  authMiddleware,
+  permisoMiddleware("ELIMINAR_FORMULARIO_OPERATIVO"),
+  controller.eliminarPunto,
+);
 
-// DELETE /api/actividad/:id             → eliminar punto (solo mismo día)
-router.delete('/:id', controller.eliminarPunto);
+// Historial de puntos
+router.get(
+  "/puntos/:tituloMineroId",
+  authMiddleware,
+  permisoMiddleware("VER_FORMULARIO_OPERATIVO"),
+  controller.getPuntos,
+);
 
-// GET  /api/actividad/puntos/:id        → historial de puntos
-router.get('/puntos/:tituloMineroId', controller.getPuntos);
-
-// GET  /api/actividad/estadisticas/:id  → estadísticas
-router.get('/estadisticas/:tituloMineroId', controller.getEstadisticas);
+// Estadísticas
+router.get(
+  "/estadisticas/:tituloMineroId",
+  authMiddleware,
+  permisoMiddleware("VER_ESTADISTICAS_OPERATIVAS"),
+  controller.getEstadisticas,
+);
 
 module.exports = router;

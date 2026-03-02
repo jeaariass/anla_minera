@@ -34,16 +34,25 @@ model TituloMinero {
   @@map("titulos_mineros")
 }
 
+enum Rol {
+  ADMIN
+  ASESOR
+  TITULAR
+  JEFE_PLANTA
+  OPERARIO
+}
+
 model Usuario {
   id                      String                    @id @default(uuid())
   email                   String                    @unique
   password                String
   nombre                  String
-  rol                     String                    @default("OPERADOR")
+  rol                     Rol                       @default(OPERARIO)
   activo                  Boolean                   @default(true)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   tituloMineroId          String?
+
   friCapacidad            FRICapacidad[]
   friEjecucion            FRIEjecucion[]
   friInventarioMaquinaria FRIInventarioMaquinaria[]
@@ -54,6 +63,7 @@ model Usuario {
   friProyecciones         FRIProyecciones[]
   friRegalias             FRIRegalias[]
   registrosCiclos         RegistroCicloProduccion[]
+  
   tituloMinero            TituloMinero?             @relation(fields: [tituloMineroId], references: [id])
 
   @@map("usuarios")

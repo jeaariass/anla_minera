@@ -1,13 +1,15 @@
 // backend/src/controllers/puntosActividadController.js
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+
+const { puedeAccederATitulo } = require("../utils/permissions");
 
 // ─── Helpers Colombia ─────────────────────────────────────────────────────────
 
 /** "YYYY-MM-DD" según hora Colombia (UTC-5) ahora mismo */
 const colombiaToday = () => {
   const local = new Date(Date.now() - 5 * 3600000);
-  return local.toISOString().split('T')[0];
+  return local.toISOString().split("T")[0];
 };
 
 /**
@@ -16,12 +18,12 @@ const colombiaToday = () => {
  */
 const toColombiaStr = (date) => {
   const local = new Date(date.getTime() - 5 * 3600000);
-  const yyyy  = local.getUTCFullYear();
-  const mm    = String(local.getUTCMonth() + 1).padStart(2, '0');
-  const dd    = String(local.getUTCDate()).padStart(2, '0');
-  const hh    = String(local.getUTCHours()).padStart(2, '0');
-  const min   = String(local.getUTCMinutes()).padStart(2, '0');
-  const ss    = String(local.getUTCSeconds()).padStart(2, '0');
+  const yyyy = local.getUTCFullYear();
+  const mm = String(local.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(local.getUTCDate()).padStart(2, "0");
+  const hh = String(local.getUTCHours()).padStart(2, "0");
+  const min = String(local.getUTCMinutes()).padStart(2, "0");
+  const ss = String(local.getUTCSeconds()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 };
 
@@ -32,11 +34,16 @@ const getItems = async (req, res) => {
   try {
     const { categoria } = req.params;
 
-    const CATEGORIAS_VALIDAS = ['extraccion', 'acopio', 'procesamiento', 'inspeccion'];
+    const CATEGORIAS_VALIDAS = [
+      "extraccion",
+      "acopio",
+      "procesamiento",
+      "inspeccion",
+    ];
     if (!CATEGORIAS_VALIDAS.includes(categoria)) {
       return res.status(400).json({
         success: false,
-        message: `Categoría inválida. Debe ser una de: ${CATEGORIAS_VALIDAS.join(', ')}`
+        message: `Categoría inválida. Debe ser una de: ${CATEGORIAS_VALIDAS.join(", ")}`,
       });
     }
 
@@ -49,8 +56,12 @@ const getItems = async (req, res) => {
 
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error('❌ Error obteniendo ítems:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener ítems del catálogo', error: error.message });
+    console.error("❌ Error obteniendo ítems:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener ítems del catálogo",
+      error: error.message,
+    });
   }
 };
 
@@ -67,8 +78,12 @@ const getMaquinaria = async (req, res) => {
     `;
     res.json({ success: true, data: lista });
   } catch (error) {
-    console.error('❌ Error obteniendo maquinaria:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener maquinaria', error: error.message });
+    console.error("❌ Error obteniendo maquinaria:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener maquinaria",
+      error: error.message,
+    });
   }
 };
 
@@ -78,17 +93,31 @@ const getMaquinaria = async (req, res) => {
 const registrarPunto = async (req, res) => {
   try {
     const {
-      usuarioId, tituloMineroId,
-      latitud, longitud, categoria,
-      itemId, itemOtro,
-      maquinariaId, maquinariaOtro,
-      descripcion, volumenM3,
+      latitud,
+      longitud,
+      categoria,
+      itemId,
+      itemOtro,
+      maquinariaId,
+      maquinariaOtro,
+      descripcion,
+      volumenM3,
     } = req.body;
 
-    if (!usuarioId || !tituloMineroId || !latitud || !longitud || !categoria) {
+    const usuarioId = req.user.id;
+    const tituloMineroId = req.user.tituloMineroId;
+
+    if (!tituloMineroId) {
       return res.status(400).json({
         success: false,
-        message: 'Faltan campos obligatorios: usuarioId, tituloMineroId, latitud, longitud, categoria'
+        message: "Tu usuario no tiene un título minero asignado",
+      });
+    }
+
+    if (!latitud || !longitud || !categoria) {
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios: latitud, longitud, categoria",
       });
     }
 
@@ -99,7 +128,8 @@ const registrarPunto = async (req, res) => {
         SELECT codigo, nombre FROM puntos_items_catalogo WHERE id = ${itemId}::UUID LIMIT 1
       `;
       if (itemRow.length > 0)
-        itemNombre = itemRow[0].codigo === 'OTRO' ? (itemOtro || null) : itemRow[0].nombre;
+        itemNombre =
+          itemRow[0].codigo === "OTRO" ? itemOtro || null : itemRow[0].nombre;
     }
 
     // Resolver maquinaria_nombre
@@ -109,14 +139,18 @@ const registrarPunto = async (req, res) => {
         SELECT codigo, display AS nombre FROM maquinaria_catalogo WHERE id = ${maquinariaId}::UUID LIMIT 1
       `;
       if (maqRow.length > 0)
-        maquinariaNombre = maqRow[0].codigo === 'OTRO' ? (maquinariaOtro || null) : maqRow[0].nombre;
+        maquinariaNombre =
+          maqRow[0].codigo === "OTRO"
+            ? maquinariaOtro || null
+            : maqRow[0].nombre;
     }
 
     // Timestamp Colombia para columna TIMESTAMP WITHOUT TIME ZONE
     const fechaColombiaStr = toColombiaStr(new Date());
-    const diaStr           = fechaColombiaStr.split(' ')[0];   // "YYYY-MM-DD"
+    const diaStr = fechaColombiaStr.split(" ")[0]; // "YYYY-MM-DD"
 
-    await prisma.$executeRawUnsafe(`
+    await prisma.$executeRawUnsafe(
+      `
       INSERT INTO puntos_actividad (
         usuario_id, titulo_minero_id,
         latitud, longitud, categoria,
@@ -127,19 +161,29 @@ const registrarPunto = async (req, res) => {
       ) VALUES (
         '${usuarioId}', '${tituloMineroId}',
         ${latitud}, ${longitud}, '${categoria}',
-        ${itemId ? `'${itemId}'::UUID` : 'NULL'},
+        ${itemId ? `'${itemId}'::UUID` : "NULL"},
         $1, $2,
-        ${maquinariaId ? `'${maquinariaId}'::UUID` : 'NULL'},
+        ${maquinariaId ? `'${maquinariaId}'::UUID` : "NULL"},
         $3, $4,
         $5, ${volumenM3 ?? null},
         '${fechaColombiaStr}'::TIMESTAMP, '${diaStr}'::DATE
       )
-    `, itemNombre, itemOtro || null, maquinariaNombre, maquinariaOtro || null, descripcion || null);
+    `,
+      itemNombre,
+      itemOtro || null,
+      maquinariaNombre,
+      maquinariaOtro || null,
+      descripcion || null,
+    );
 
-    res.json({ success: true, message: '📍 Punto registrado exitosamente' });
+    res.json({ success: true, message: "📍 Punto registrado exitosamente" });
   } catch (error) {
-    console.error('❌ Error registrando punto:', error);
-    res.status(500).json({ success: false, message: 'Error al registrar punto', error: error.message });
+    console.error("❌ Error registrando punto:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al registrar punto",
+      error: error.message,
+    });
   }
 };
 
@@ -149,6 +193,13 @@ const registrarPunto = async (req, res) => {
 const getPuntos = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
+
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
 
     const puntos = await prisma.$queryRaw`
       SELECT
@@ -180,8 +231,12 @@ const getPuntos = async (req, res) => {
 
     res.json({ success: true, data: puntos, total: puntos.length });
   } catch (error) {
-    console.error('❌ Error obteniendo puntos:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener puntos', error: error.message });
+    console.error("❌ Error obteniendo puntos:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener puntos",
+      error: error.message,
+    });
   }
 };
 
@@ -192,27 +247,54 @@ const getEstadisticas = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
 
-    const stats = await prisma.$queryRaw`
-      SELECT
-        COUNT(*)::INTEGER                     AS "totalPuntos",
-        COALESCE(SUM(volumen_m3), 0)::NUMERIC AS "volumenTotal",
-        COUNT(DISTINCT usuario_id)::INTEGER   AS "usuariosActivos"
-      FROM puntos_actividad
-      WHERE titulo_minero_id = ${tituloMineroId}
-    `;
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
 
-    const result = stats[0] || { totalPuntos: 0, volumenTotal: 0, usuariosActivos: 0 };
+    const esOperario = req.user.rol === "OPERARIO";
+
+    const stats = esOperario
+      ? await prisma.$queryRaw`
+          SELECT
+            COUNT(*)::INTEGER                     AS "totalPuntos",
+            COALESCE(SUM(volumen_m3), 0)::NUMERIC AS "volumenTotal",
+            1::INTEGER                            AS "usuariosActivos"
+          FROM puntos_actividad
+          WHERE titulo_minero_id = ${tituloMineroId}
+            AND usuario_id = ${req.user.id}
+        `
+      : await prisma.$queryRaw`
+          SELECT
+            COUNT(*)::INTEGER                     AS "totalPuntos",
+            COALESCE(SUM(volumen_m3), 0)::NUMERIC AS "volumenTotal",
+            COUNT(DISTINCT usuario_id)::INTEGER   AS "usuariosActivos"
+          FROM puntos_actividad
+          WHERE titulo_minero_id = ${tituloMineroId}
+        `;
+
+    const result = stats[0] || {
+      totalPuntos: 0,
+      volumenTotal: 0,
+      usuariosActivos: 0,
+    };
     res.json({
       success: true,
       estadisticas: {
-        totalPuntos:     Number(result.totalPuntos)     || 0,
-        volumenTotal:    Number(result.volumenTotal)    || 0,
+        totalPuntos: Number(result.totalPuntos) || 0,
+        volumenTotal: Number(result.volumenTotal) || 0,
         usuariosActivos: Number(result.usuariosActivos) || 0,
-      }
+      },
     });
   } catch (error) {
-    console.error('❌ Error obteniendo estadísticas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas', error: error.message });
+    console.error("❌ Error obteniendo estadísticas:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener estadísticas",
+      error: error.message,
+    });
   }
 };
 
@@ -224,13 +306,19 @@ const editarPunto = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      categoria, itemId, itemOtro,
-      maquinariaId, maquinariaOtro,
-      descripcion, volumenM3,
+      categoria,
+      itemId,
+      itemOtro,
+      maquinariaId,
+      maquinariaOtro,
+      descripcion,
+      volumenM3,
     } = req.body;
 
     if (!categoria) {
-      return res.status(400).json({ success: false, message: 'La categoría es obligatoria.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "La categoría es obligatoria." });
     }
 
     // Verificar que existe y obtener su día
@@ -239,13 +327,23 @@ const editarPunto = async (req, res) => {
       FROM puntos_actividad WHERE id = ${id}::UUID LIMIT 1
     `;
     if (existing.length === 0)
-      return res.status(404).json({ success: false, message: 'Punto no encontrado.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Punto no encontrado." });
 
-    const diaRegistro = String(existing[0].dia).split('T')[0];
+    // 2. Verificar propiedad
+    if (req.user.rol === "OPERARIO" && existing[0].usuario_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Solo puedes editar tus propios registros",
+      });
+    }
+
+    const diaRegistro = String(existing[0].dia).split("T")[0];
     if (diaRegistro !== colombiaToday()) {
       return res.status(403).json({
         success: false,
-        message: 'Solo se pueden editar puntos registrados hoy.'
+        message: "Solo se pueden editar puntos registrados hoy.",
       });
     }
 
@@ -256,7 +354,8 @@ const editarPunto = async (req, res) => {
         SELECT codigo, nombre FROM puntos_items_catalogo WHERE id = ${itemId}::UUID LIMIT 1
       `;
       if (itemRow.length > 0)
-        itemNombre = itemRow[0].codigo === 'OTRO' ? (itemOtro || null) : itemRow[0].nombre;
+        itemNombre =
+          itemRow[0].codigo === "OTRO" ? itemOtro || null : itemRow[0].nombre;
     }
 
     // Resolver maquinaria_nombre
@@ -266,30 +365,44 @@ const editarPunto = async (req, res) => {
         SELECT codigo, display AS nombre FROM maquinaria_catalogo WHERE id = ${maquinariaId}::UUID LIMIT 1
       `;
       if (maqRow.length > 0)
-        maquinariaNombre = maqRow[0].codigo === 'OTRO' ? (maquinariaOtro || null) : maqRow[0].nombre;
+        maquinariaNombre =
+          maqRow[0].codigo === "OTRO"
+            ? maquinariaOtro || null
+            : maqRow[0].nombre;
     }
 
     const updatedAtStr = toColombiaStr(new Date());
 
-    await prisma.$executeRawUnsafe(`
+    await prisma.$executeRawUnsafe(
+      `
       UPDATE puntos_actividad SET
         categoria         = '${categoria}',
-        item_id           = ${itemId ? `'${itemId}'::UUID` : 'NULL'},
+        item_id           = ${itemId ? `'${itemId}'::UUID` : "NULL"},
         item_nombre       = $1,
         item_otro         = $2,
-        maquinaria_id     = ${maquinariaId ? `'${maquinariaId}'::UUID` : 'NULL'},
+        maquinaria_id     = ${maquinariaId ? `'${maquinariaId}'::UUID` : "NULL"},
         maquinaria_nombre = $3,
         maquinaria_otro   = $4,
         descripcion       = $5,
         volumen_m3        = ${volumenM3 ?? null},
         updated_at        = '${updatedAtStr}'::TIMESTAMP
       WHERE id = '${id}'::UUID
-    `, itemNombre, itemOtro || null, maquinariaNombre, maquinariaOtro || null, descripcion || null);
+    `,
+      itemNombre,
+      itemOtro || null,
+      maquinariaNombre,
+      maquinariaOtro || null,
+      descripcion || null,
+    );
 
-    res.json({ success: true, message: '✅ Punto actualizado correctamente.' });
+    res.json({ success: true, message: "✅ Punto actualizado correctamente." });
   } catch (error) {
-    console.error('❌ Error editando punto:', error);
-    res.status(500).json({ success: false, message: 'Error al editar el punto', error: error.message });
+    console.error("❌ Error editando punto:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al editar el punto",
+      error: error.message,
+    });
   }
 };
 
@@ -306,13 +419,23 @@ const eliminarPunto = async (req, res) => {
       FROM puntos_actividad WHERE id = ${id}::UUID LIMIT 1
     `;
     if (existing.length === 0)
-      return res.status(404).json({ success: false, message: 'Punto no encontrado.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Punto no encontrado." });
 
-    const diaRegistro = String(existing[0].dia).split('T')[0];
+    // Después de obtener el registro existente:
+    if (req.user.rol === "OPERARIO" && existing[0].usuario_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Solo puedes editar tus propios registros",
+      });
+    }
+
+    const diaRegistro = String(existing[0].dia).split("T")[0];
     if (diaRegistro !== colombiaToday()) {
       return res.status(403).json({
         success: false,
-        message: 'Solo se pueden eliminar puntos registrados hoy.'
+        message: "Solo se pueden eliminar puntos registrados hoy.",
       });
     }
 
@@ -320,11 +443,23 @@ const eliminarPunto = async (req, res) => {
       DELETE FROM puntos_actividad WHERE id = ${id}::UUID
     `;
 
-    res.json({ success: true, message: '🗑️ Punto eliminado correctamente.' });
+    res.json({ success: true, message: "🗑️ Punto eliminado correctamente." });
   } catch (error) {
-    console.error('❌ Error eliminando punto:', error);
-    res.status(500).json({ success: false, message: 'Error al eliminar el punto', error: error.message });
+    console.error("❌ Error eliminando punto:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar el punto",
+      error: error.message,
+    });
   }
 };
 
-module.exports = { getItems, getMaquinaria, registrarPunto, getPuntos, getEstadisticas, editarPunto, eliminarPunto };
+module.exports = {
+  getItems,
+  getMaquinaria,
+  registrarPunto,
+  getPuntos,
+  getEstadisticas,
+  editarPunto,
+  eliminarPunto,
+};

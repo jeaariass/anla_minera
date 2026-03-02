@@ -1,6 +1,8 @@
 // backend/src/controllers/paradasController.js
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+
+const { puedeAccederATitulo } = require("../utils/permissions");
 
 // ─── Helpers timezone Colombia (UTC-5, sin DST) ───────────────────────────────
 
@@ -11,17 +13,17 @@ const prisma = new PrismaClient();
 const toColombiaStr = (date) => {
   // Colombia = UTC-5 → restar 5h al timestamp UTC
   const local = new Date(date.getTime() - 5 * 3600000);
-  const yyyy  = local.getUTCFullYear();
-  const mm    = String(local.getUTCMonth() + 1).padStart(2, '0');
-  const dd    = String(local.getUTCDate()).padStart(2, '0');
-  const hh    = String(local.getUTCHours()).padStart(2, '0');
-  const min   = String(local.getUTCMinutes()).padStart(2, '0');
-  const ss    = String(local.getUTCSeconds()).padStart(2, '0');
+  const yyyy = local.getUTCFullYear();
+  const mm = String(local.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(local.getUTCDate()).padStart(2, "0");
+  const hh = String(local.getUTCHours()).padStart(2, "0");
+  const min = String(local.getUTCMinutes()).padStart(2, "0");
+  const ss = String(local.getUTCSeconds()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 };
 
 /** Devuelve "YYYY-MM-DD" según hora Colombia de ahora mismo */
-const colombiaToday = () => toColombiaStr(new Date()).split(' ')[0];
+const colombiaToday = () => toColombiaStr(new Date()).split(" ")[0];
 
 // ============================================
 // GET /api/paradas/motivos
@@ -36,8 +38,12 @@ const getMotivos = async (req, res) => {
     `;
     res.json({ success: true, data: motivos });
   } catch (error) {
-    console.error('❌ Error obteniendo motivos:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener motivos', error: error.message });
+    console.error("❌ Error obteniendo motivos:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener motivos",
+      error: error.message,
+    });
   }
 };
 
@@ -47,8 +53,6 @@ const getMotivos = async (req, res) => {
 const registrarParada = async (req, res) => {
   try {
     const {
-      usuarioId,
-      tituloMineroId,
       motivoId,
       motivoOtro,
       inicio,
@@ -57,34 +61,46 @@ const registrarParada = async (req, res) => {
       puntoActividadId,
     } = req.body;
 
-    if (!usuarioId || !tituloMineroId || !motivoId || !inicio || !fin) {
+    // usuarioId y tituloMineroId vienen del token, no del body
+    const usuarioId = req.user.id;
+    const tituloMineroId = req.user.tituloMineroId;
+
+    if (!tituloMineroId) {
       return res.status(400).json({
         success: false,
-        message: 'Faltan campos obligatorios: usuarioId, tituloMineroId, motivoId, inicio, fin'
+        message: "Tu usuario no tiene un título minero asignado",
+      });
+    }
+
+    if (!motivoId || !inicio || !fin) {
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos obligatorios: motivoId, inicio, fin",
       });
     }
 
     const fechaInicio = new Date(inicio);
-    const fechaFin    = new Date(fin);
+    const fechaFin = new Date(fin);
 
     if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
       return res.status(400).json({
         success: false,
-        message: 'Formato de fecha inválido. Usa ISO 8601 (ej: 2025-02-24T10:30:00.000-05:00)'
+        message:
+          "Formato de fecha inválido. Usa ISO 8601 (ej: 2025-02-24T10:30:00.000-05:00)",
       });
     }
 
     if (fechaFin <= fechaInicio) {
       return res.status(400).json({
         success: false,
-        message: 'La hora de fin debe ser posterior al inicio'
+        message: "La hora de fin debe ser posterior al inicio",
       });
     }
 
     // ── Strings Colombia para almacenar como TIMESTAMP naive ──────────────────
     const inicioStr = toColombiaStr(fechaInicio);
-    const finStr    = toColombiaStr(fechaFin);
-    const diaStr    = inicioStr.split(' ')[0];   // "YYYY-MM-DD"
+    const finStr = toColombiaStr(fechaFin);
+    const diaStr = inicioStr.split(" ")[0]; // "YYYY-MM-DD"
 
     // Verificar motivo
     const motivoRow = await prisma.$queryRaw`
@@ -92,20 +108,22 @@ const registrarParada = async (req, res) => {
       WHERE id = ${motivoId}::UUID LIMIT 1
     `;
     if (motivoRow.length === 0)
-      return res.status(400).json({ success: false, message: 'El motivo seleccionado no existe' });
+      return res
+        .status(400)
+        .json({ success: false, message: "El motivo seleccionado no existe" });
 
-    if (motivoRow[0].codigo === 'OTRO' && (!motivoOtro || !motivoOtro.trim()))
+    if (motivoRow[0].codigo === "OTRO" && (!motivoOtro || !motivoOtro.trim()))
       return res.status(400).json({
         success: false,
-        message: 'Debes describir el motivo cuando seleccionas "Otro"'
+        message: 'Debes describir el motivo cuando seleccionas "Otro"',
       });
 
-    const motivoNombre = motivoRow[0].codigo === 'OTRO'
-      ? motivoOtro.trim()
-      : motivoRow[0].nombre;
+    const motivoNombre =
+      motivoRow[0].codigo === "OTRO" ? motivoOtro.trim() : motivoRow[0].nombre;
 
     if (puntoActividadId) {
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRawUnsafe(
+        `
         INSERT INTO paradas_actividad (
           usuario_id, titulo_minero_id,
           punto_actividad_id,
@@ -119,9 +137,14 @@ const registrarParada = async (req, res) => {
           '${inicioStr}'::TIMESTAMP, '${finStr}'::TIMESTAMP, '${diaStr}'::DATE,
           $3, 'ENVIADO', NOW()
         )
-      `, motivoNombre, motivoOtro || null, observaciones || null);
+      `,
+        motivoNombre,
+        motivoOtro || null,
+        observaciones || null,
+      );
     } else {
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRawUnsafe(
+        `
         INSERT INTO paradas_actividad (
           usuario_id, titulo_minero_id,
           motivo_id, motivo_nombre, motivo_otro,
@@ -133,19 +156,27 @@ const registrarParada = async (req, res) => {
           '${inicioStr}'::TIMESTAMP, '${finStr}'::TIMESTAMP, '${diaStr}'::DATE,
           $3, 'ENVIADO', NOW()
         )
-      `, motivoNombre, motivoOtro || null, observaciones || null);
+      `,
+        motivoNombre,
+        motivoOtro || null,
+        observaciones || null,
+      );
     }
 
     const minutos = Math.round((fechaFin - fechaInicio) / 60000);
 
     res.json({
       success: true,
-      message: '🛑 Paro registrado exitosamente',
-      data: { minutosRegistrados: minutos }
+      message: "🛑 Paro registrado exitosamente",
+      data: { minutosRegistrados: minutos },
     });
   } catch (error) {
-    console.error('❌ Error registrando parada:', error);
-    res.status(500).json({ success: false, message: 'Error al registrar la parada', error: error.message });
+    console.error("❌ Error registrando parada:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al registrar la parada",
+      error: error.message,
+    });
   }
 };
 
@@ -158,8 +189,15 @@ const getParadas = async (req, res) => {
     const { tituloMineroId } = req.params;
     const { dia, usuarioId } = req.query;
 
-    let whereExtra = '';
-    if (dia)       whereExtra += ` AND pa.dia = '${dia}'::DATE`;
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+
+    let whereExtra = "";
+    if (dia) whereExtra += ` AND pa.dia = '${dia}'::DATE`;
     if (usuarioId) whereExtra += ` AND pa.usuario_id = '${usuarioId}'`;
 
     const paradas = await prisma.$queryRawUnsafe(`
@@ -191,8 +229,12 @@ const getParadas = async (req, res) => {
 
     res.json({ success: true, data: paradas, total: paradas.length });
   } catch (error) {
-    console.error('❌ Error obteniendo paradas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener paradas', error: error.message });
+    console.error("❌ Error obteniendo paradas:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener paradas",
+      error: error.message,
+    });
   }
 };
 
@@ -203,6 +245,14 @@ const getResumenDia = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
     const { dia } = req.query;
+
+    // Al inicio del handler, antes de la consulta:
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
 
     // Si no viene `dia`, usa la fecha Colombia de hoy
     const fecha = dia || colombiaToday();
@@ -223,11 +273,15 @@ const getResumenDia = async (req, res) => {
       resumen: {
         totalParadas: Number(r.totalParadas) || 0,
         totalMinutos: Number(r.totalMinutos) || 0,
-      }
+      },
     });
   } catch (error) {
-    console.error('❌ Error obteniendo resumen:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener resumen', error: error.message });
+    console.error("❌ Error obteniendo resumen:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener resumen",
+      error: error.message,
+    });
   }
 };
 
@@ -241,7 +295,9 @@ const editarParada = async (req, res) => {
     const { motivoId, motivoOtro, inicio, fin, observaciones } = req.body;
 
     if (!motivoId || !inicio || !fin)
-      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Faltan campos obligatorios." });
 
     // Verificar que existe
     const existing = await prisma.$queryRaw`
@@ -250,45 +306,64 @@ const editarParada = async (req, res) => {
       WHERE id = ${id}::UUID LIMIT 1
     `;
     if (existing.length === 0)
-      return res.status(404).json({ success: false, message: 'Paro no encontrado.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Paro no encontrado." });
+
+    // Después de obtener el registro existente, antes de la verificación del día:
+    if (req.user.rol === "OPERARIO" && existing[0].usuario_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Solo puedes editar tus propios registros",
+      });
+    }
 
     // Comparar día Colombia con hoy Colombia
-    const diaRegistro = String(existing[0].dia).split('T')[0];
+    const diaRegistro = String(existing[0].dia).split("T")[0];
     if (diaRegistro !== colombiaToday()) {
       return res.status(403).json({
         success: false,
-        message: 'Solo se pueden editar paros registrados hoy.'
+        message: "Solo se pueden editar paros registrados hoy.",
       });
     }
 
     const fechaInicio = new Date(inicio);
-    const fechaFin    = new Date(fin);
+    const fechaFin = new Date(fin);
 
     if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime()))
-      return res.status(400).json({ success: false, message: 'Formato de fecha inválido.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Formato de fecha inválido." });
     if (fechaFin <= fechaInicio)
-      return res.status(400).json({ success: false, message: 'El fin debe ser posterior al inicio.' });
+      return res.status(400).json({
+        success: false,
+        message: "El fin debe ser posterior al inicio.",
+      });
 
     // Strings Colombia para el UPDATE
     const inicioStr = toColombiaStr(fechaInicio);
-    const finStr    = toColombiaStr(fechaFin);
-    const diaStr    = inicioStr.split(' ')[0];
+    const finStr = toColombiaStr(fechaFin);
+    const diaStr = inicioStr.split(" ")[0];
 
     // Verificar motivo
     const motivoRow = await prisma.$queryRaw`
       SELECT codigo, nombre FROM paradas_motivos WHERE id = ${motivoId}::UUID LIMIT 1
     `;
     if (motivoRow.length === 0)
-      return res.status(400).json({ success: false, message: 'Motivo no encontrado.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Motivo no encontrado." });
 
-    if (motivoRow[0].codigo === 'OTRO' && (!motivoOtro || !motivoOtro.trim()))
-      return res.status(400).json({ success: false, message: 'Describe el motivo "Otro".' });
+    if (motivoRow[0].codigo === "OTRO" && (!motivoOtro || !motivoOtro.trim()))
+      return res
+        .status(400)
+        .json({ success: false, message: 'Describe el motivo "Otro".' });
 
-    const motivoNombre = motivoRow[0].codigo === 'OTRO'
-      ? motivoOtro.trim()
-      : motivoRow[0].nombre;
+    const motivoNombre =
+      motivoRow[0].codigo === "OTRO" ? motivoOtro.trim() : motivoRow[0].nombre;
 
-    await prisma.$executeRawUnsafe(`
+    await prisma.$executeRawUnsafe(
+      `
       UPDATE paradas_actividad SET
         motivo_id     = '${motivoId}'::UUID,
         motivo_nombre = $1,
@@ -299,17 +374,27 @@ const editarParada = async (req, res) => {
         observaciones = $3,
         updated_at    = NOW()
       WHERE id = '${id}'::UUID
-    `, motivoNombre, motivoOtro || null, observaciones || null);
+    `,
+      motivoNombre,
+      motivoOtro || null,
+      observaciones || null,
+    );
 
     const minutos = Math.round((fechaFin - fechaInicio) / 60000);
-    res.json({ success: true, message: '✅ Paro actualizado', data: { minutosRegistrados: minutos } });
-
+    res.json({
+      success: true,
+      message: "✅ Paro actualizado",
+      data: { minutosRegistrados: minutos },
+    });
   } catch (error) {
-    console.error('❌ Error editando parada:', error);
-    res.status(500).json({ success: false, message: 'Error al editar el paro', error: error.message });
+    console.error("❌ Error editando parada:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al editar el paro",
+      error: error.message,
+    });
   }
 };
-
 
 // ============================================
 // DELETE /api/paradas/:id
@@ -325,13 +410,15 @@ const eliminarParada = async (req, res) => {
       WHERE id = ${id}::UUID LIMIT 1
     `;
     if (existing.length === 0)
-      return res.status(404).json({ success: false, message: 'Paro no encontrado.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Paro no encontrado." });
 
-    const diaRegistro = String(existing[0].dia).split('T')[0];
+    const diaRegistro = String(existing[0].dia).split("T")[0];
     if (diaRegistro !== colombiaToday()) {
       return res.status(403).json({
         success: false,
-        message: 'Solo se pueden eliminar paros registrados hoy.'
+        message: "Solo se pueden eliminar paros registrados hoy.",
       });
     }
 
@@ -339,11 +426,22 @@ const eliminarParada = async (req, res) => {
       DELETE FROM paradas_actividad WHERE id = ${id}::UUID
     `;
 
-    res.json({ success: true, message: '🗑️ Paro eliminado correctamente.' });
+    res.json({ success: true, message: "🗑️ Paro eliminado correctamente." });
   } catch (error) {
-    console.error('❌ Error eliminando parada:', error);
-    res.status(500).json({ success: false, message: 'Error al eliminar el paro', error: error.message });
+    console.error("❌ Error eliminando parada:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al eliminar el paro",
+      error: error.message,
+    });
   }
 };
 
-module.exports = { getMotivos, registrarParada, getParadas, getResumenDia, editarParada, eliminarParada };
+module.exports = {
+  getMotivos,
+  registrarParada,
+  getParadas,
+  getResumenDia,
+  editarParada,
+  eliminarParada,
+};

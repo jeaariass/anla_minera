@@ -120,7 +120,7 @@ ADD COLUMN     "tituloMineroId" TEXT NOT NULL;
 
 -- AlterTable
 ALTER TABLE "usuarios" DROP COLUMN "empresaId",
-ADD COLUMN     "tituloMineroId" TEXT;
+ADD COLUMN IF NOT EXISTS "tituloMineroId" TEXT;
 
 -- DropTable
 DROP TABLE "public"."empresas";
