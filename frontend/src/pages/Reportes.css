@@ -239,12 +239,15 @@
 }
 
 /* Card */
+/* overflow: visible — permite que los badges ::after de los botones
+   Excel/PDF (top: -8px) no sean recortados por el borde de la card.
+   Las esquinas redondeadas se mantienen igual con border-radius. */
 .card {
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-bottom: 24px;
-  overflow: hidden;
+  overflow: visible;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -286,15 +289,15 @@
 /* Form */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(2, 1fr);   /* siempre 2 columnas iguales */
+  gap: 20px 24px;
   margin-bottom: 30px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .form-group label {
@@ -306,14 +309,18 @@
   font-size: 14px;
 }
 
+/* Altura fija en TODOS los controles para que sean uniformes */
 .form-control {
-  padding: 14px 16px;
+  padding: 0 16px;
+  height: 48px;                            /* altura fija igual para todos */
   border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 15px;
   color: var(--text-primary);
   background: white;
   transition: all 0.2s;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .form-control:focus {
@@ -331,27 +338,51 @@
 /* Actions */
 .card-actions {
   display: flex;
+  flex-direction: row;        /* Todos en fila horizontal */
+  align-items: center;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: flex-end;  /* Alineados a la derecha */
   flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-color);
 }
 
+/* ==========================================
+   ACTIONS - BOTONES
+   ========================================== */
+
+.card-actions {
+  display: flex;
+  flex-direction: row;        /* Todos en fila horizontal */
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;  /* Alineados a la derecha */
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-color);
+}
+
+/* Botón base - igual al resto de la página */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px 28px;
+  gap: 8px;
+  padding: 12px 24px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  white-space: nowrap;
 }
 
+/* Efecto onda al hacer clic */
 .btn::before {
   content: '';
   position: absolute;
@@ -376,28 +407,89 @@
   transform: none !important;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  color: white;
-  box-shadow: 0 4px 14px rgba(66, 153, 225, 0.4);
+/* Limpiar Filtros - Blanco con borde */
+.btn-outline {
+  background: white;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  margin-right: auto; /* Se va a la izquierda */
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
+.btn-outline:hover:not(:disabled) {
+  background: var(--background);
+  border-color: var(--text-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Vista Previa - Verde azulado */
 .btn-secondary {
-  background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));
+  background: linear-gradient(135deg, #48bb78, #38a169);
   color: white;
   box-shadow: 0 4px 14px rgba(72, 187, 120, 0.4);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
 }
 
+/* Exportar Excel - Verde oscuro */
+.btn-excel {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+}
+
+.btn-excel:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
+}
+
+/* Exportar PDF - Rojo */
+.btn-pdf {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.btn-pdf:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+}
+
+/* Badge de extensión — va DENTRO del botón como <span>
+   para que no sea recortado por overflow: hidden del .btn */
+.btn-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+/* Responsive - En móvil se apilan */
+@media (max-width: 768px) {
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .btn-outline {
+    margin-right: 0;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Botón con Outline (si se usa en el futuro) */
 .btn-outline {
   background: white;
   color: var(--text-secondary);
@@ -510,11 +602,22 @@
   margin-bottom: 10px;
 }
 
-/* Responsive */
+/* Responsive — solo en móvil */
 @media (max-width: 768px) {
-  .header-content {
+  .card-actions {
     flex-direction: column;
-    gap: 16px;
+  }
+
+  .btn-outline {
+    margin-right: 0;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;   /* 1 columna en móvil */
   }
 
   .page-title-section {
@@ -522,19 +625,160 @@
     text-align: center;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .card-actions {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-  }
-
   .user-details {
     display: none;
   }
 }
+/* ══════════════════════════════════════════════════════════
+   DATE PICKER CUSTOM
+   ══════════════════════════════════════════════════════════
+   Combina un input de texto visible (dd/mm/aaaa) con un
+   input[type=date] nativo invisible que provee el calendario.
+   Todos los controles tienen height: 48px para ser iguales. */
+
+.dp-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Hereda form-control pero deja espacio para los botones internos */
+.dp-text {
+  padding-right: 72px !important;
+  cursor: text;
+  height: 48px;        /* igual que .form-control */
+}
+
+/* Zona del ícono de calendario
+   El ícono SVG es decorativo; el input[type=date] flota encima
+   con opacity:0 y cubre toda la zona → el clic abre el calendario
+   del SO directamente, sin showPicker() ni click() programático.
+   Funciona en Safari, Chrome, Firefox y navegadores móviles. */
+.dp-icon-zone {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.dp-icon-svg {
+  color: var(--text-secondary);
+  pointer-events: none;   /* el SVG no captura clics, los pasa al input */
+  transition: color 0.15s;
+}
+
+.dp-wrapper:not(.dp-disabled) .dp-icon-zone:hover .dp-icon-svg {
+  color: var(--primary-color);
+}
+
+/* Input nativo invisible encima del ícono:
+   opacity:0 lo oculta visualmente pero sigue siendo interactivo.
+   width/height iguales a dp-icon-zone para cubrir exactamente el área. */
+.dp-native {
+  position: absolute;
+  inset: 0;              /* cubre todo dp-icon-zone */
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0;          /* evita que ocupe espacio si el browser renderiza texto */
+}
+
+/* ── Badge de filtros activos ─────────────────────────────── */
+.badge-filtros {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Spinner inline de actualización ──────────────────────── */
+.loading-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.icon-spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Columna "Creado por" — solo visual, nunca exportada ──── */
+/* Fija en 140px para no desbalancear las otras columnas       */
+.col-creado-por {
+  min-width: 140px;
+  width: 140px;
+}
+
+/* Chip con fondo suave que identifica al autor del registro */
+.chip-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.chip-usuario::before {
+  content: '👤';
+  font-size: 11px;
+}
+
+/* Botón × para limpiar la fecha */
+.dp-clear-btn {
+  position: absolute;
+  right: 44px;           /* a la izquierda de dp-icon-zone (28px) + 6px gap */
+  top: 50%;
+  transform: translateY(-50%);
+  background: #e2e8f0;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  z-index: 3;
+  padding: 0;
+}
+
+.dp-clear-btn:hover {
+  background: #9CA3AF;
+  color: white;
+}
+
+/* Estado deshabilitado */
+.dp-disabled .dp-text     { cursor: not-allowed; }
+.dp-disabled .dp-icon-zone { cursor: not-allowed; opacity: 0.4; pointer-events: none; }
