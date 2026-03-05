@@ -18,6 +18,8 @@ import ResumenOperacion from "./pages/ResumenOperacion";
 import FormulariosOperacion from "./pages/FormulariosOperacion";
 import DashboardOperacion from "./pages/DashboardOperacion";
 
+import { TituloProvider } from "./context/TituloContext";
+
 import Usuarios from "./pages/Usuarios";
 // Solo verifica que haya sesión activa
 const ProtectedRoute = ({ children }) => {
@@ -38,102 +40,106 @@ function App() {
   const isAuthenticated = () => !!localStorage.getItem("token");
 
   return (
-    <Router basename="/TU_MINA">
-      <Routes>
-        {/* Pública */}
-        <Route path="/" element={<Login />} />
+    <TituloProvider>
+      <Router basename="/TU_MINA">
+        <Routes>
+          {/* Pública */}
+          <Route path="/" element={<Login />} />
 
-        {/* Home — solo requiere estar autenticado */}
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+          {/* Home — solo requiere estar autenticado */}
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
-        <Route
-          path="/formularios"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_FORMULARIOS">
-              <Formularios />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
+          <Route
+            path="/formularios"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_FORMULARIOS">
+                <Formularios />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Dashboard FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
-        <Route
-          path="/dashboard"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_DASHBOARD">
-              <Dashboard />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Dashboard FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
+          <Route
+            path="/dashboard"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_DASHBOARD">
+                <Dashboard />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Reportes — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
-        <Route
-          path="/reportes"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_REPORTES">
-              <Reportes />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Reportes — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
+          <Route
+            path="/reportes"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_REPORTES">
+                <Reportes />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Mapa — ADMIN, ASESOR, JEFE_PLANTA, OPERARIO */}
-        <Route
-          path="/mapa"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_MAPA">
-              <MapaActividades />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Mapa — ADMIN, ASESOR, JEFE_PLANTA, OPERARIO */}
+          <Route
+            path="/mapa"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_MAPA">
+                <MapaActividades />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Operación — todos los roles */}
-        <Route
-          path="/resumen-operacion"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
-              <ResumenOperacion />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/formularios-operacion"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
-              <FormulariosOperacion />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard-operacion"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
-              <DashboardOperacion />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/usuarios"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS">
-              <Usuarios />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Operación — todos los roles */}
+          <Route
+            path="/resumen-operacion"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
+                <ResumenOperacion />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/formularios-operacion"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
+                <FormulariosOperacion />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-operacion"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
+                <DashboardOperacion />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS">
+                <Usuarios />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Catch all */}
-        <Route
-          path="*"
-          element={<Navigate to={isAuthenticated() ? "/home" : "/"} replace />}
-        />
-      </Routes>
-    </Router>
+          {/* Catch all */}
+          <Route
+            path="*"
+            element={
+              <Navigate to={isAuthenticated() ? "/home" : "/"} replace />
+            }
+          />
+        </Routes>
+      </Router>
+    </TituloProvider>
   );
 }
 

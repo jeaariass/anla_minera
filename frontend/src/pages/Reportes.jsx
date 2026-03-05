@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, reportService } from "../services/api";
+import SelectorTitulo from "../components/SelectorTitulo";
+import { useTituloActivo } from "../context/TituloContext";
 import {
   ArrowLeft,
   Download,
@@ -18,6 +20,7 @@ import "./Reportes.css";
 const Reportes = () => {
   const navigate = useNavigate();
   const [user] = useState(authService.getCurrentUser());
+  const { tituloActivoId } = useTituloActivo();
 
   const [filtros, setFiltros] = useState({
     tipo: "produccion",
@@ -62,7 +65,10 @@ const Reportes = () => {
       setError("");
       setSuccess("");
 
-      const response = await reportService.getPreview(filtros);
+      const response = await reportService.getPreview({
+        ...filtros,
+        tituloMineroId: tituloActivoId,
+      });
 
       if (response.data.success) {
         setPreview({
@@ -93,7 +99,10 @@ const Reportes = () => {
       setError("");
       setSuccess("");
 
-      const response = await reportService.exportarExcel(filtros);
+      const response = await reportService.exportarExcel({
+        ...filtros,
+        tituloMineroId: tituloActivoId,
+      });
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -168,7 +177,7 @@ const Reportes = () => {
                   <p className="user-role">{user?.rol || "ROL"}</p>
                 </div>
               </div>
-
+              <SelectorTitulo />
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} />
                 Salir

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, friService } from "../services/api";
+import { useTituloActivo } from "../context/TituloContext";
 import api from "../services/api";
 import {
   FileText,
@@ -32,6 +33,8 @@ import "./Home.css";
 
 import { tienePermiso } from "../utils/permissions";
 
+import SelectorTitulo from "../components/SelectorTitulo";
+
 const Home = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -47,11 +50,15 @@ const Home = () => {
     puntosHoy: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { tituloActivoId, titulos, cargando, esRolGlobal } = useTituloActivo();
+  const tituloActivo =
+    titulos?.find((t) => t.id === tituloActivoId) || user?.tituloMinero || null;
 
   useEffect(() => {
     loadUserData();
+    if (esRolGlobal && (cargando || !tituloActivoId)) return;
     loadAllStats();
-  }, []);
+  }, [tituloActivoId, cargando]);
 
   const loadUserData = () => {
     const currentUser = authService.getCurrentUser();
@@ -89,7 +96,9 @@ const Home = () => {
         for (const tipo of tipos) {
           try {
             const serviceMethod = `get${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`;
-            const response = await friService[serviceMethod]();
+            const response = await friService[serviceMethod]({
+              tituloMineroId: tituloActivoId,
+            });
 
             if (response.data.success && response.data.fris) {
               const fris = response.data.fris;
@@ -118,14 +127,10 @@ const Home = () => {
         const local = new Date(Date.now() - 5 * 3600000);
         return local.toISOString().split("T")[0];
       })();
-      const tituloId =
-        authService.getCurrentUser()?.tituloMinero?.id ||
-        authService.getCurrentUser()?.tituloMineroId ||
-        "titulo-816-17";
       try {
         const [rParadas, rPuntos] = await Promise.all([
-          api.get(`/paradas/${tituloId}?dia=${hoy}`),
-          api.get(`/actividad/puntos/${tituloId}?dia=${hoy}`),
+          api.get(`/paradas/${tituloActivoId}?dia=${hoy}`),
+          api.get(`/actividad/puntos/${tituloActivoId}?dia=${hoy}`),
         ]);
         if (rParadas.data.success) {
           const pHoy = rParadas.data.data ?? [];
@@ -274,11 +279,20 @@ const Home = () => {
     },
   ];
 
+  if (esRolGlobal && (cargando || !tituloActivoId)) {
+    return (
+      <div className="loading-container">
+        <div className="loading"></div>
+        <p>Cargando títulos mineros...</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="loading-container">
         <div className="loading"></div>
-        <p>Cargando datos reales...</p>
+        <p>Cargando datos...</p>
       </div>
     );
   }
@@ -315,7 +329,7 @@ const Home = () => {
                   <p className="user-role">{user?.rol || "ROL"}</p>
                 </div>
               </div>
-
+              <SelectorTitulo />
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} />
                 Salir
@@ -337,6 +351,19 @@ const Home = () => {
                   Sistema de Formularios de Recolección de Información (FRI) -
                   Agencia Nacional de Minería
                 </p>
+                {tituloActivo && (
+                  <div className="welcome-titulo">
+                    <Building2 size={15} />
+                    <span className="welcome-titulo-numero">
+                      {tituloActivo.numeroTitulo}
+                    </span>
+                    {tituloActivo.municipio && (
+                      <span className="welcome-titulo-municipio">
+                        · {tituloActivo.municipio}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="welcome-date">
                   <Calendar size={16} />
                   <span>
@@ -356,50 +383,61 @@ const Home = () => {
           <section className="stats-section">
             <h3 className="section-title">📊 Resumen General de Formularios</h3>
             <div className="stats-grid">
-              {/* Total Formularios */}
-              <div
-                className="stat-card"
-                style={{ borderLeft: "4px solid #3b82f6" }}
-              >
-                <div className="stat-icon" style={{ background: "#dbeafe" }}>
-                  <FileText size={28} color="#3b82f6" />
-                </div>
-                <div className="stat-content">
-                  <p className="stat-label">Total Formularios</p>
-                  <h3 className="stat-value">{stats.totalFormularios}</h3>
-                  <p className="stat-desc"></p>
-                </div>
-              </div>
+              {/* Total Formularios, Borradores, Enviados — oculto para OPERARIO */}
+              {user?.rol !== "OPERARIO" && (
+                <>
+                  <div
+                    className="stat-card"
+                    style={{ borderLeft: "4px solid #3b82f6" }}
+                  >
+                    <div
+                      className="stat-icon"
+                      style={{ background: "#dbeafe" }}
+                    >
+                      <FileText size={28} color="#3b82f6" />
+                    </div>
+                    <div className="stat-content">
+                      <p className="stat-label">Total Formularios</p>
+                      <h3 className="stat-value">{stats.totalFormularios}</h3>
+                      <p className="stat-desc"></p>
+                    </div>
+                  </div>
 
-              {/* Borradores */}
-              <div
-                className="stat-card"
-                style={{ borderLeft: "4px solid #f59e0b" }}
-              >
-                <div className="stat-icon" style={{ background: "#fef3c7" }}>
-                  <Edit size={28} color="#f59e0b" />
-                </div>
-                <div className="stat-content">
-                  <p className="stat-label">Borradores</p>
-                  <h3 className="stat-value">{stats.borradores}</h3>
-                  <p className="stat-desc"> </p>
-                </div>
-              </div>
+                  <div
+                    className="stat-card"
+                    style={{ borderLeft: "4px solid #f59e0b" }}
+                  >
+                    <div
+                      className="stat-icon"
+                      style={{ background: "#fef3c7" }}
+                    >
+                      <Edit size={28} color="#f59e0b" />
+                    </div>
+                    <div className="stat-content">
+                      <p className="stat-label">Borradores</p>
+                      <h3 className="stat-value">{stats.borradores}</h3>
+                      <p className="stat-desc"> </p>
+                    </div>
+                  </div>
 
-              {/* Enviados */}
-              <div
-                className="stat-card"
-                style={{ borderLeft: "4px solid #06b6d4" }}
-              >
-                <div className="stat-icon" style={{ background: "#cffafe" }}>
-                  <Send size={28} color="#06b6d4" />
-                </div>
-                <div className="stat-content">
-                  <p className="stat-label">Enviados</p>
-                  <h3 className="stat-value">{stats.enviados}</h3>
-                  <p className="stat-desc"> </p>
-                </div>
-              </div>
+                  <div
+                    className="stat-card"
+                    style={{ borderLeft: "4px solid #06b6d4" }}
+                  >
+                    <div
+                      className="stat-icon"
+                      style={{ background: "#cffafe" }}
+                    >
+                      <Send size={28} color="#06b6d4" />
+                    </div>
+                    <div className="stat-content">
+                      <p className="stat-label">Enviados</p>
+                      <h3 className="stat-value">{stats.enviados}</h3>
+                      <p className="stat-desc"> </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Paradas y Puntos — solo para roles con permiso operativo */}
               {tienePermiso("VER_ESTADISTICAS_OPERATIVAS") && (

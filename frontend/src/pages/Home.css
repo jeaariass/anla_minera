@@ -186,6 +186,29 @@
   font-size: 14px;
 }
 
+.welcome-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ede9fe, #dbeafe);
+  border: 1px solid #c4b5fd;
+  border-radius: 10px;
+  color: #5b21b6;
+  font-size: 14px;
+}
+
+.welcome-titulo-numero {
+  font-weight: 700;
+  color: #4c1d95;
+  letter-spacing: 0.5px;
+}
+
+.welcome-titulo-municipio {
+  color: #6d28d9;
+  font-weight: 400;
+}
 /* ============================================
    STATS SECTION - TARJETAS MEJORADAS
    ============================================ */
@@ -339,7 +362,7 @@
 }
 
 .action-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -427,7 +450,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-container p {

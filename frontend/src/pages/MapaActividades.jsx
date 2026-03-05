@@ -12,8 +12,11 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../services/api";
 import { authService } from "../services/api";
+import { useTituloActivo } from "../context/TituloContext";
 import { ArrowLeft, User, LogOut, Map as MapIcon, Filter } from "lucide-react";
 import "./Reportes.css";
+
+import SelectorTitulo from "../components/SelectorTitulo";
 
 // Fix iconos de Leaflet para Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -41,6 +44,7 @@ const CATEGORIA_LABELS = {
 const MapaActividades = () => {
   const navigate = useNavigate();
   const [user] = useState(authService.getCurrentUser());
+  const { tituloActivoId } = useTituloActivo();
   const [todosLosPuntos, setTodosLosPuntos] = useState([]); // ⬅️ NUEVO: guardar TODOS los puntos
   const [puntosFiltrados, setPuntosFiltrados] = useState([]); // ⬅️ NUEVO: puntos después del filtro
   const [loading, setLoading] = useState(true);
@@ -49,8 +53,9 @@ const MapaActividades = () => {
 
   // Cargar TODOS los puntos una sola vez al inicio
   useEffect(() => {
+    if (!tituloActivoId) return;
     cargarTodosLosPuntos();
-  }, []);
+  }, [tituloActivoId]);
 
   // Filtrar cuando cambia la categoría
   useEffect(() => {
@@ -64,15 +69,7 @@ const MapaActividades = () => {
       // ⬅️ SIN parámetros de filtro - traer TODOS
       // const response = await api.get("/actividad/puntos/titulo-816-17");
 
-      const tituloId = user?.tituloMinero?.id || user?.tituloMineroId;
-
-      if (!tituloId) {
-        console.error("El usuario no tiene título minero asignado");
-        setLoading(false);
-        return;
-      }
-
-      const response = await api.get(`/actividad/puntos/${tituloId}`);
+      const response = await api.get(`/actividad/puntos/${tituloActivoId}`);
 
       if (response.data.success) {
         setTodosLosPuntos(response.data.data);
@@ -182,7 +179,7 @@ const MapaActividades = () => {
                   <p className="user-role">{user?.rol || "ROL"}</p>
                 </div>
               </div>
-
+              <SelectorTitulo />
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} />
                 Salir

@@ -347,23 +347,24 @@ exports.getPreview = async (req, res) => {
       filtros[campoFecha] = { lte: new Date(fechaFin) };
     }
 
-    if (decoded.rol !== "ADMIN") {
-      if (tipo === "puntosActividad") {
-        // Para puntos operativos: OPERARIO ve solo los suyos,
-        // JEFE_PLANTA ve todos los de su título
-        if (decoded.rol === "OPERARIO") {
-          filtros.usuario_id = decoded.id;
-        } else if (decoded.tituloMineroId) {
-          filtros.titulo_minero_id = decoded.tituloMineroId;
-        }
-      } else {
-        // Para FRIs: filtrar por título minero del usuario
-        if (decoded.tituloMineroId) {
-          filtros.tituloMineroId = decoded.tituloMineroId;
-        } else if (decoded.rol === "ASESOR") {
-          // ASESOR creó los formularios — filtrar por su usuarioId
-          filtros.usuarioId = decoded.id;
-        }
+    const esGlobal = ["ADMIN", "ASESOR"].includes(decoded.rol);
+    const tituloParam = req.query.tituloMineroId || null;
+
+    if (tipo === "puntosActividad") {
+      if (decoded.rol === "OPERARIO") {
+        filtros.usuario_id = decoded.id;
+      } else if (esGlobal) {
+        // ADMIN/ASESOR: filtra por el título seleccionado en el dropdown
+        if (tituloParam) filtros.titulo_minero_id = tituloParam;
+      } else if (decoded.tituloMineroId) {
+        filtros.titulo_minero_id = decoded.tituloMineroId;
+      }
+    } else {
+      if (esGlobal) {
+        // ADMIN/ASESOR: filtra por el título seleccionado en el dropdown
+        if (tituloParam) filtros.tituloMineroId = tituloParam;
+      } else if (decoded.tituloMineroId) {
+        filtros.tituloMineroId = decoded.tituloMineroId;
       }
     }
 
@@ -445,23 +446,24 @@ exports.exportarExcel = async (req, res) => {
       };
     }
 
-    if (decoded.rol !== "ADMIN") {
-      if (tipo === "puntosActividad") {
-        // Para puntos operativos: OPERARIO ve solo los suyos,
-        // JEFE_PLANTA ve todos los de su título
-        if (decoded.rol === "OPERARIO") {
-          filtros.usuario_id = decoded.id;
-        } else if (decoded.tituloMineroId) {
-          filtros.titulo_minero_id = decoded.tituloMineroId;
-        }
-      } else {
-        // Para FRIs: filtrar por título minero del usuario
-        if (decoded.tituloMineroId) {
-          filtros.tituloMineroId = decoded.tituloMineroId;
-        } else if (decoded.rol === "ASESOR") {
-          // ASESOR creó los formularios — filtrar por su usuarioId
-          filtros.usuarioId = decoded.id;
-        }
+    const esGlobal = ["ADMIN", "ASESOR"].includes(decoded.rol);
+    const tituloParam = req.query.tituloMineroId || null;
+
+    if (tipo === "puntosActividad") {
+      if (decoded.rol === "OPERARIO") {
+        filtros.usuario_id = decoded.id;
+      } else if (esGlobal) {
+        // ADMIN/ASESOR: filtra por el título seleccionado en el dropdown
+        if (tituloParam) filtros.titulo_minero_id = tituloParam;
+      } else if (decoded.tituloMineroId) {
+        filtros.titulo_minero_id = decoded.tituloMineroId;
+      }
+    } else {
+      if (esGlobal) {
+        // ADMIN/ASESOR: filtra por el título seleccionado en el dropdown
+        if (tituloParam) filtros.tituloMineroId = tituloParam;
+      } else if (decoded.tituloMineroId) {
+        filtros.tituloMineroId = decoded.tituloMineroId;
       }
     }
 
