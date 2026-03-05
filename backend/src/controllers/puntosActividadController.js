@@ -2,7 +2,7 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const { puedeAccederATitulo } = require("../utils/permissions");
+const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
 
 // ─── Helpers Colombia ─────────────────────────────────────────────────────────
 
@@ -105,12 +105,16 @@ const registrarPunto = async (req, res) => {
     } = req.body;
 
     const usuarioId = req.user.id;
-    const tituloMineroId = req.user.tituloMineroId;
+    const tituloMineroId = esRolGlobal(req.user)
+      ? req.body.tituloMineroId || null
+      : req.user.tituloMineroId || null;
 
     if (!tituloMineroId) {
       return res.status(400).json({
         success: false,
-        message: "Tu usuario no tiene un título minero asignado",
+        message: esRolGlobal(req.user)
+          ? "Debes seleccionar un título minero en el panel superior"
+          : "Tu usuario no tiene un título minero asignado",
       });
     }
 
@@ -201,7 +205,10 @@ const getPuntos = async (req, res) => {
       });
     }
 
-    const puntos = await prisma.$queryRaw`
+    const filtroOperario =
+      req.user.rol === "OPERARIO" ? `AND pa.usuario_id = '${req.user.id}'` : "";
+
+    const puntos = await prisma.$queryRawUnsafe(`
       SELECT
         pa.id::TEXT                                           AS id,
         pa.usuario_id                                         AS "usuarioId",
@@ -225,9 +232,10 @@ const getPuntos = async (req, res) => {
         TO_CHAR(pa.dia,   'YYYY-MM-DD')                       AS dia
       FROM puntos_actividad pa
       LEFT JOIN puntos_items_catalogo pic ON pic.id = pa.item_id
-      WHERE pa.titulo_minero_id = ${tituloMineroId}
+      WHERE pa.titulo_minero_id = '${tituloMineroId}'
+      ${filtroOperario}
       ORDER BY pa.fecha DESC
-    `;
+    `);
 
     res.json({ success: true, data: puntos, total: puntos.length });
   } catch (error) {

@@ -34,14 +34,6 @@ model TituloMinero {
   @@map("titulos_mineros")
 }
 
-enum Rol {
-  ADMIN
-  ASESOR
-  TITULAR
-  JEFE_PLANTA
-  OPERARIO
-}
-
 model Usuario {
   id                      String                    @id @default(uuid())
   email                   String                    @unique
@@ -52,7 +44,6 @@ model Usuario {
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   tituloMineroId          String?
-
   friCapacidad            FRICapacidad[]
   friEjecucion            FRIEjecucion[]
   friInventarioMaquinaria FRIInventarioMaquinaria[]
@@ -63,7 +54,6 @@ model Usuario {
   friProyecciones         FRIProyecciones[]
   friRegalias             FRIRegalias[]
   registrosCiclos         RegistroCicloProduccion[]
-  
   tituloMinero            TituloMinero?             @relation(fields: [tituloMineroId], references: [id])
 
   @@map("usuarios")
@@ -315,18 +305,99 @@ model RegistroCicloProduccion {
 }
 
 model puntos_actividad {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  usuario_id       String    @db.VarChar(255)
-  titulo_minero_id String    @db.VarChar(255)
-  latitud          Decimal   @db.Decimal(10, 8)
-  longitud         Decimal   @db.Decimal(11, 8)
-  categoria        String    @db.VarChar(50)
-  descripcion      String?
-  maquinaria       String?   @db.VarChar(255)
-  volumen_m3       Decimal?  @db.Decimal(10, 2)
-  fecha            DateTime? @default(now()) @db.Timestamp(6)
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id            String                 @db.VarChar(255)
+  titulo_minero_id      String                 @db.VarChar(255)
+  latitud               Decimal                @db.Decimal(10, 8)
+  longitud              Decimal                @db.Decimal(11, 8)
+  categoria             String                 @db.VarChar(50)
+  item_id               String?                @db.Uuid
+  item_nombre           String?                @db.VarChar(150)
+  item_otro             String?
+  maquinaria_id         String?                @db.Uuid
+  maquinaria_nombre     String?                @db.VarChar(200)
+  maquinaria_otro       String?
+  descripcion           String?
+  volumen_m3            Decimal?               @db.Decimal(10, 2)
+  fecha                 DateTime               @default(now()) @db.Timestamp(6)
+  dia                   DateTime               @db.Date
+  updated_at            DateTime?              @db.Timestamp(6)
+  puntos_items_catalogo puntos_items_catalogo? @relation(fields: [item_id], references: [id], onUpdate: NoAction, map: "fk_item")
+  maquinaria_catalogo   maquinaria_catalogo?   @relation(fields: [maquinaria_id], references: [id], onUpdate: NoAction, map: "fk_maquinaria")
 
   @@index([categoria], map: "idx_puntos_categoria")
   @@index([fecha(sort: Desc)], map: "idx_puntos_fecha")
   @@index([titulo_minero_id], map: "idx_puntos_titulo")
+  @@index([dia], map: "idx_puntos_dia")
+  @@index([item_id], map: "idx_puntos_item")
+  @@index([maquinaria_id], map: "idx_puntos_maquinaria")
+}
+
+model maquinaria_catalogo {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo           String             @unique @db.VarChar(100)
+  marca            String             @db.VarChar(100)
+  modelo           String             @db.VarChar(100)
+  display          String?            @default(dbgenerated("(((marca)::text || ' '::text) || (modelo)::text)")) @db.VarChar(200)
+  activo           Boolean            @default(true)
+  orden            Int                @default(0)
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  puntos_actividad puntos_actividad[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model paradas_actividad {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id       String          @db.VarChar(255)
+  titulo_minero_id String          @db.VarChar(255)
+  motivo_id        String          @db.Uuid
+  motivo_nombre    String?         @db.VarChar(120)
+  motivo_otro      String?
+  inicio           DateTime        @db.Timestamp(6)
+  fin              DateTime        @db.Timestamp(6)
+  dia              DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  minutos_paro     Int?            @default(dbgenerated("((EXTRACT(epoch FROM (fin - inicio)) / (60)::numeric))::integer"))
+  observaciones    String?
+  estado           String          @default("BORRADOR") @db.VarChar(20)
+  enviado_at       DateTime?       @db.Timestamp(6)
+  created_at       DateTime        @default(now()) @db.Timestamp(6)
+  updated_at       DateTime        @default(now()) @db.Timestamp(6)
+  paradas_motivos  paradas_motivos @relation(fields: [motivo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_motivo")
+
+  @@index([dia], map: "idx_paradas_dia")
+  @@index([estado], map: "idx_paradas_estado")
+  @@index([inicio(sort: Desc)], map: "idx_paradas_inicio")
+  @@index([motivo_id], map: "idx_paradas_motivo")
+  @@index([titulo_minero_id], map: "idx_paradas_titulo")
+  @@index([usuario_id], map: "idx_paradas_usuario")
+}
+
+model paradas_motivos {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo            String              @unique @db.VarChar(50)
+  nombre            String              @db.VarChar(120)
+  activo            Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  paradas_actividad paradas_actividad[]
+}
+
+model puntos_items_catalogo {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoria        String             @db.VarChar(50)
+  codigo           String             @db.VarChar(100)
+  nombre           String             @db.VarChar(150)
+  activo           Boolean            @default(true)
+  orden            Int                @default(0)
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  puntos_actividad puntos_actividad[]
+
+  @@unique([categoria, codigo])
+}
+
+enum Rol {
+  ADMIN
+  ASESOR
+  TITULAR
+  JEFE_PLANTA
+  OPERARIO
 }

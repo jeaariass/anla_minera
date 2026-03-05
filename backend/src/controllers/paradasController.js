@@ -1,8 +1,8 @@
 // backend/src/controllers/paradasController.js
+const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
+
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-
-const { puedeAccederATitulo } = require("../utils/permissions");
 
 // ─── Helpers timezone Colombia (UTC-5, sin DST) ───────────────────────────────
 
@@ -61,14 +61,17 @@ const registrarParada = async (req, res) => {
       puntoActividadId,
     } = req.body;
 
-    // usuarioId y tituloMineroId vienen del token, no del body
     const usuarioId = req.user.id;
-    const tituloMineroId = req.user.tituloMineroId;
+    const tituloMineroId = esRolGlobal(req.user)
+      ? req.body.tituloMineroId || null
+      : req.user.tituloMineroId || null;
 
     if (!tituloMineroId) {
       return res.status(400).json({
         success: false,
-        message: "Tu usuario no tiene un título minero asignado",
+        message: esRolGlobal(req.user)
+          ? "Debes seleccionar un título minero en el panel superior"
+          : "Tu usuario no tiene un título minero asignado",
       });
     }
 
@@ -199,6 +202,11 @@ const getParadas = async (req, res) => {
     let whereExtra = "";
     if (dia) whereExtra += ` AND pa.dia = '${dia}'::DATE`;
     if (usuarioId) whereExtra += ` AND pa.usuario_id = '${usuarioId}'`;
+
+    // OPERARIO solo ve sus propios registros
+    if (req.user.rol === "OPERARIO") {
+      whereExtra += ` AND pa.usuario_id = '${req.user.id}'`;
+    }
 
     const paradas = await prisma.$queryRawUnsafe(`
       SELECT

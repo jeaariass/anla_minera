@@ -264,7 +264,7 @@ app.post("/api/auth/login", async (req, res) => {
         tituloMineroId: usuario.tituloMineroId,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" },
+      { expiresIn: "8h" },
     );
 
     res.json({
@@ -312,18 +312,28 @@ app.get("/api/auth/perfil", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// HELPER: construir filtro WHERE para FRIs
-// ============================================
-// CAMBIO: reemplaza el patrón repetido
-//   req.user.rol !== "ADMIN" ? { usuarioId: req.user.id } : {}
-// por uno que filtra correctamente por tituloMineroId para
-// roles locales (TITULAR, JEFE_PLANTA) en lugar de por usuarioId,
-// y no filtra nada para roles globales (ADMIN, ASESOR).
-const buildFiltroFRI = (usuario) => {
-  if (esRolGlobal(usuario)) return {};
-  if (!usuario.tituloMineroId) return { id: "sin-titulo-asignado" }; // devuelve vacío sin exponer datos
+const buildFiltroFRI = (usuario, req = null) => {
+  if (esRolGlobal(usuario)) {
+    const tituloParam =
+      req?.query?.tituloMineroId || req?.body?.tituloMineroId || null;
+    if (tituloParam) return { tituloMineroId: tituloParam };
+    return { id: "sin-titulo-seleccionado" };
+  }
+  if (!usuario.tituloMineroId) return { id: "sin-titulo-asignado" };
   return { tituloMineroId: usuario.tituloMineroId };
+};
+
+// ← AGREGAR ESTE HELPER NUEVO
+/**
+ * Determina el tituloMineroId al CREAR un FRI.
+ * - ADMIN/ASESOR (roles globales): lo leen del body → el dropdown ya lo envía
+ * - TITULAR/JEFE_PLANTA/OPERARIO: usan su propio tituloMineroId del JWT
+ */
+const getTituloIdParaCrear = (usuario, body) => {
+  if (esRolGlobal(usuario)) {
+    return body.tituloMineroId || null;
+  }
+  return usuario.tituloMineroId || null;
 };
 
 // ============================================
@@ -375,10 +385,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -399,7 +412,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -434,7 +447,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIProduccion.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -598,10 +611,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -617,7 +633,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -651,7 +667,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIInventarios.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -806,10 +822,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -824,7 +843,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -858,7 +877,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIParadas.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -1006,10 +1025,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -1027,7 +1049,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -1061,7 +1083,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIEjecucion.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -1216,10 +1238,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -1236,7 +1261,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -1270,7 +1295,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIMaquinaria.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -1420,10 +1445,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -1444,7 +1472,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -1478,7 +1506,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIRegalias.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -1640,10 +1668,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -1659,7 +1690,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -1693,7 +1724,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRICapacidad.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -1856,10 +1887,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -1877,7 +1911,7 @@ app.post(
           observaciones: observaciones != null ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -1911,7 +1945,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIProyecciones.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -2071,10 +2105,13 @@ app.post(
       }
 
       const usuario = req.user;
-      if (!usuario.tituloMineroId) {
+      const tituloIdDestino = getTituloIdParaCrear(usuario, req.body); // ← CAMBIO
+      if (!tituloIdDestino) {
         return res.status(400).json({
           success: false,
-          message: "Usuario debe estar asociado a un título minero",
+          message: esRolGlobal(usuario)
+            ? "Debes seleccionar un título minero en el panel superior antes de crear un formulario"
+            : "Tu usuario no tiene un título minero asignado. Contacta al administrador",
         });
       }
 
@@ -2090,7 +2127,7 @@ app.post(
           observaciones: observaciones ? String(observaciones) : "",
           estado: "BORRADOR",
           usuarioId: usuario.id,
-          tituloMineroId: usuario.tituloMineroId,
+          tituloMineroId: tituloIdDestino, // ← CAMBIO
         },
         include: {
           usuario: {
@@ -2124,7 +2161,7 @@ app.get(
   async (req, res) => {
     try {
       const fris = await prisma.fRIInventarioMaquinaria.findMany({
-        where: buildFiltroFRI(req.user),
+        where: buildFiltroFRI(req.user, req),
         include: {
           usuario: {
             select: { id: true, nombre: true, email: true, rol: true },
@@ -2315,7 +2352,7 @@ app.get("/api/titulos-mineros", authMiddleware, async (req, res) => {
 // y filtra por título minero en lugar de por usuarioId.
 app.get("/api/fri/estadisticas", authMiddleware, async (req, res) => {
   try {
-    const filtro = buildFiltroFRI(req.user);
+    const filtro = buildFiltroFRI(req.user, req);
 
     const [
       totalTitulos,
@@ -2583,7 +2620,7 @@ app.post(
       }
 
       // Construir filtro base según rol
-      const whereClauses = { ...buildFiltroFRI(req.user) };
+      const whereClauses = { ...buildFiltroFRI(req.user, req) };
 
       if (filtros.fechaInicio && filtros.fechaFin) {
         whereClauses.fechaCorte = {
@@ -2675,7 +2712,7 @@ app.post(
         });
       }
 
-      const whereClauses = { ...buildFiltroFRI(req.user) };
+      const whereClauses = { ...buildFiltroFRI(req.user, req) };
 
       if (filtros.fechaInicio && filtros.fechaFin) {
         whereClauses.fechaCorte = {
