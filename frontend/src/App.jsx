@@ -17,7 +17,7 @@ import MapaActividades from "./pages/MapaActividades";
 import ResumenOperacion from "./pages/ResumenOperacion";
 import FormulariosOperacion from "./pages/FormulariosOperacion";
 import DashboardOperacion from "./pages/DashboardOperacion";
-
+import CertificadoOrigen from "./pages/CertificadoOrigen";
 import Usuarios from "./pages/Usuarios";
 // Solo verifica que haya sesión activa
 const ProtectedRoute = ({ children }) => {
@@ -126,6 +126,15 @@ function App() {
             </RoleProtectedRoute>
           }
         />
+        <Route
+          path="/certificado-origen"
+          element={
+            <RoleProtectedRoute permiso="VER_PAGINA_CERTIFICADO_ORIGEN">
+              <CertificadoOrigen />
+            </RoleProtectedRoute>
+          }
+        />
+
 
         {/* Catch all */}
         <Route

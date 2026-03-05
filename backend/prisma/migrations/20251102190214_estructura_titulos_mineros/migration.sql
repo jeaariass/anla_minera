@@ -135,6 +135,10 @@ CREATE TABLE "titulos_mineros" (
     "fechaInicio" TIMESTAMP(3),
     "fechaVencimiento" TIMESTAMP(3),
     "observaciones" TEXT,
+    "nit" VARCHAR(20),
+    "nombreTitular" VARCHAR(150),
+    "cedulaTitular" VARCHAR(20),
+    "departamento" VARCHAR(100),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
