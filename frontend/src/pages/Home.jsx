@@ -27,6 +27,7 @@ import {
   MapPin,
   Clock,
   Users,
+  FileCheck ,
 } from "lucide-react";
 import "./Home.css";
 
@@ -122,23 +123,28 @@ const Home = () => {
         authService.getCurrentUser()?.tituloMinero?.id ||
         authService.getCurrentUser()?.tituloMineroId ||
         "titulo-816-17";
+
       try {
-        const [rParadas, rPuntos] = await Promise.all([
-          api.get(`/paradas/${tituloId}?dia=${hoy}`),
-          api.get(`/actividad/puntos/${tituloId}?dia=${hoy}`),
+        const [rResumen, rPuntos] = await Promise.all([
+          // ← usa el endpoint /resumen que ya filtra por día en BD
+          api.get(`/paradas/resumen/${tituloId}?dia=${hoy}`),
+          // ← trae todos los puntos y filtramos por dia en el frontend
+          api.get(`/actividad/puntos/${tituloId}`),
         ]);
-        if (rParadas.data.success) {
-          const pHoy = rParadas.data.data ?? [];
-          statsData.paradasHoy = pHoy.length;
-          statsData.minutosParadoHoy = pHoy.reduce(
-            (a, p) => a + (Number(p.minutesParo) || 0),
-            0,
-          );
+
+        if (rResumen.data.success) {
+          statsData.paradasHoy       = rResumen.data.resumen.totalParadas ?? 0;
+          statsData.minutosParadoHoy = rResumen.data.resumen.totalMinutos  ?? 0;
         }
+
         if (rPuntos.data.success) {
-          statsData.puntosHoy = (rPuntos.data.data ?? []).length;
+          // Filtrar solo los puntos cuyo campo "dia" sea hoy Colombia
+          const puntosHoy = (rPuntos.data.data ?? []).filter(
+            (p) => p.dia && String(p.dia).split("T")[0] === hoy
+          );
+          statsData.puntosHoy = puntosHoy.length;
         }
-      } catch (_) {
+      } catch(_) {
         /* no bloquea si falla */
       }
 
@@ -203,6 +209,14 @@ const Home = () => {
       path: "/mapa",
       gradient: "linear-gradient(135deg, #667eea 0%, #06b6d4 100%)",
       permiso: "VER_PAGINA_MAPA",
+    },
+    {
+      icon: <FileCheck size={32} />,
+      title: "Certificado de Origen",
+      description: "Generar certificados de origen mineral",
+      path: "/certificado-origen",
+      gradient: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+      permiso: "VER_PAGINA_CERTIFICADO_ORIGEN",
     },
     {
       icon: <Users size={32} />,

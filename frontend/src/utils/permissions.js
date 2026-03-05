@@ -92,6 +92,8 @@ const PERMISOS = {
     "OPERARIO",
   ],
   VER_PAGINA_USUARIOS: ["ADMIN", "ASESOR", "JEFE_PLANTA"],
+   // REVISAR SANTIAGO
+  VER_PAGINA_CERTIFICADO_ORIGEN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
 };
 
 // -------------------------------------------------------
