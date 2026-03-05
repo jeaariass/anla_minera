@@ -17,8 +17,10 @@ import MapaActividades from "./pages/MapaActividades";
 import ResumenOperacion from "./pages/ResumenOperacion";
 import FormulariosOperacion from "./pages/FormulariosOperacion";
 import DashboardOperacion from "./pages/DashboardOperacion";
-import CertificadoOrigen from "./pages/CertificadoOrigen";
 import Usuarios from "./pages/Usuarios";
+import CertificadoOrigen from "./pages/CertificadoOrigen";
+import GestorArchivos from "./pages/GestorArchivos";
+
 // Solo verifica que haya sesión activa
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -53,7 +55,7 @@ function App() {
           }
         />
 
-        {/* FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
+        {/* FRI */}
         <Route
           path="/formularios"
           element={
@@ -63,7 +65,6 @@ function App() {
           }
         />
 
-        {/* Dashboard FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
         <Route
           path="/dashboard"
           element={
@@ -73,7 +74,6 @@ function App() {
           }
         />
 
-        {/* Reportes — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
         <Route
           path="/reportes"
           element={
@@ -83,7 +83,6 @@ function App() {
           }
         />
 
-        {/* Mapa — ADMIN, ASESOR, JEFE_PLANTA, OPERARIO */}
         <Route
           path="/mapa"
           element={
@@ -93,7 +92,7 @@ function App() {
           }
         />
 
-        {/* Operación — todos los roles */}
+        {/* Operación */}
         <Route
           path="/resumen-operacion"
           element={
@@ -118,6 +117,8 @@ function App() {
             </RoleProtectedRoute>
           }
         />
+
+        {/* Usuarios */}
         <Route
           path="/usuarios"
           element={
@@ -126,6 +127,8 @@ function App() {
             </RoleProtectedRoute>
           }
         />
+
+        {/* Certificado de Origen */}
         <Route
           path="/certificado-origen"
           element={
@@ -135,6 +138,15 @@ function App() {
           }
         />
 
+        {/* Gestor de Archivos */}
+        <Route
+          path="/gestor-archivos"
+          element={
+            <RoleProtectedRoute permiso="VER_GESTOR_ARCHIVOS">
+              <GestorArchivos />
+            </RoleProtectedRoute>
+          }
+        />
 
         {/* Catch all */}
         <Route

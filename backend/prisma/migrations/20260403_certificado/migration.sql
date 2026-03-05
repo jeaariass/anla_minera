@@ -52,3 +52,12 @@ ALTER TABLE clientes_compradores
 
  ALTER TABLE certificados_origen
   ALTER COLUMN "cantidadM3" DROP NOT NULL;
+
+-- Agregar consecutivo (si no existe ya)
+ALTER TABLE certificados_origen
+  ADD COLUMN IF NOT EXISTS consecutivo VARCHAR(20);
+
+-- Rutas de almacenamiento en disco
+ALTER TABLE certificados_origen
+  ADD COLUMN IF NOT EXISTS "rutaPdf"  TEXT,
+  ADD COLUMN IF NOT EXISTS "rutaXlsx" TEXT;

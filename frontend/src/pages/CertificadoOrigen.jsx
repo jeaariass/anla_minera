@@ -6,6 +6,7 @@ import api from "../services/api";
 import {
   ArrowLeft, LogOut, Search, UserPlus, Pencil,
   FileCheck, ChevronDown, AlertCircle, CheckCircle, X, User,
+  FileText, FileSpreadsheet, Download,
 } from "lucide-react";
 import "./CertificadoOrigen.css";
 
@@ -209,6 +210,12 @@ const CertificadoOrigen = () => {
     } finally { setGuardandoCliente(false); }
   };
 
+  // ── Estado modal formato ────────────────────────────────────────────────────
+  const [modalFormato,      setModalFormato]      = useState(false);
+  const [certificadoIdPend, setCertificadoIdPend] = useState(null);
+  const [descargando,       setDescargando]       = useState(false);
+
+  // ── Validar y abrir modal de formato ────────────────────────────────────────
   const handleGuardar = async () => {
     setMensajeOk(""); setMensajeErr("");
     if (!titulo)              return setMensajeErr("Falta información del título minero.");
@@ -218,8 +225,6 @@ const CertificadoOrigen = () => {
                               return setMensajeErr("La cantidad no puede ser cero o negativa.");
     try {
       setGuardando(true);
-
-      // 1. Guardar certificado
       const res = await api.post("/certificados-origen", {
         tituloMineroId:   titulo.id,
         clienteId:        clienteSeleccionado.id,
@@ -227,38 +232,61 @@ const CertificadoOrigen = () => {
         cantidadM3:       cantidad !== "" ? Number(cantidad) : null,
         unidadMedida:     unidad,
       });
-
       if (!res.data.success) return setMensajeErr("Error al guardar el certificado.");
-
-      const certificadoId = res.data.data.id;
-      setMensajeOk("✅ Certificado guardado. Descargando Excel…");
-
-      // 2. Descargar Excel
-      const token    = localStorage.getItem("token");
-      const base     = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-      const excelRes = await fetch(`${base}/certificados-origen/${certificadoId}/excel`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!excelRes.ok) throw new Error("Error al descargar el Excel");
-
-      const blob  = await excelRes.blob();
-      const url   = window.URL.createObjectURL(blob);
-      const link  = document.createElement("a");
-      const fecha = new Date().toISOString().split("T")[0];
-      link.href = url;
-      link.setAttribute("download", `Certificado_Origen_${fecha}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      setMensajeOk("✅ Certificado guardado y Excel descargado correctamente.");
-      setMineralCodigo(""); setCantidad(""); setUnidad("M3");
-      setClienteSeleccionado(null); setBusquedaValor("");
+      setCertificadoIdPend(res.data.data.id);
+      setModalFormato(true);
     } catch (err) {
       setMensajeErr(err.response?.data?.message || err.message || "Error al guardar el certificado.");
     } finally { setGuardando(false); }
+  };
+
+  // ── Descargar un archivo del certificado ────────────────────────────────────
+  const descargarArchivo = async (certId, formato) => {
+    const token = localStorage.getItem("token");
+    const base  = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+    const ext   = formato === "pdf" ? "pdf" : "xlsx";
+    const mime  = formato === "pdf"
+      ? "application/pdf"
+      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    const resp = await fetch(`${base}/certificados-origen/${certId}/${formato}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) throw new Error(`Error al descargar ${ext.toUpperCase()}`);
+
+    const blob = await resp.blob();
+    const url  = window.URL.createObjectURL(new Blob([blob], { type: mime }));
+    const link = document.createElement("a");
+    const fecha = new Date().toISOString().split("T")[0];
+    link.href = url;
+    link.setAttribute("download", `Certificado_Origen_${fecha}.${ext}`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // ── Confirmar formato y descargar ────────────────────────────────────────────
+  const handleConfirmarFormato = async (formato) => {
+    // formato: "excel" | "pdf" | "ambos"
+    try {
+      setDescargando(true);
+      if (formato === "excel" || formato === "ambos") {
+        await descargarArchivo(certificadoIdPend, "excel");
+      }
+      if (formato === "pdf" || formato === "ambos") {
+        await descargarArchivo(certificadoIdPend, "pdf");
+      }
+      setMensajeOk(`✅ Certificado guardado y ${formato === "ambos" ? "archivos descargados" : formato.toUpperCase() + " descargado"} correctamente.`);
+      setMineralCodigo(""); setCantidad(""); setUnidad("M3");
+      setClienteSeleccionado(null); setBusquedaValor("");
+    } catch (err) {
+      setMensajeErr(err.message || "Error al descargar el archivo.");
+    } finally {
+      setDescargando(false);
+      setModalFormato(false);
+      setCertificadoIdPend(null);
+    }
   };
 
   const handleLogout = () => { authService.logout(); navigate("/"); };
@@ -488,7 +516,7 @@ const CertificadoOrigen = () => {
             disabled={guardando || !titulo || !clienteSeleccionado || !mineralCodigo}
           >
             <FileCheck size={20} />
-            {guardando ? "Guardando…" : "Guardar Certificado y Generar Excel"}
+            {guardando ? "Guardando…" : "Guardar Certificado"}
           </button>
         </div>
 
@@ -517,6 +545,59 @@ const CertificadoOrigen = () => {
                 onClick={() => { setModoEditarCliente(false); setErrorCliente(""); }}>
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL FORMATO ══ */}
+      {modalFormato && (
+        <div className="co-modal-overlay" onClick={() => !descargando && setModalFormato(false)}>
+          <div className="co-modal co-modal-formato" onClick={e => e.stopPropagation()}>
+            <div className="co-modal-header">
+              <h3><Download size={18}/> Descargar Certificado</h3>
+              {!descargando && (
+                <button className="co-modal-close" onClick={() => setModalFormato(false)}><X size={20}/></button>
+              )}
+            </div>
+            <div className="co-modal-body">
+              <p style={{ marginBottom: 18, color: "#475569", fontSize: 14 }}>
+                El certificado fue guardado. ¿En qué formato deseas descargarlo?
+              </p>
+              <div className="co-formato-opciones">
+                <button
+                  className="co-formato-btn co-formato-excel"
+                  onClick={() => handleConfirmarFormato("excel")}
+                  disabled={descargando}
+                >
+                  <FileSpreadsheet size={28}/>
+                  <span className="co-formato-nombre">Excel</span>
+                  <span className="co-formato-desc">.xlsx — editable</span>
+                </button>
+                <button
+                  className="co-formato-btn co-formato-pdf"
+                  onClick={() => handleConfirmarFormato("pdf")}
+                  disabled={descargando}
+                >
+                  <FileText size={28}/>
+                  <span className="co-formato-nombre">PDF</span>
+                  <span className="co-formato-desc">.pdf — para imprimir</span>
+                </button>
+                <button
+                  className="co-formato-btn co-formato-ambos"
+                  onClick={() => handleConfirmarFormato("ambos")}
+                  disabled={descargando}
+                >
+                  <Download size={28}/>
+                  <span className="co-formato-nombre">Ambos</span>
+                  <span className="co-formato-desc">Excel + PDF</span>
+                </button>
+              </div>
+              {descargando && (
+                <p style={{ textAlign:"center", marginTop:14, color:"#059669", fontSize:13, fontWeight:600 }}>
+                  ⏳ Generando archivo…
+                </p>
+              )}
             </div>
           </div>
         </div>
