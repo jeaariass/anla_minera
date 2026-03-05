@@ -49,14 +49,13 @@ const CATEGORIAS = [
   { id: "extraccion", label: "⛏️ Extracción" },
   { id: "acopio", label: "📦 Acopio" },
   { id: "procesamiento", label: "⚙️ Procesamiento" },
-  { id: "inspeccion", label: "🔍 Inspección" },
+  //{ id: 'inspeccion',    label: '🔍 Inspección' },
 ];
 
 const CAT_LABELS = {
   extraccion: "⛏️ Extracción",
   acopio: "📦 Acopio",
-  procesamiento: "⚙️ Procesamiento",
-  inspeccion: "🔍 Inspección",
+  procesamiento: "⚙️ Procesamiento", //inspeccion: '🔍 Inspección',
 };
 
 /** "YYYY-MM-DD" en hora Colombia */

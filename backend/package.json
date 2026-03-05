@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
+    "adm-zip": "^0.5.16",
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -17,6 +19,7 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.0",
     "pdfkit": "^0.13.0",
+    "puppeteer": "^24.38.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -1,12 +1,9 @@
+// frontend/src/utils/permissions.js
 // ============================================================
-// src/utils/permissions.js
-// Espejo del sistema de permisos del backend, para el frontend.
+// Sistema de permisos del lado del cliente.
 // Úsalo para mostrar/ocultar elementos según el rol del usuario.
 // ============================================================
 
-// -------------------------------------------------------
-// Obtiene el usuario actual desde localStorage
-// -------------------------------------------------------
 export const getUsuarioActual = () => {
   try {
     const userStr = localStorage.getItem("usuario");
@@ -16,9 +13,6 @@ export const getUsuarioActual = () => {
   }
 };
 
-// -------------------------------------------------------
-// Roles globales: ven todos los títulos mineros
-// -------------------------------------------------------
 const ROLES_GLOBALES = ["ADMIN", "ASESOR"];
 
 export const esRolGlobal = (usuario) => {
@@ -26,10 +20,6 @@ export const esRolGlobal = (usuario) => {
   return ROLES_GLOBALES.includes(usuario.rol);
 };
 
-// -------------------------------------------------------
-// Tabla de permisos por acción
-// Debe mantenerse sincronizada con el backend
-// -------------------------------------------------------
 const PERMISOS = {
   // Usuarios
   CREAR_USUARIO: ["ADMIN", "JEFE_PLANTA"],
@@ -63,6 +53,25 @@ const PERMISOS = {
   VER_PAGINA_REPORTES: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA"],
   VER_PAGINA_DASHBOARD: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA"],
   VER_PAGINA_MAPA: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
+  VER_PAGINA_USUARIOS: ["ADMIN", "ASESOR", "JEFE_PLANTA"],
+
+  // Certificado de Origen — todos los roles
+  VER_PAGINA_CERTIFICADO_ORIGEN: [
+    "ADMIN",
+    "ASESOR",
+    "TITULAR",
+    "JEFE_PLANTA",
+    "OPERARIO",
+  ],
+
+  // Gestor de Archivos — todos los roles
+  VER_GESTOR_ARCHIVOS: [
+    "ADMIN",
+    "ASESOR",
+    "TITULAR",
+    "JEFE_PLANTA",
+    "OPERARIO",
+  ],
 
   // Formularios operativos
   CREAR_FORMULARIO_OPERATIVO: ["ADMIN", "JEFE_PLANTA", "OPERARIO"],
@@ -91,14 +100,8 @@ const PERMISOS = {
     "JEFE_PLANTA",
     "OPERARIO",
   ],
-  VER_PAGINA_USUARIOS: ["ADMIN", "ASESOR", "JEFE_PLANTA"],
 };
 
-// -------------------------------------------------------
-// Función principal: ¿tiene permiso para esta acción?
-// Lee el usuario desde localStorage automáticamente.
-// Uso: tienePermiso("CREAR_FRI")  →  true / false
-// -------------------------------------------------------
 export const tienePermiso = (accion) => {
   const usuario = getUsuarioActual();
   if (!usuario) return false;
@@ -106,13 +109,12 @@ export const tienePermiso = (accion) => {
   return PERMISOS[accion].includes(usuario.rol);
 };
 
-// -------------------------------------------------------
-// Versión con usuario explícito (útil en componentes
-// donde ya tienes el usuario como prop o estado)
-// Uso: tienePermisoUsuario(usuario, "CREAR_FRI")
-// -------------------------------------------------------
-export const tienePermisoUsuario = (usuario, accion) => {
+export const puedeAccederATitulo = (tituloMineroId) => {
+  const usuario = getUsuarioActual();
   if (!usuario) return false;
-  if (!PERMISOS[accion]) return false;
-  return PERMISOS[accion].includes(usuario.rol);
+  if (esRolGlobal(usuario)) return true;
+  return (
+    usuario.tituloMineroId === tituloMineroId ||
+    usuario.tituloMinero?.id === tituloMineroId
+  );
 };

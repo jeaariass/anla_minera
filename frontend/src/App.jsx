@@ -21,6 +21,9 @@ import DashboardOperacion from "./pages/DashboardOperacion";
 import { TituloProvider } from "./context/TituloContext";
 
 import Usuarios from "./pages/Usuarios";
+import CertificadoOrigen from "./pages/CertificadoOrigen";
+import GestorArchivos from "./pages/GestorArchivos";
+
 // Solo verifica que haya sesión activa
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -56,7 +59,7 @@ function App() {
             }
           />
 
-          {/* FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
+          {/* FRI */}
           <Route
             path="/formularios"
             element={
@@ -66,7 +69,6 @@ function App() {
             }
           />
 
-          {/* Dashboard FRI — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
           <Route
             path="/dashboard"
             element={
@@ -76,7 +78,6 @@ function App() {
             }
           />
 
-          {/* Reportes — solo ADMIN, ASESOR, TITULAR, JEFE_PLANTA */}
           <Route
             path="/reportes"
             element={
@@ -86,7 +87,6 @@ function App() {
             }
           />
 
-          {/* Mapa — ADMIN, ASESOR, JEFE_PLANTA, OPERARIO */}
           <Route
             path="/mapa"
             element={
@@ -96,7 +96,7 @@ function App() {
             }
           />
 
-          {/* Operación — todos los roles */}
+          {/* Operación */}
           <Route
             path="/resumen-operacion"
             element={
@@ -121,11 +121,33 @@ function App() {
               </RoleProtectedRoute>
             }
           />
+
+          {/* Usuarios */}
           <Route
             path="/usuarios"
             element={
               <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS">
                 <Usuarios />
+              </RoleProtectedRoute>
+            }
+          />
+
+          {/* Certificado de Origen */}
+          <Route
+            path="/certificado-origen"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_CERTIFICADO_ORIGEN">
+                <CertificadoOrigen />
+              </RoleProtectedRoute>
+            }
+          />
+
+          {/* Gestor de Archivos */}
+          <Route
+            path="/gestor-archivos"
+            element={
+              <RoleProtectedRoute permiso="VER_GESTOR_ARCHIVOS">
+                <GestorArchivos />
               </RoleProtectedRoute>
             }
           />

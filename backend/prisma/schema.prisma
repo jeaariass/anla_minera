@@ -16,8 +16,13 @@ model TituloMinero {
   fechaInicio             DateTime?
   fechaVencimiento        DateTime?
   observaciones           String?
+  nit                     String?                   @db.VarChar(20)
+  nombreTitular           String?                   @db.VarChar(150)
+  cedulaTitular           String?                   @db.VarChar(20)
+  departamento            String?                   @db.VarChar(100)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
+  certificados_origen     certificados_origen[]
   friCapacidad            FRICapacidad[]
   friEjecucion            FRIEjecucion[]
   friInventarioMaquinaria FRIInventarioMaquinaria[]
@@ -331,6 +336,35 @@ model puntos_actividad {
   @@index([dia], map: "idx_puntos_dia")
   @@index([item_id], map: "idx_puntos_item")
   @@index([maquinaria_id], map: "idx_puntos_maquinaria")
+}
+
+model certificados_origen {
+  id                   String               @id
+  tituloMineroId       String
+  clienteId            String
+  mineralExplotado     String               @db.VarChar(100)
+  cantidadM3           Decimal              @db.Decimal(15, 4)
+  unidadMedida         String               @default("M3") @db.VarChar(10)
+  fechaCertificado     DateTime             @default(dbgenerated("CURRENT_DATE")) @db.Date
+  usuarioId            String?
+  createdAt            DateTime             @default(now())
+  clientes_compradores clientes_compradores @relation(fields: [clienteId], references: [id])
+  titulos_mineros      TituloMinero         @relation(fields: [tituloMineroId], references: [id])
+
+  @@index([clienteId])
+  @@index([tituloMineroId])
+}
+
+model clientes_compradores {
+  id                  String                @id
+  cedula              String                @unique @db.VarChar(20)
+  nombre              String                @db.VarChar(150)
+  correo              String?               @db.VarChar(150)
+  telefono            String?               @db.VarChar(20)
+  direccion           String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  certificados_origen certificados_origen[]
 }
 
 model maquinaria_catalogo {
