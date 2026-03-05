@@ -28,6 +28,7 @@ import {
   Clock,
   Users,
   FileCheck ,
+  FolderOpen,
 } from "lucide-react";
 import "./Home.css";
 
@@ -225,6 +226,15 @@ const Home = () => {
       path: "/usuarios",
       gradient: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
       permiso: "VER_PAGINA_USUARIOS",
+    },
+    {
+      id: "gestor-archivos",
+      title: "Gestor de Archivos",
+      description: "Descargar certificados PDF y Excel por título y mes",
+      icon: <FolderOpen size={28} />,
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      path: "/gestor-archivos",
+      permiso: "VER_GESTOR_ARCHIVOS",
     },
   ];
 

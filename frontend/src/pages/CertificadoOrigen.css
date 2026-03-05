@@ -291,3 +291,69 @@
   display: flex; gap: 10px; justify-content: flex-end;
   padding: 16px 24px 20px; border-top: 1px solid #f1f5f9;
 }
+/* ── Modal selección de formato ─────────────────────────────── */
+.co-modal-formato { max-width: 420px; }
+
+.co-formato-opciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.co-formato-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 10px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+.co-formato-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.co-formato-nombre {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.co-formato-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.co-formato-excel {
+  border-color: #86efac;
+  color: #059669;
+}
+.co-formato-excel:hover:not(:disabled) {
+  background: #f0fdf4;
+  border-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5,150,105,.2);
+}
+
+.co-formato-pdf {
+  border-color: #fca5a5;
+  color: #e74c3c;
+}
+.co-formato-pdf:hover:not(:disabled) {
+  background: #fff0f0;
+  border-color: #e74c3c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231,76,60,.2);
+}
+
+.co-formato-ambos {
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+.co-formato-ambos:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37,99,235,.2);
+}
