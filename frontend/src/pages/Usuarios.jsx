@@ -23,6 +23,8 @@ import { authService, usuarioService, tituloService } from "../services/api";
 import { tienePermiso, getUsuarioActual } from "../utils/permissions";
 import "./Usuarios.css";
 
+import SelectorTitulo from "../components/SelectorTitulo";
+
 // ─── Constantes ───────────────────────────────────────────
 const ROLES_DISPONIBLES = {
   ADMIN: { label: "Administrador", color: "#7c3aed" },
@@ -30,6 +32,7 @@ const ROLES_DISPONIBLES = {
   TITULAR: { label: "Titular Minero", color: "#0891b2" },
   JEFE_PLANTA: { label: "Jefe de Planta", color: "#d97706" },
   OPERARIO: { label: "Operario", color: "#16a34a" },
+  VENDEDOR: { label: "Vendedor", color: "#0d9488" },
 };
 
 const ESTADO_LABELS = {
@@ -38,13 +41,13 @@ const ESTADO_LABELS = {
 };
 
 const ROLES_GESTIONABLES = {
-  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
+  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO", "VENDEDOR"],
   JEFE_PLANTA: ["OPERARIO"],
 };
 
 const ROLES_VISIBLES = {
-  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
-  ASESOR: ["ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
+  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO", "VENDEDOR"],
+  ASESOR: ["ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO", "VENDEDOR"],
   JEFE_PLANTA: ["OPERARIO"],
 };
 
@@ -517,6 +520,7 @@ const Usuarios = () => {
                   <p className="user-role">{usuarioActual?.rol}</p>
                 </div>
               </div>
+              <SelectorTitulo />
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} /> Salir
               </button>
@@ -617,12 +621,12 @@ const Usuarios = () => {
                         onChange={(e) => setFiltroTitulo(e.target.value)}
                       >
                         <option value="TODOS">Todos los títulos</option>
-                        <option value="SIN_ASIGNAR">Sin asignar</option>
                         {titulos.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.numeroTitulo} — {t.municipio}
+                            {t.numeroTitulo} ({t.municipio})
                           </option>
                         ))}
+                        <option value="SIN_ASIGNAR">Sin asignar</option>
                       </select>
                     )}
                   </div>
@@ -710,7 +714,7 @@ const Usuarios = () => {
                           </td>
                           <td>
                             {u.tituloMinero ? (
-                              `${u.tituloMinero.numeroTitulo} — ${u.tituloMinero.municipio}`
+                              `${u.tituloMinero.numeroTitulo} (${u.tituloMinero.municipio})`
                             ) : (
                               <span className="sin-titulo">Sin asignar</span>
                             )}
@@ -1095,9 +1099,16 @@ const Usuarios = () => {
                     <select
                       className={`form-select ${erroresUser.rol ? "error" : ""}`}
                       value={formUser.rol}
-                      onChange={(e) =>
-                        setFormUser((p) => ({ ...p, rol: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        const nuevoRol = e.target.value;
+                        setFormUser((p) => ({
+                          ...p,
+                          rol: nuevoRol,
+                          tituloMineroId: ["ADMIN", "ASESOR"].includes(nuevoRol)
+                            ? ""
+                            : p.tituloMineroId,
+                        }));
+                      }}
                       disabled={rolBloqueado}
                     >
                       {rolesParaSelector.map((r) => (
@@ -1116,28 +1127,29 @@ const Usuarios = () => {
                     )}
                   </div>
 
-                  {usuarioActual?.rol !== "JEFE_PLANTA" && (
-                    <div className="form-group">
-                      <label className="form-label">Título Minero</label>
-                      <select
-                        className="form-select"
-                        value={formUser.tituloMineroId}
-                        onChange={(e) =>
-                          setFormUser((p) => ({
-                            ...p,
-                            tituloMineroId: e.target.value,
-                          }))
-                        }
-                      >
-                        <option value="">Sin asignar</option>
-                        {titulos.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.numeroTitulo} — {t.municipio}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  {usuarioActual?.rol !== "JEFE_PLANTA" &&
+                    !["ADMIN", "ASESOR"].includes(formUser.rol) && (
+                      <div className="form-group">
+                        <label className="form-label">Título Minero</label>
+                        <select
+                          className="form-select"
+                          value={formUser.tituloMineroId}
+                          onChange={(e) =>
+                            setFormUser((p) => ({
+                              ...p,
+                              tituloMineroId: e.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Sin asignar</option>
+                          {titulos.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.numeroTitulo} ({t.municipio})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                 </div>
 
                 <div className="modal-footer">

@@ -31,6 +31,7 @@ const Login = () => {
       if (response.data.success) {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("usuario", JSON.stringify(response.data.usuario));
+        window.dispatchEvent(new Event("storage"));
         navigate("/home");
       } else {
         setError(response.data.message || "Error al iniciar sesión");

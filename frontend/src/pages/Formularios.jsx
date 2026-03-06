@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, friService } from "../services/api";
+import { useTituloActivo } from "../context/TituloContext";
+import { tienePermiso } from "../utils/permissions";
+import SelectorTitulo from "../components/SelectorTitulo";
 import {
   Plus,
   List,
@@ -30,11 +33,11 @@ import {
 } from "lucide-react";
 import "./Formularios.css";
 
-import { tienePermiso } from "../utils/permissions";
-
 const Formularios = () => {
   const navigate = useNavigate();
   const [usuario] = useState(authService.getCurrentUser());
+  const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
+    useTituloActivo();
   const handleLogout = () => {
     // ← AGREGAR
     authService.logout();
@@ -120,9 +123,11 @@ const Formularios = () => {
   ];
 
   useEffect(() => {
+    if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado)))
+      return;
     loadDashboardData();
     loadBorradoresCount();
-  }, []);
+  }, [tituloActivoId, cargando, intentoCargado]);
 
   const loadDashboardData = async () => {
     try {
@@ -139,7 +144,9 @@ const Formularios = () => {
       for (const tipo of tiposFormularios) {
         try {
           const serviceMethod = `get${tipo.id.charAt(0).toUpperCase() + tipo.id.slice(1)}`;
-          const response = await friService[serviceMethod]();
+          const response = await friService[serviceMethod]({
+            tituloMineroId: tituloActivoId,
+          });
 
           if (response.data.success && response.data.fris) {
             const fris = response.data.fris;
@@ -192,7 +199,9 @@ const Formularios = () => {
     setMessage({ type: "", text: "" });
     try {
       const serviceMethod = `get${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`;
-      const response = await friService[serviceMethod]();
+      const response = await friService[serviceMethod]({
+        tituloMineroId: tituloActivoId,
+      });
 
       if (response.data.success) {
         setFormularios(response.data.fris || []);
@@ -446,7 +455,10 @@ const Formularios = () => {
       } else {
         // Modo creación
         const serviceMethod = `create${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}`;
-        const response = await friService[serviceMethod](submitData);
+        const response = await friService[serviceMethod]({
+          ...submitData,
+          tituloMineroId: tituloActivoId,
+        });
 
         if (response.data.success) {
           setMessage({
@@ -1917,6 +1929,17 @@ const Formularios = () => {
     </div>
   );
 
+  if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado))) {
+    return (
+      <div className="formularios-container">
+        <div className="loading-container">
+          <div className="loading"></div>
+          <p>Cargando títulos mineros...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="formularios-container">
       {/* Header */}
@@ -1951,7 +1974,7 @@ const Formularios = () => {
                   <p className="user-role">{usuario?.rol || "ADMIN"}</p>
                 </div>
               </div>
-
+              <SelectorTitulo />
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} />
                 Salir

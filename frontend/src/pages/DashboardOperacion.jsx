@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/api";
+import { useTituloActivo } from "../context/TituloContext";
 import api from "../services/api";
 import { ArrowLeft, User, LogOut, RefreshCw, Filter } from "lucide-react";
 import {
@@ -21,6 +22,8 @@ import {
 } from "recharts";
 import "./DashboardOperacion.css";
 import "./Reportes.css"; // reutiliza header/breadcrumb/page-title
+
+import SelectorTitulo from "../components/SelectorTitulo";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -104,7 +107,7 @@ const DashboardOperacion = () => {
   const navigate = useNavigate();
   const [user] = useState(authService.getCurrentUser());
   // const tituloId = user?.tituloMinero?.id || user?.tituloMineroId || 'titulo-816-17';
-  const tituloId = user?.tituloMinero?.id || user?.tituloMineroId;
+  const { tituloActivoId } = useTituloActivo();
 
   // ── Período (fechas) ───────────────────────────────────────────────────────
   const hoy = colombiaToday();
@@ -120,17 +123,17 @@ const DashboardOperacion = () => {
   // ── Cargar datos ───────────────────────────────────────────────────────────
   const cargar = async () => {
     try {
-      if (!tituloId) {
+      if (!tituloActivoId) {
         console.error("El usuario no tiene título minero asignado");
         setLoading(false);
         return;
       }
-
       setLoading(true);
       const [rP, rPt] = await Promise.all([
-        api.get(`/paradas/${tituloId}`),
-        api.get(`/actividad/puntos/${tituloId}`),
+        api.get(`/paradas/${tituloActivoId}`),
+        api.get(`/actividad/puntos/${tituloActivoId}`),
       ]);
+
       if (rP.data.success) setParadas(rP.data.data ?? []);
       if (rPt.data.success) setPuntos(rPt.data.data ?? []);
 
@@ -151,7 +154,7 @@ const DashboardOperacion = () => {
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [tituloActivoId]);
 
   // ── Filtrar por período ────────────────────────────────────────────────────
   const paradasFiltradas = useMemo(
@@ -372,6 +375,7 @@ const DashboardOperacion = () => {
                   <p className="user-role">{user?.rol || "ROL"}</p>
                 </div>
               </div>
+              <SelectorTitulo />
               <button onClick={handleLogout} className="btn-logout">
                 <LogOut size={18} /> Salir
               </button>

@@ -18,6 +18,15 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Romper caché del navegador en todos los GET
+    if (config.method === "get") {
+      config.params = {
+        ...config.params,
+        _t: Date.now(),
+      };
+    }
+
     return config;
   },
   (error) => {
@@ -73,6 +82,7 @@ export const authService = {
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
+    window.dispatchEvent(new Event("storage")); // ← agregar esta línea
   },
 };
 

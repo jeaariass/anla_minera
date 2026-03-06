@@ -17,6 +17,9 @@ import MapaActividades from "./pages/MapaActividades";
 import ResumenOperacion from "./pages/ResumenOperacion";
 import FormulariosOperacion from "./pages/FormulariosOperacion";
 import DashboardOperacion from "./pages/DashboardOperacion";
+
+import { TituloProvider } from "./context/TituloContext";
+
 import Usuarios from "./pages/Usuarios";
 import CertificadoOrigen from "./pages/CertificadoOrigen";
 import GestorArchivos from "./pages/GestorArchivos";
@@ -40,121 +43,125 @@ function App() {
   const isAuthenticated = () => !!localStorage.getItem("token");
 
   return (
-    <Router basename="/TU_MINA">
-      <Routes>
-        {/* Pública */}
-        <Route path="/" element={<Login />} />
+    <TituloProvider>
+      <Router basename="/TU_MINA">
+        <Routes>
+          {/* Pública */}
+          <Route path="/" element={<Login />} />
 
-        {/* Home — solo requiere estar autenticado */}
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+          {/* Home — solo requiere estar autenticado */}
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* FRI */}
-        <Route
-          path="/formularios"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_FORMULARIOS">
-              <Formularios />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* FRI */}
+          <Route
+            path="/formularios"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_FORMULARIOS">
+                <Formularios />
+              </RoleProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/dashboard"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_DASHBOARD">
-              <Dashboard />
-            </RoleProtectedRoute>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_DASHBOARD">
+                <Dashboard />
+              </RoleProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/reportes"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_REPORTES">
-              <Reportes />
-            </RoleProtectedRoute>
-          }
-        />
+          <Route
+            path="/reportes"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_REPORTES">
+                <Reportes />
+              </RoleProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/mapa"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_MAPA">
-              <MapaActividades />
-            </RoleProtectedRoute>
-          }
-        />
+          <Route
+            path="/mapa"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_MAPA">
+                <MapaActividades />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Operación */}
-        <Route
-          path="/resumen-operacion"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
-              <ResumenOperacion />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/formularios-operacion"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
-              <FormulariosOperacion />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard-operacion"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
-              <DashboardOperacion />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Operación */}
+          <Route
+            path="/resumen-operacion"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
+                <ResumenOperacion />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/formularios-operacion"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
+                <FormulariosOperacion />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-operacion"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
+                <DashboardOperacion />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Usuarios */}
-        <Route
-          path="/usuarios"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS">
-              <Usuarios />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Usuarios */}
+          <Route
+            path="/usuarios"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS">
+                <Usuarios />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Certificado de Origen */}
-        <Route
-          path="/certificado-origen"
-          element={
-            <RoleProtectedRoute permiso="VER_PAGINA_CERTIFICADO_ORIGEN">
-              <CertificadoOrigen />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Certificado de Origen */}
+          <Route
+            path="/certificado-origen"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_CERTIFICADO_ORIGEN">
+                <CertificadoOrigen />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Gestor de Archivos */}
-        <Route
-          path="/gestor-archivos"
-          element={
-            <RoleProtectedRoute permiso="VER_GESTOR_ARCHIVOS">
-              <GestorArchivos />
-            </RoleProtectedRoute>
-          }
-        />
+          {/* Gestor de Archivos */}
+          <Route
+            path="/gestor-archivos"
+            element={
+              <RoleProtectedRoute permiso="VER_GESTOR_ARCHIVOS">
+                <GestorArchivos />
+              </RoleProtectedRoute>
+            }
+          />
 
-        {/* Catch all */}
-        <Route
-          path="*"
-          element={<Navigate to={isAuthenticated() ? "/home" : "/"} replace />}
-        />
-      </Routes>
-    </Router>
+          {/* Catch all */}
+          <Route
+            path="*"
+            element={
+              <Navigate to={isAuthenticated() ? "/home" : "/"} replace />
+            }
+          />
+        </Routes>
+      </Router>
+    </TituloProvider>
   );
 }
 
