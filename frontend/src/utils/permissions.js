@@ -31,7 +31,14 @@ const PERMISOS = {
   // Títulos mineros
   CREAR_TITULO: ["ADMIN"],
   EDITAR_TITULO: ["ADMIN"],
-  VER_TITULOS: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
+  VER_TITULOS: [
+    "ADMIN",
+    "ASESOR",
+    "TITULAR",
+    "JEFE_PLANTA",
+    "OPERARIO",
+    "VENDEDOR",
+  ],
 
   // Formularios FRI
   CREAR_FRI: ["ADMIN", "ASESOR"],
@@ -61,7 +68,7 @@ const PERMISOS = {
     "ASESOR",
     "TITULAR",
     "JEFE_PLANTA",
-    "OPERARIO",
+    "VENDEDOR",
   ],
 
   // Gestor de Archivos — todos los roles
@@ -70,7 +77,7 @@ const PERMISOS = {
     "ASESOR",
     "TITULAR",
     "JEFE_PLANTA",
-    "OPERARIO",
+    "VENDEDOR",
   ],
 
   // Formularios operativos

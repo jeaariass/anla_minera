@@ -36,7 +36,8 @@ import "./Formularios.css";
 const Formularios = () => {
   const navigate = useNavigate();
   const [usuario] = useState(authService.getCurrentUser());
-  const { tituloActivoId, esRolGlobal, cargando } = useTituloActivo();
+  const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
+    useTituloActivo();
   const handleLogout = () => {
     // ← AGREGAR
     authService.logout();
@@ -122,10 +123,11 @@ const Formularios = () => {
   ];
 
   useEffect(() => {
-    if (esRolGlobal && (cargando || !tituloActivoId)) return;
+    if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado)))
+      return;
     loadDashboardData();
     loadBorradoresCount();
-  }, [tituloActivoId, cargando]);
+  }, [tituloActivoId, cargando, intentoCargado]);
 
   const loadDashboardData = async () => {
     try {
@@ -1927,7 +1929,7 @@ const Formularios = () => {
     </div>
   );
 
-  if (esRolGlobal && cargando) {
+  if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado))) {
     return (
       <div className="formularios-container">
         <div className="loading-container">

@@ -131,7 +131,8 @@ const DraggableMarker = ({ position, onMove }) => {
 const FormulariosOperacion = () => {
   const navigate = useNavigate();
   const [user] = useState(authService.getCurrentUser());
-  const { tituloActivoId, esRolGlobal, cargando } = useTituloActivo();
+  const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
+    useTituloActivo();
   const usuarioId = user?.id;
 
   const [tab, setTab] = useState("paradas");
@@ -542,7 +543,7 @@ const FormulariosOperacion = () => {
     navigate("/");
   };
 
-  if (esRolGlobal && (cargando || !tituloActivoId)) {
+  if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado))) {
     return (
       <div className="fop-container">
         <div className="loading-container">

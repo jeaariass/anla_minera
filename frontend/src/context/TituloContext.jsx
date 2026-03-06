@@ -10,6 +10,7 @@ export const TituloProvider = ({ children }) => {
   const [titulos, setTitulos] = useState([]);
   const [tituloActivoId, setTituloActivoIdState] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [intentoCargado, setIntentoCargado] = useState(false);
 
   // Wrapper que guarda en localStorage cada vez que cambia
   const setTituloActivoId = (id) => {
@@ -69,7 +70,10 @@ export const TituloProvider = ({ children }) => {
         }
       })
       .catch(() => {})
-      .finally(() => setCargando(false));
+      .finally(() => {
+        setCargando(false);
+        setIntentoCargado(true);
+      });
   }, [user?.id, esRolGlobal]);
 
   const tituloActivo = esRolGlobal
@@ -89,6 +93,7 @@ export const TituloProvider = ({ children }) => {
         setTituloActivoId, // ← el wrapper, no el setter directo
         esRolGlobal,
         cargando,
+        intentoCargado,
       }}
     >
       {children}

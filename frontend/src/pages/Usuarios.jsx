@@ -32,6 +32,7 @@ const ROLES_DISPONIBLES = {
   TITULAR: { label: "Titular Minero", color: "#0891b2" },
   JEFE_PLANTA: { label: "Jefe de Planta", color: "#d97706" },
   OPERARIO: { label: "Operario", color: "#16a34a" },
+  VENDEDOR: { label: "Vendedor", color: "#0d9488" },
 };
 
 const ESTADO_LABELS = {
@@ -40,13 +41,13 @@ const ESTADO_LABELS = {
 };
 
 const ROLES_GESTIONABLES = {
-  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
+  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO", "VENDEDOR"],
   JEFE_PLANTA: ["OPERARIO"],
 };
 
 const ROLES_VISIBLES = {
-  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
-  ASESOR: ["ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO"],
+  ADMIN: ["ADMIN", "ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO", "VENDEDOR"],
+  ASESOR: ["ASESOR", "TITULAR", "JEFE_PLANTA", "OPERARIO", "VENDEDOR"],
   JEFE_PLANTA: ["OPERARIO"],
 };
 

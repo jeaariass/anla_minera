@@ -52,13 +52,15 @@ const Home = () => {
     puntosHoy: 0,
   });
   const [loading, setLoading] = useState(true);
-  const { tituloActivoId, titulos, cargando, esRolGlobal } = useTituloActivo();
+  const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
+    useTituloActivo();
   const tituloActivo =
     titulos?.find((t) => t.id === tituloActivoId) || user?.tituloMinero || null;
 
   useEffect(() => {
     loadUserData();
-    if (esRolGlobal && (cargando || !tituloActivoId)) return;
+    if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado)))
+      return;
     loadAllStats();
   }, [tituloActivoId, cargando]);
 
@@ -70,6 +72,7 @@ const Home = () => {
   const loadAllStats = async () => {
     try {
       setLoading(true);
+      const currentUser = authService.getCurrentUser();
 
       // Tipos de formularios FRI
       const tipos = [
@@ -91,6 +94,9 @@ const Home = () => {
         aprobados: 0,
         rechazados: 0,
         porTipo: {},
+        paradasHoy: 0,
+        minutosParadoHoy: 0,
+        puntosHoy: 0,
       };
 
       // Cargar datos de cada tipo
@@ -129,12 +135,15 @@ const Home = () => {
         const local = new Date(Date.now() - 5 * 3600000);
         return local.toISOString().split("T")[0];
       })();
+
+      const esOperario = currentUser?.rol === "OPERARIO";
+
       try {
         const [rResumen, rPuntos] = await Promise.all([
-          // ← usa el endpoint /resumen que ya filtra por día en BD
-          api.get(`/paradas/resumen/${tituloId}?dia=${hoy}`),
-          // ← trae todos los puntos y filtramos por dia en el frontend
-          api.get(`/actividad/puntos/${tituloId}`),
+          api.get(
+            `/paradas/resumen/${tituloActivoId}?dia=${hoy}${esOperario ? `&usuarioId=${currentUser.id}` : ""}`,
+          ),
+          api.get(`/actividad/puntos/${tituloActivoId}`),
         ]);
 
         if (rResumen.data.success) {
@@ -143,10 +152,11 @@ const Home = () => {
         }
 
         if (rPuntos.data.success) {
-          // Filtrar solo los puntos cuyo campo "dia" sea hoy Colombia
-          const puntosHoy = (rPuntos.data.data ?? []).filter(
-            (p) => p.dia && String(p.dia).split("T")[0] === hoy,
-          );
+          const puntosHoy = (rPuntos.data.data ?? []).filter((p) => {
+            const esDeHoy = p.dia && String(p.dia).split("T")[0] === hoy;
+            const esMio = !esOperario || p.usuarioId === currentUser.id;
+            return esDeHoy && esMio;
+          });
           statsData.puntosHoy = puntosHoy.length;
         }
       } catch (_) {
@@ -302,7 +312,7 @@ const Home = () => {
     },
   ];
 
-  if (esRolGlobal && (cargando || !tituloActivoId)) {
+  if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado))) {
     return (
       <div className="loading-container">
         <div className="loading"></div>
@@ -403,109 +413,113 @@ const Home = () => {
           </section>
 
           {/* Stats Section - DATOS REALES */}
-          <section className="stats-section">
-            <h3 className="section-title">📊 Resumen General de Formularios</h3>
-            <div className="stats-grid">
-              {/* Total Formularios, Borradores, Enviados — oculto para OPERARIO */}
-              {user?.rol !== "OPERARIO" && (
-                <>
-                  <div
-                    className="stat-card"
-                    style={{ borderLeft: "4px solid #3b82f6" }}
-                  >
+          {user?.rol !== "VENDEDOR" && (
+            <section className="stats-section">
+              <h3 className="section-title">
+                📊 Resumen General de Formularios
+              </h3>
+              <div className="stats-grid">
+                {/* Total Formularios, Borradores, Enviados — oculto para OPERARIO */}
+                {user?.rol !== "OPERARIO" && user?.rol !== "VENDEDOR" && (
+                  <>
                     <div
-                      className="stat-icon"
-                      style={{ background: "#dbeafe" }}
+                      className="stat-card"
+                      style={{ borderLeft: "4px solid #3b82f6" }}
                     >
-                      <FileText size={28} color="#3b82f6" />
+                      <div
+                        className="stat-icon"
+                        style={{ background: "#dbeafe" }}
+                      >
+                        <FileText size={28} color="#3b82f6" />
+                      </div>
+                      <div className="stat-content">
+                        <p className="stat-label">Total Formularios</p>
+                        <h3 className="stat-value">{stats.totalFormularios}</h3>
+                        <p className="stat-desc"></p>
+                      </div>
                     </div>
-                    <div className="stat-content">
-                      <p className="stat-label">Total Formularios</p>
-                      <h3 className="stat-value">{stats.totalFormularios}</h3>
-                      <p className="stat-desc"></p>
-                    </div>
-                  </div>
 
-                  <div
-                    className="stat-card"
-                    style={{ borderLeft: "4px solid #f59e0b" }}
-                  >
                     <div
-                      className="stat-icon"
-                      style={{ background: "#fef3c7" }}
+                      className="stat-card"
+                      style={{ borderLeft: "4px solid #f59e0b" }}
                     >
-                      <Edit size={28} color="#f59e0b" />
+                      <div
+                        className="stat-icon"
+                        style={{ background: "#fef3c7" }}
+                      >
+                        <Edit size={28} color="#f59e0b" />
+                      </div>
+                      <div className="stat-content">
+                        <p className="stat-label">Borradores</p>
+                        <h3 className="stat-value">{stats.borradores}</h3>
+                        <p className="stat-desc"> </p>
+                      </div>
                     </div>
-                    <div className="stat-content">
-                      <p className="stat-label">Borradores</p>
-                      <h3 className="stat-value">{stats.borradores}</h3>
-                      <p className="stat-desc"> </p>
-                    </div>
-                  </div>
 
-                  <div
-                    className="stat-card"
-                    style={{ borderLeft: "4px solid #06b6d4" }}
-                  >
                     <div
-                      className="stat-icon"
-                      style={{ background: "#cffafe" }}
+                      className="stat-card"
+                      style={{ borderLeft: "4px solid #06b6d4" }}
                     >
-                      <Send size={28} color="#06b6d4" />
+                      <div
+                        className="stat-icon"
+                        style={{ background: "#cffafe" }}
+                      >
+                        <Send size={28} color="#06b6d4" />
+                      </div>
+                      <div className="stat-content">
+                        <p className="stat-label">Enviados</p>
+                        <h3 className="stat-value">{stats.enviados}</h3>
+                        <p className="stat-desc"> </p>
+                      </div>
                     </div>
-                    <div className="stat-content">
-                      <p className="stat-label">Enviados</p>
-                      <h3 className="stat-value">{stats.enviados}</h3>
-                      <p className="stat-desc"> </p>
-                    </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
 
-              {/* Paradas y Puntos — solo para roles con permiso operativo */}
-              {tienePermiso("VER_ESTADISTICAS_OPERATIVAS") && (
-                <>
-                  <div
-                    className="stat-card"
-                    style={{ borderLeft: "4px solid #e74c3c" }}
-                  >
+                {/* Paradas y Puntos — solo para roles con permiso operativo */}
+                {tienePermiso("VER_ESTADISTICAS_OPERATIVAS") && (
+                  <>
                     <div
-                      className="stat-icon"
-                      style={{ background: "#fee2e2" }}
+                      className="stat-card"
+                      style={{ borderLeft: "4px solid #e74c3c" }}
                     >
-                      <Clock size={28} color="#e74c3c" />
+                      <div
+                        className="stat-icon"
+                        style={{ background: "#fee2e2" }}
+                      >
+                        <Clock size={28} color="#e74c3c" />
+                      </div>
+                      <div className="stat-content">
+                        <p className="stat-label">Min Parado</p>
+                        <h3 className="stat-value">{stats.minutosParadoHoy}</h3>
+                        <p className="stat-desc">
+                          {stats.paradasHoy} paro
+                          {stats.paradasHoy !== 1 ? "s" : ""} registrado
+                          {stats.paradasHoy !== 1 ? "s" : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div className="stat-content">
-                      <p className="stat-label">Min Parado</p>
-                      <h3 className="stat-value">{stats.minutosParadoHoy}</h3>
-                      <p className="stat-desc">
-                        {stats.paradasHoy} paro
-                        {stats.paradasHoy !== 1 ? "s" : ""} registrado
-                        {stats.paradasHoy !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div
-                    className="stat-card"
-                    style={{ borderLeft: "4px solid #2563eb" }}
-                  >
                     <div
-                      className="stat-icon"
-                      style={{ background: "#dbeafe" }}
+                      className="stat-card"
+                      style={{ borderLeft: "4px solid #2563eb" }}
                     >
-                      <MapPin size={28} color="#2563eb" />
+                      <div
+                        className="stat-icon"
+                        style={{ background: "#dbeafe" }}
+                      >
+                        <MapPin size={28} color="#2563eb" />
+                      </div>
+                      <div className="stat-content">
+                        <p className="stat-label">Puntos</p>
+                        <h3 className="stat-value">{stats.puntosHoy}</h3>
+                        <p className="stat-desc">Actividad registrada hoy</p>
+                      </div>
                     </div>
-                    <div className="stat-content">
-                      <p className="stat-label">Puntos</p>
-                      <h3 className="stat-value">{stats.puntosHoy}</h3>
-                      <p className="stat-desc">Actividad registrada hoy</p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </section>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Formularios por Tipo - DATOS REALES */}
           {tienePermiso("VER_FRI") && (
