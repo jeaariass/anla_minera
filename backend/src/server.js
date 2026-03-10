@@ -270,7 +270,7 @@ app.post("/api/auth/login", async (req, res) => {
         tituloMineroId: usuario.tituloMineroId,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "10s" },
+      { expiresIn: "8h" },
     );
 
     res.json({
