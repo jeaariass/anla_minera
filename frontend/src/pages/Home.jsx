@@ -58,9 +58,7 @@ const TITULOS_REGISTRY = {
       [-75.850936, 5.086455],  /* fin diagonal superior derecha      */
       [-75.851064, 5.086797],  /* cierre                             */
     ],
-    /* URL del visor oficial SIGM ANM centrado en este título */
-    sigmUrl: "https://annamineria.anm.gov.co/geocortex/essentials/rest/sites/Titulos/viewers/Titulos_H5/virtualdirectory/Resources/Viewer/index.html?viewer=Titulos_H5",
-  },
+    },
   /* ─── Agrega más títulos aquí ─── */
 };
 
@@ -158,90 +156,6 @@ const TituloPoligonoMapa = ({ info }) => {
   );
 };
 
-/* Componente auxiliar: vuela al primer punto si hay datos */
-const FlyToPoints = ({ puntos }) => {
-  const map   = useMap();
-  const flew  = useRef(false);
-  useEffect(() => {
-    if (!flew.current && puntos.length > 0) {
-      map.flyTo([puntos[0].latitud, puntos[0].longitud], 13, { duration: 1.4 });
-      flew.current = true;
-    }
-  }, [puntos, map]);
-  return null;
-};
-
-/* ════════════════════════════════════════════════════════
-   MINI MAPA LEAFLET — siempre visible, fondo satelital
-   ════════════════════════════════════════════════════════ */
-const MiniMapa = ({ puntos, onVerMapa }) => {
-  /* Fix Leaflet icons UNA SOLA VEZ, dentro del componente */
-  useEffect(() => {
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    });
-  }, []);
-
-  return (
-    <div className="op-map-wrap">
-      <MapContainer
-        center={DEFAULT_CENTER}
-        zoom={DEFAULT_ZOOM}
-        className="op-map"
-        zoomControl={false}
-        attributionControl={false}
-        dragging={false}
-        scrollWheelZoom={false}
-        doubleClickZoom={false}
-        touchZoom={false}
-      >
-        {/* Fondo satelital Esri — gratuito, sin API key */}
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        />
-        {/* Etiquetas encima del satélite */}
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-          opacity={0.6}
-        />
-
-        {/* Puntos de actividad */}
-        {puntos.map((pt, i) => (
-          <Circle
-            key={i}
-            center={[pt.latitud, pt.longitud]}
-            radius={120}
-            pathOptions={{
-              color:       CAT_COLORS[pt.categoria] || "#667eea",
-              fillColor:   CAT_COLORS[pt.categoria] || "#667eea",
-              fillOpacity: 0.8,
-              weight:      2,
-            }}
-          >
-            <Tooltip>{pt.categoria || "Actividad"}</Tooltip>
-          </Circle>
-        ))}
-
-        {/* Volar al primer punto si hay datos */}
-        <FlyToPoints puntos={puntos} />
-      </MapContainer>
-
-      <div className="op-map-footer">
-        <MapPin size={11} />
-        {puntos.length > 0
-          ? <>{puntos.length} punto{puntos.length !== 1 ? "s" : ""} registrado{puntos.length !== 1 ? "s" : ""} ·{" "}</>
-          : "Vista previa del área · "
-        }
-        <button className="op-map-link" onClick={onVerMapa}>
-          Ver mapa completo →
-        </button>
-      </div>
-    </div>
-  );
-};
 
 /* ════════════════════════════════════════════════════════
    CATEGORÍAS DE ACCIONES
@@ -346,7 +260,7 @@ const Home = () => {
     /* FRI — tonos índigo */
     { categoria: "fri",          icon: <FileText  size={26}/>, title: "Formularios FRI",      description: "Crea, edita y envía tus formularios FRI",         path: "/formularios",           cardBg: "#4f46e5", permiso: "VER_PAGINA_FORMULARIOS"        },
     { categoria: "fri",          icon: <BarChart3 size={26}/>, title: "Estadísticas FRI",        description: "Analiza el estado y avance de tus reportes",      path: "/dashboard",             cardBg: "#6366f1", permiso: "VER_PAGINA_DASHBOARD"          },
-    { categoria: "fri",          icon: <Download  size={26}/>, title: "Exportar Reportes",    description: "Descarga reportes consolidados en PDF y Excel",    path: "/reportes",              cardBg: "#818cf8", permiso: "VER_PAGINA_REPORTES"           },
+    { categoria: "fri",          icon: <Download  size={26}/>, title: "Exportar Reportes",    description: "Descarga reportes consolidados en Excel",    path: "/reportes",              cardBg: "#818cf8", permiso: "VER_PAGINA_REPORTES"           },
     /* Operación — tonos rojo/coral */
     { categoria: "operacion",    icon: <Activity  size={26}/>, title: "Registrar Operación",  description: "Reporta paradas y puntos de actividad del turno", path: "/formularios-operacion", cardBg: "#dc2626", permiso: "VER_PAGINA_OPERACION"          },
     { categoria: "operacion",    icon: <BarChart3 size={26}/>, title: "Estadísticas de Operación",  description: "Revisa gráficas de paradas y tiempos operados",    path: "/dashboard-operacion",   cardBg: "#ef4444", permiso: "VER_PAGINA_OPERACION"          },
