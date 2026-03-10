@@ -295,7 +295,50 @@ const descargarPdf = async (req, res) => {
   }
 };
 
+
+// ============================================
+// GET /api/certificados-origen?tituloMineroId=
+// ============================================
+const listarCertificados = async (req, res) => {
+  try {
+    const { tituloMineroId, limit = 200 } = req.query;
+
+    const where = tituloMineroId ? `WHERE co."tituloMineroId" = '${tituloMineroId}'` : '';
+
+    const certs = await prisma.$queryRawUnsafe(`
+      SELECT
+        co.id,
+        co."tituloMineroId",
+        co."clienteId",
+        co."mineralExplotado",
+        co."cantidadM3",
+        co."unidadMedida",
+        co.consecutivo,
+        co."fechaCertificado",
+        co."createdAt",
+        cc.nombre  AS cliente_nombre,
+        cc.cedula  AS cliente_cedula
+      FROM certificados_origen co
+      LEFT JOIN clientes_compradores cc ON cc.id = co."clienteId"
+      ${where}
+      ORDER BY co."createdAt" DESC
+      LIMIT ${parseInt(limit, 10) || 200}
+    `);
+
+    // Formatear para el frontend
+    const data = certs.map(c => ({
+      ...c,
+      clientes_compradores: { nombre: c.cliente_nombre, cedula: c.cliente_cedula },
+    }));
+
+    res.json({ success: true, data, total: data.length });
+  } catch (error) {
+    console.error("❌ Error listando certificados:", error);
+    res.status(500).json({ success: false, message: "Error al listar certificados", error: error.message });
+  }
+};
+
 module.exports = {
   buscarCliente, crearCliente, actualizarCliente,
-  crearCertificado, descargarExcel, descargarPdf,
+  crearCertificado, descargarExcel, descargarPdf, listarCertificados,
 };
