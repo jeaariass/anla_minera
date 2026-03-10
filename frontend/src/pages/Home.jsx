@@ -416,7 +416,7 @@ const Home = () => {
           {user?.rol !== "VENDEDOR" && (
             <section className="stats-section">
               <h3 className="section-title">
-                📊 Resumen General de Formularios
+                📊 Resumen General de Formularios por día
               </h3>
               <div className="stats-grid">
                 {/* Total Formularios, Borradores, Enviados — oculto para OPERARIO */}

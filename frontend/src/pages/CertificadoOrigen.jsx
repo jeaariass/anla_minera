@@ -1,7 +1,7 @@
 // src/pages/CertificadoOrigen.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../services/api";
+import { authService, usuarioService, reportService } from "../services/api";
 import { useTituloActivo } from "../context/TituloContext";
 import SelectorTitulo from "../components/SelectorTitulo";
 import api from "../services/api";
@@ -20,8 +20,83 @@ import {
   FileText,
   FileSpreadsheet,
   Download,
+  BarChart2,
+  TrendingUp,
+  Package,
+  Users,
+  Hash,
+  RefreshCw,
+  FileDown,
+  ChevronUp,
+  ChevronsUpDown,
+  Eye,
+  Calendar,
 } from "lucide-react";
 import "./CertificadoOrigen.css";
+
+
+// ─── Helpers fecha ────────────────────────────────────────────────────────────
+const colombiaToday = () => {
+  const d = new Date(Date.now() - 5 * 3600000);
+  return d.toISOString().split("T")[0];
+};
+const addDays = (dateStr, n) => {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split("T")[0];
+};
+
+// ─── Tabla preview exportar ───────────────────────────────────────────────────
+const ordenarExp = (datos, col, dir) => {
+  if (!col) return datos;
+  return [...datos].sort((a, b) => {
+    const va = a[col] ?? ""; const vb = b[col] ?? "";
+    if (va < vb) return dir === "asc" ? -1 : 1;
+    if (va > vb) return dir === "asc" ? 1 : -1;
+    return 0;
+  });
+};
+const SortIconExp = ({ col, sortCol, sortDir }) => {
+  if (sortCol !== col) return <ChevronsUpDown size={12} style={{ opacity: 0.35, marginLeft: 3, verticalAlign: "middle" }} />;
+  return sortDir === "asc"
+    ? <ChevronUp   size={12} style={{ marginLeft: 3, verticalAlign: "middle" }} />
+    : <ChevronDown size={12} style={{ marginLeft: 3, verticalAlign: "middle" }} />;
+};
+const TablaPreviewCert = ({ columnas, datos, maxRows = 100 }) => {
+  const [sortCol, setSortCol] = React.useState(columnas[0]?.key || "");
+  const [sortDir, setSortDir] = React.useState("desc");
+  const handleSort = col => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+  const sorted = React.useMemo(() => ordenarExp(datos, sortCol, sortDir), [datos, sortCol, sortDir]);
+  const filas  = sorted.slice(0, maxRows);
+  return (
+    <div className="co-preview-wrap">
+      <table className="co-preview-tabla">
+        <thead>
+          <tr>
+            {columnas.map(col => (
+              <th key={col.key} onClick={() => handleSort(col.key)}>
+                {col.label}<SortIconExp col={col.key} sortCol={sortCol} sortDir={sortDir} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((row, i) => (
+            <tr key={i}>
+              {columnas.map(col => <td key={col.key}>{row[col.key] ?? "—"}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {sorted.length > maxRows && (
+        <p className="co-preview-aviso">Mostrando {maxRows} de {sorted.length} registros. El Excel incluirá todos.</p>
+      )}
+    </div>
+  );
+};
 
 const UNIDADES = ["M3", "TON", "KG", "L", " "];
 const TIPOS_IDENTIFICACION = ["CÉDULA", "NIT", "CÉDULA DE EXTRANJERÍA", "RUT"];
@@ -138,6 +213,17 @@ const FormCliente = ({ data, onChange, soloEdicion = false }) => (
   </div>
 );
 
+// ─── Columnas para la tabla preview (coinciden con getColumnas del backend) ───
+const COLS_CERT_EXP = [
+  { key: "Consecutivo",      label: "Consecutivo"    },
+  { key: "Fecha_Certificado",label: "Fecha"          },
+  { key: "Mineral_Explotado",label: "Mineral"        },
+  { key: "Cliente_Nombre",   label: "Cliente"        },
+  { key: "Cliente_Cedula",   label: "Cédula"         },
+  { key: "Cantidad_M3",      label: "Cantidad M³"    },
+  { key: "Unidad_Medida",    label: "Unidad"         },
+];
+
 // ─── Componente principal ────────────────────────────────────────────────────
 const CertificadoOrigen = () => {
   const navigate = useNavigate();
@@ -178,6 +264,194 @@ const CertificadoOrigen = () => {
   const [guardando, setGuardando] = useState(false);
   const [mensajeOk, setMensajeOk] = useState("");
   const [mensajeErr, setMensajeErr] = useState("");
+
+  // ── Tab activo ────────────────────────────────────────
+  const [tabActivo, setTabActivo] = useState("nuevo"); // "nuevo" | "dashboard" | "exportar"
+
+  // ── Dashboard: período ────────────────────────────────
+  const hoyDash = colombiaToday();
+  const [dashDesde,   setDashDesde]   = useState(addDays(hoyDash, -29));
+  const [dashHasta,   setDashHasta]   = useState(hoyDash);
+  const [dashPeriodo, setDashPeriodo] = useState("30d");
+
+  const aplicarPeriodo = (p) => {
+    const h = colombiaToday();
+    setDashPeriodo(p); setDashHasta(h);
+    if (p === "1d")  setDashDesde(h);
+    if (p === "7d")  setDashDesde(addDays(h, -6));
+    if (p === "30d") setDashDesde(addDays(h, -29));
+    if (p === "90d") setDashDesde(addDays(h, -89));
+  };
+
+  // ── Dashboard ─────────────────────────────────────────
+  const [dashData,        setDashData]        = useState(null);
+  const [loadingDash,     setLoadingDash]     = useState(false);
+  const [errorDash,       setErrorDash]       = useState("");
+
+  // ── Exportar — patrón idéntico a Reportes.jsx ─────────────────
+  const [expFiltros, setExpFiltros] = useState({
+    tipo:           "certificadosOrigen",
+    fechaInicio:    "",
+    fechaFin:       "",
+    mineral:        "",
+    clienteId:      "",
+    tituloMineroId: "",
+  });
+  const [clientesLista,  setClientesLista]  = useState([]);
+  const [expPreview,     setExpPreview]     = useState({ visible: false, columnas: [], registros: [], total: 0 });
+  const [expLoading,     setExpLoading]     = useState(false);
+  const [expError,       setExpError]       = useState("");
+  const [expSuccess,     setExpSuccess]     = useState("");
+
+  // Sincronizar tituloActivoId en filtros de exportar
+  useEffect(() => {
+    if (!tituloActivoId) return;
+    setExpFiltros(prev => ({ ...prev, tituloMineroId: tituloActivoId }));
+  }, [tituloActivoId]);
+
+  // Cargar clientes al abrir el tab exportar
+  useEffect(() => {
+    if (tabActivo !== "exportar" || !tituloActivoId) return;
+    api.get("/certificados-origen", { params: { tituloMineroId: tituloActivoId, limit: 500 } })
+      .then(r => {
+        const certs = r.data?.data || [];
+        const mapa = {};
+        certs.forEach(c => {
+          const id = c.clienteId;
+          if (id && !mapa[id])
+            mapa[id] = { id, nombre: c.clientes_compradores?.nombre || id, cedula: c.clientes_compradores?.cedula || "" };
+        });
+        setClientesLista(Object.values(mapa));
+      })
+      .catch(() => {});
+  }, [tabActivo, tituloActivoId]);
+
+  // ── cargarPreviewExport — igual a cargarPreview de Reportes ────
+  const cargarPreviewExport = useCallback(async (f) => {
+    try {
+      setExpLoading(true); setExpError(""); setExpSuccess("");
+      const res = await reportService.getPreview(f);
+      if (res.data.success) {
+        setExpPreview({
+          visible:   true,
+          columnas:  res.data.columnas,
+          registros: res.data.registros,
+          total:     res.data.total,
+        });
+        if (res.data.total === 0)
+          setExpError("Sin registros para los filtros aplicados");
+        else
+          setExpSuccess(`✓ ${res.data.total} registro${res.data.total !== 1 ? "s" : ""} encontrado${res.data.total !== 1 ? "s" : ""}`);
+      }
+    } catch(err) {
+      setExpError(err.response?.data?.message || "Error al cargar datos");
+      setExpPreview({ visible: false, columnas: [], registros: [], total: 0 });
+    } finally { setExpLoading(false); }
+  }, []);
+
+  // Debounce igual a Reportes (500 ms)
+  const expDebounceRef = useRef(null);
+  useEffect(() => {
+    if (tabActivo !== "exportar") return;
+    clearTimeout(expDebounceRef.current);
+    expDebounceRef.current = setTimeout(() => {
+      if (!expFiltros.tituloMineroId) return;
+      if ((expFiltros.fechaInicio && !expFiltros.fechaFin) ||
+          (!expFiltros.fechaInicio && expFiltros.fechaFin)) return;
+      cargarPreviewExport(expFiltros);
+    }, 500);
+    return () => clearTimeout(expDebounceRef.current);
+  }, [expFiltros, tabActivo, cargarPreviewExport]);
+
+  const handleExpFiltroChange = (e) => {
+    const { name, value } = e.target;
+    setExpFiltros(prev => ({ ...prev, [name]: value }));
+  };
+
+  const limpiarExpFiltros = () => {
+    setExpFiltros(prev => ({ ...prev, fechaInicio: "", fechaFin: "", mineral: "", clienteId: "" }));
+    setExpPreview({ visible: false, columnas: [], registros: [], total: 0 });
+    setExpError(""); setExpSuccess("");
+  };
+
+  // ── Exportar Excel — igual a handleExportar de Reportes ────────
+  const handleExportarExcel = async () => {
+    try {
+      setExpLoading(true); setExpError("");
+      const res = await reportService.exportarExcel(expFiltros);
+      const blob = new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      const nombre = `Certificados_Origen_${new Date().toISOString().split("T")[0]}.xlsx`;
+      Object.assign(a, { href: url, download: nombre });
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setExpSuccess(`✓ "${nombre}" descargado`);
+    } catch(err) {
+      setExpError(err.response?.data?.message || "Error al exportar Excel");
+    } finally { setExpLoading(false); }
+  };
+
+
+  // ── Cargar datos dashboard ─────────────────────────────
+  const cargarDashboard = async (desde, hasta) => {
+    if (!tituloActivoId) return;
+    const d = desde || dashDesde;
+    const h = hasta  || dashHasta;
+    try {
+      setLoadingDash(true); setErrorDash("");
+      const res = await api.get("/certificados-origen", {
+        params: { tituloMineroId: tituloActivoId, limit: 500 }
+      });
+      const todos = res.data?.data || [];
+      if (!Array.isArray(todos)) { setErrorDash("Formato inesperado"); return; }
+
+      // Filtrar por período
+      const certs = todos.filter(c => {
+        const fecha = String(c.fechaCertificado || c.createdAt || "").split("T")[0];
+        return (!d || fecha >= d) && (!h || fecha <= h);
+      });
+
+      const totalCerts   = certs.length;
+      const totalVolumen = certs.reduce((s, c) => s + parseFloat(c.cantidadM3 || 0), 0);
+      const clientesSet  = new Set(certs.map(c => c.clienteId));
+
+      const porMineral = {};
+      certs.forEach(c => {
+        const m = c.mineralExplotado || "Sin mineral";
+        if (!porMineral[m]) porMineral[m] = { cantidad: 0, volumen: 0 };
+        porMineral[m].cantidad++;
+        porMineral[m].volumen += parseFloat(c.cantidadM3 || 0);
+      });
+
+      const porCliente = {};
+      certs.forEach(c => {
+        const nombre = c.clientes_compradores?.nombre || c.clienteId;
+        if (!porCliente[nombre]) porCliente[nombre] = { cantidad: 0, volumen: 0 };
+        porCliente[nombre].cantidad++;
+        porCliente[nombre].volumen += parseFloat(c.cantidadM3 || 0);
+      });
+      const topClientes = Object.entries(porCliente)
+        .sort((a,b) => b[1].volumen - a[1].volumen).slice(0,5);
+
+      const ultimos = [...certs]
+        .sort((a,b) => new Date(b.fechaCertificado||b.createdAt) - new Date(a.fechaCertificado||a.createdAt))
+        .slice(0,10);
+
+      setDashData({ totalCerts, totalVolumen, clientesUnicos: clientesSet.size, porMineral, topClientes, ultimos });
+    } catch(e) {
+      console.error("Error dashboard:", e);
+      setErrorDash("Error al cargar datos del dashboard");
+    } finally { setLoadingDash(false); }
+  };
+
+  useEffect(() => {
+    if (tabActivo === "dashboard" && tituloActivoId) cargarDashboard();
+  }, [tabActivo, tituloActivoId]);
+
+  useEffect(() => {
+    if (tabActivo === "dashboard" && tituloActivoId) cargarDashboard(dashDesde, dashHasta);
+  }, [dashDesde, dashHasta]);
 
   useEffect(() => {
     if (esRolGlobal && (cargando || (!tituloActivoId && !intentoCargado)))
@@ -490,8 +764,33 @@ const CertificadoOrigen = () => {
         </div>
       </header>
 
+
+      {/* ══ TABS ══ */}
+      <div className="co-tabs">
+        <button
+          className={`co-tab ${tabActivo === "nuevo" ? "co-tab--activo" : ""}`}
+          onClick={() => setTabActivo("nuevo")}
+        >
+          <FileCheck size={16} /> Nuevo Certificado
+        </button>
+        <button
+          className={`co-tab ${tabActivo === "dashboard" ? "co-tab--activo" : ""}`}
+          onClick={() => setTabActivo("dashboard")}
+        >
+          <BarChart2 size={16} /> Dashboard
+        </button>
+        <button
+          className={`co-tab ${tabActivo === "exportar" ? "co-tab--activo" : ""}`}
+          onClick={() => setTabActivo("exportar")}
+        >
+          <FileDown size={16} /> Exportar
+        </button>
+      </div>
+
       {/* ══ MAIN ══ */}
       <main className="co-main">
+        {tabActivo === "nuevo" && (
+        <>
         {/* ── Sección 1: Título Minero ── */}
         <section className="co-section">
           <h2 className="co-section-title">
@@ -833,6 +1132,277 @@ const CertificadoOrigen = () => {
             {guardando ? "Guardando…" : "Guardar Certificado"}
           </button>
         </div>
+        </>
+      )}
+
+      {tabActivo === "dashboard" && (
+        <div className="co-dash">
+          {/* ── Filtros de período ── */}
+          <div className="co-dash-filtros">
+            <div className="co-dash-periodo-btns">
+              {[["1d","Hoy"],["7d","7 días"],["30d","30 días"],["90d","90 días"]].map(([p,l]) => (
+                <button
+                  key={p}
+                  className={`co-dash-periodo-btn${dashPeriodo === p ? " active" : ""}`}
+                  onClick={() => aplicarPeriodo(p)}
+                >{l}</button>
+              ))}
+            </div>
+            <div className="co-dash-fechas">
+              <label>Desde:</label>
+              <input type="date" className="co-dash-date-input" value={dashDesde} max={dashHasta}
+                onChange={e => { setDashDesde(e.target.value); setDashPeriodo("custom"); }} />
+              <label>Hasta:</label>
+              <input type="date" className="co-dash-date-input" value={dashHasta} min={dashDesde}
+                onChange={e => { setDashHasta(e.target.value); setDashPeriodo("custom"); }} />
+              <button className="co-dash-refresh-btn" onClick={() => cargarDashboard()} disabled={loadingDash}>
+                <RefreshCw size={14}/> Aplicar
+              </button>
+            </div>
+          </div>
+
+          {loadingDash && <p className="co-loading">Cargando dashboard…</p>}
+          {errorDash  && <p className="co-error"><AlertCircle size={16}/> {errorDash}</p>}
+          {!loadingDash && !dashData && !errorDash && (
+            <p className="co-loading" style={{color:"#6b7280"}}>Selecciona un título minero para ver el dashboard.</p>
+          )}
+          {dashData && (
+            <>
+              {/* ── Tarjetas resumen ── */}
+              <div className="co-dash-cards">
+                <div className="co-dash-card co-dash-card--blue">
+                  <div className="co-dash-card-icon"><Hash size={22}/></div>
+                  <div>
+                    <p className="co-dash-card-label">Total Certificados</p>
+                    <p className="co-dash-card-value">{dashData.totalCerts}</p>
+                  </div>
+                </div>
+                <div className="co-dash-card co-dash-card--green">
+                  <div className="co-dash-card-icon"><Package size={22}/></div>
+                  <div>
+                    <p className="co-dash-card-label">Volumen Total</p>
+                    <p className="co-dash-card-value">{dashData.totalVolumen.toLocaleString("es-CO", {maximumFractionDigits:2})} <span style={{fontSize:13,fontWeight:500}}>M³</span></p>
+                  </div>
+                </div>
+                <div className="co-dash-card co-dash-card--amber">
+                  <div className="co-dash-card-icon"><Users size={22}/></div>
+                  <div>
+                    <p className="co-dash-card-label">Clientes Únicos</p>
+                    <p className="co-dash-card-value">{dashData.clientesUnicos}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="co-dash-grid">
+                {/* ── Por mineral ── */}
+                <div className="co-dash-panel">
+                  <h3 className="co-dash-panel-title"><BarChart2 size={16}/> Volumen por Mineral</h3>
+                  {Object.entries(dashData.porMineral)
+                    .sort((a,b) => b[1].volumen - a[1].volumen)
+                    .map(([mineral, datos]) => {
+                      const maxVol = Math.max(...Object.values(dashData.porMineral).map(d => d.volumen));
+                      const pct = maxVol > 0 ? (datos.volumen / maxVol) * 100 : 0;
+                      return (
+                        <div key={mineral} className="co-dash-bar-row">
+                          <span className="co-dash-bar-label">{mineral}</span>
+                          <div className="co-dash-bar-track">
+                            <div className="co-dash-bar-fill co-dash-bar--mineral" style={{width:`${pct}%`}}/>
+                          </div>
+                          <span className="co-dash-bar-val">{datos.volumen.toLocaleString("es-CO",{maximumFractionDigits:1})} M³</span>
+                          <span className="co-dash-bar-count">({datos.cantidad})</span>
+                        </div>
+                      );
+                    })
+                  }
+                </div>
+
+                {/* ── Top clientes ── */}
+                <div className="co-dash-panel">
+                  <h3 className="co-dash-panel-title"><Users size={16}/> Top Clientes por Volumen</h3>
+                  {dashData.topClientes.map(([nombre, datos], i) => {
+                    const maxVol = dashData.topClientes[0]?.[1]?.volumen || 1;
+                    const pct = (datos.volumen / maxVol) * 100;
+                    return (
+                      <div key={nombre} className="co-dash-bar-row">
+                        <span className="co-dash-bar-num">{i+1}</span>
+                        <span className="co-dash-bar-label">{nombre}</span>
+                        <div className="co-dash-bar-track">
+                          <div className="co-dash-bar-fill co-dash-bar--cliente" style={{width:`${pct}%`}}/>
+                        </div>
+                        <span className="co-dash-bar-val">{datos.volumen.toLocaleString("es-CO",{maximumFractionDigits:1})} M³</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Últimos certificados ── */}
+              <div className="co-dash-panel co-dash-panel--full">
+                <h3 className="co-dash-panel-title"><FileCheck size={16}/> Últimos Certificados</h3>
+                <div className="co-dash-tabla-wrapper">
+                  <table className="co-dash-tabla">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Mineral</th>
+                        <th>Cliente</th>
+                        <th>Cantidad</th>
+                        <th>Unidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashData.ultimos.map(c => (
+                        <tr key={c.id}>
+                          <td>{c.fechaCertificado ? new Date(c.fechaCertificado).toLocaleDateString("es-CO") : "—"}</td>
+                          <td>{c.mineralExplotado || "—"}</td>
+                          <td>{c.clientes_compradores?.nombre || c.clienteId}</td>
+                          <td style={{textAlign:"right"}}>{parseFloat(c.cantidadM3 || 0).toLocaleString("es-CO",{maximumFractionDigits:2})}</td>
+                          <td>{c.unidadMedida || "M3"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+
+      {tabActivo === "exportar" && (
+        <div className="co-dash">
+
+          {/* ── Alertas ── */}
+          {expError && (
+            <div className="co-alerta co-alerta-err" style={{marginBottom:12}}>
+              <AlertCircle size={16}/> {expError}
+            </div>
+          )}
+          {expSuccess && (
+            <div className="co-alerta co-alerta-ok" style={{marginBottom:12}}>
+              <CheckCircle size={16}/> {expSuccess}
+            </div>
+          )}
+
+          {/* ── Card Filtros — idéntica a Reportes ── */}
+          <div className="co-exp-panel">
+            <div className="co-exp-panel-header">
+              <FileDown size={20}/>
+              <h3 className="co-exp-panel-title">Filtros de Exportación</h3>
+              {[expFiltros.fechaInicio, expFiltros.fechaFin, expFiltros.mineral, expFiltros.clienteId].filter(Boolean).length > 0 && (
+                <span className="badge-filtros">
+                  {[expFiltros.fechaInicio, expFiltros.fechaFin, expFiltros.mineral, expFiltros.clienteId].filter(Boolean).length} activo{[expFiltros.fechaInicio, expFiltros.fechaFin, expFiltros.mineral, expFiltros.clienteId].filter(Boolean).length > 1 ? "s" : ""}
+                </span>
+              )}
+              {expLoading && (
+                <span className="co-loading-inline">
+                  <RefreshCw size={13} className="icon-spin"/> Actualizando…
+                </span>
+              )}
+            </div>
+
+            <div className="co-exp-filtros-grid">
+
+              <div className="co-campo">
+                <label><Calendar size={14}/> Fecha Inicio</label>
+                <input type="date" name="fechaInicio" className="co-campo-input"
+                  value={expFiltros.fechaInicio}
+                  max={expFiltros.fechaFin || undefined}
+                  onChange={handleExpFiltroChange} disabled={expLoading}/>
+              </div>
+
+              <div className="co-campo">
+                <label><Calendar size={14}/> Fecha Fin</label>
+                <input type="date" name="fechaFin" className="co-campo-input"
+                  value={expFiltros.fechaFin}
+                  min={expFiltros.fechaInicio || undefined}
+                  onChange={handleExpFiltroChange} disabled={expLoading}/>
+              </div>
+
+              <div className="co-campo">
+                <label>Mineral</label>
+                <div className="co-select-wrapper">
+                  <select name="mineral" className="co-campo-input"
+                    value={expFiltros.mineral} onChange={handleExpFiltroChange} disabled={expLoading}>
+                    <option value="">Todos los minerales</option>
+                    {mineralesCatalogo.map(m => (
+                      <option key={m.codigo} value={m.codigo}>{m.nombre || m.codigo}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="co-select-icon"/>
+                </div>
+              </div>
+
+              <div className="co-campo">
+                <label>Cliente</label>
+                <div className="co-select-wrapper">
+                  <select name="clienteId" className="co-campo-input"
+                    value={expFiltros.clienteId} onChange={handleExpFiltroChange} disabled={expLoading}>
+                    <option value="">Todos los clientes</option>
+                    {clientesLista.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}{c.cedula ? ` — ${c.cedula}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="co-select-icon"/>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="co-exp-acciones">
+              <button className="co-btn-secundario" onClick={limpiarExpFiltros} disabled={expLoading}>
+                <X size={15}/> Limpiar Filtros
+              </button>
+              <button
+                className="btn btn-excel"
+                onClick={handleExportarExcel}
+                disabled={expLoading || expPreview.total === 0}
+                title="Descargar como .xlsx"
+              >
+                <FileSpreadsheet size={18}/>
+                {expLoading ? " Generando…" : " Exportar a Excel"}
+                <span className="btn-badge">.xlsx</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Vista Previa — siempre visible, igual a Reportes ── */}
+          <div className="co-dash-panel co-dash-panel--full" style={{marginTop:20}}>
+            <div className="co-dash-panel-header">
+              <Eye size={18}/>
+              <h3 className="co-dash-panel-title">Vista Previa de Datos</h3>
+              {expPreview.total > 0 && (
+                <span className="badge">{expPreview.total} registro{expPreview.total !== 1 ? "s" : ""}</span>
+              )}
+              {expLoading && (
+                <span className="co-loading-inline">
+                  <RefreshCw size={13} className="icon-spin"/> Actualizando…
+                </span>
+              )}
+            </div>
+
+            {expPreview.registros?.length > 0 ? (
+              <TablaPreviewCert
+                columnas={expPreview.columnas.map(c => ({ key: c, label: c.replace(/_/g, " ") }))}
+                datos={expPreview.registros}
+                maxRows={100}
+              />
+            ) : (
+              <div className="estado-vacio">
+                {expLoading
+                  ? <><RefreshCw size={28} style={{color:"#94a3b8", marginBottom:8}}/><p>Cargando datos…</p></>
+                  : <><FileDown size={32} style={{color:"#cbd5e1",marginBottom:8}}/><p>Sin registros con los filtros aplicados</p></>
+                }
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+
       </main>
 
       {/* ══ MODAL EDITAR CLIENTE ══ */}
