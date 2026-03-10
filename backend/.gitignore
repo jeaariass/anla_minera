@@ -17,3 +17,5 @@ node_modules/
 
 # Generated files (PDF/XLSX certificados)
 backend/storage/
+
+storage/certificados/TITULO-TEST

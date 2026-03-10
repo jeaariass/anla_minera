@@ -98,9 +98,9 @@ const androidRoutes = require("./routes/androidRoutes");
 const puntosActividadRoutes = require("./routes/puntosActividadRoutes");
 const reportRoutesSimple = require("./routes/reportRoutesSimple");
 const paradasRoutes = require("./routes/paradasRoutes");
-const clientesRoutes      = require("./routes/clientesRoutes");
-const certificadosRoutes  = require("./routes/certificadosRoutes");
-const gestorArchivosRoutes   = require("./routes/gestorArchivosRoutes");  
+const clientesRoutes = require("./routes/clientesRoutes");
+const certificadosRoutes = require("./routes/certificadosRoutes");
+const gestorArchivosRoutes = require("./routes/gestorArchivosRoutes");
 
 app.use("/api/android", androidRoutes);
 app.use("/api/actividad", puntosActividadRoutes);
@@ -108,7 +108,7 @@ app.use("/api/reports", reportRoutesSimple);
 app.use("/api/paradas", paradasRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/certificados-origen", certificadosRoutes);
-app.use("/api/archivos",             gestorArchivosRoutes);  
+app.use("/api/archivos", gestorArchivosRoutes);
 
 // ============================================
 // RUTAS BÁSICAS (públicas)
@@ -270,7 +270,7 @@ app.post("/api/auth/login", async (req, res) => {
         tituloMineroId: usuario.tituloMineroId,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "8h" },
+      { expiresIn: "10s" },
     );
 
     res.json({
