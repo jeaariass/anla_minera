@@ -13,6 +13,7 @@ const ROLES = {
   TITULAR: "TITULAR",
   JEFE_PLANTA: "JEFE_PLANTA",
   OPERARIO: "OPERARIO",
+  VENDEDOR: "VENDEDOR",
 };
 
 // -------------------------------------------------------
@@ -55,8 +56,8 @@ const PERMISOS = {
     ROLES.TITULAR,
     ROLES.JEFE_PLANTA,
     ROLES.OPERARIO,
+    ROLES.VENDEDOR,
   ],
-
   // ---------- FORMULARIOS FRI ----------
   // Crear cualquier formulario FRI
   CREAR_FRI: [ROLES.ADMIN, ROLES.ASESOR],
