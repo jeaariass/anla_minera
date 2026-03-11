@@ -25,5 +25,8 @@
   "devDependencies": {
     "nodemon": "^2.0.22",
     "prisma": "^5.0.0"
+  },
+  "prisma": {
+  "seed": "node prisma/seed.js"
   }
 }
