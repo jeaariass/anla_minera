@@ -20,24 +20,22 @@ const listar = async (req, res) => {
     if (tituloMineroId) {
       const { PrismaClient } = require("@prisma/client");
       const prisma = new PrismaClient();
-      const rows = await prisma.$queryRaw`
-        SELECT numero_titulo FROM titulos_mineros
-        WHERE id = ${tituloMineroId}::UUID LIMIT 1
-      `;
-      if (rows.length > 0) tituloFiltro = rows[0].numero_titulo;
+      const titulo = await prisma.tituloMinero.findUnique({
+        where: { id: tituloMineroId },
+        select: { numeroTitulo: true },
+      });
+      if (titulo) tituloFiltro = titulo.numeroTitulo;
     }
 
     const arbol = listarArbol(tituloFiltro);
     res.json({ success: true, data: arbol });
   } catch (error) {
     console.error("❌ Error listando archivos:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error al listar archivos",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error al listar archivos",
+      error: error.message,
+    });
   }
 };
 
@@ -75,13 +73,11 @@ const descargarArchivo = async (req, res) => {
     fs.createReadStream(absPath).pipe(res);
   } catch (error) {
     console.error("❌ Error descargando archivo:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error al descargar",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error al descargar",
+      error: error.message,
+    });
   }
 };
 
@@ -93,12 +89,10 @@ const descargarMes = async (req, res) => {
   try {
     const { titulo, anio, mes } = req.query;
     if (!titulo || !anio || !mes) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Faltan parámetros: titulo, anio, mes.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Faltan parámetros: titulo, anio, mes.",
+      });
     }
 
     const carpeta = resolverCarpetaMes(titulo, anio, mes);
@@ -132,13 +126,11 @@ const descargarMes = async (req, res) => {
     await archive.finalize();
   } catch (error) {
     console.error("❌ Error generando ZIP:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error al generar ZIP",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error al generar ZIP",
+      error: error.message,
+    });
   }
 };
 

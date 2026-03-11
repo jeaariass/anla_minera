@@ -108,6 +108,9 @@ const Usuarios = () => {
     fechaVencimiento: "",
     observaciones: "",
     estado: "ACTIVO",
+    nit: "",
+    cedulaTitular: "",
+    departamento: "",
     titularId: "",
     jefePlantaId: "",
   });
@@ -371,6 +374,9 @@ const Usuarios = () => {
       fechaVencimiento: "",
       observaciones: "",
       estado: "ACTIVO",
+      nit: "",
+      cedulaTitular: "",
+      departamento: "",
       titularId: "",
       jefePlantaId: "",
     });
@@ -406,6 +412,9 @@ const Usuarios = () => {
           : "",
         observaciones: titulo.observaciones || "",
         estado: titulo.estado || "ACTIVO",
+        nit: titulo.nit || "",
+        cedulaTitular: titulo.cedulaTitular || "",
+        departamento: titulo.departamento || "",
         titularId: titularActual?.id || "",
         jefePlantaId: jefeActual?.id || "",
       });
@@ -454,6 +463,9 @@ const Usuarios = () => {
           fechaVencimiento: formTitulo.fechaVencimiento || null,
           observaciones: formTitulo.observaciones || null,
           estado: formTitulo.estado,
+          nit: formTitulo.nit || null,
+          cedulaTitular: formTitulo.cedulaTitular || null,
+          departamento: formTitulo.departamento || null,
           titularId: formTitulo.titularId || null,
           jefePlantaId: formTitulo.jefePlantaId || null,
         });
@@ -466,6 +478,9 @@ const Usuarios = () => {
           fechaInicio: formTitulo.fechaInicio || null,
           fechaVencimiento: formTitulo.fechaVencimiento || null,
           observaciones: formTitulo.observaciones || null,
+          nit: formTitulo.nit || null,
+          cedulaTitular: formTitulo.cedulaTitular || null,
+          departamento: formTitulo.departamento || null,
           titularId: formTitulo.titularId,
           jefePlantaId: formTitulo.jefePlantaId,
         });
@@ -1254,6 +1269,24 @@ const Usuarios = () => {
                     )}
                   </div>
                   <div className="form-group">
+                    <label className="form-label">Departamento</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formTitulo.departamento}
+                      onChange={(e) =>
+                        setFormTitulo((p) => ({
+                          ...p,
+                          departamento: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej: Antioquia"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
                     <label className="form-label">Código Municipio</label>
                     <input
                       type="text"
@@ -1266,6 +1299,36 @@ const Usuarios = () => {
                         }))
                       }
                       placeholder="Ej: 05113"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">NIT</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formTitulo.nit}
+                      onChange={(e) =>
+                        setFormTitulo((p) => ({ ...p, nit: e.target.value }))
+                      }
+                      placeholder="Ej: 900123456-7"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Cédula del Titular</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formTitulo.cedulaTitular}
+                      onChange={(e) =>
+                        setFormTitulo((p) => ({
+                          ...p,
+                          cedulaTitular: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej: 1234567890"
                     />
                   </div>
                 </div>
