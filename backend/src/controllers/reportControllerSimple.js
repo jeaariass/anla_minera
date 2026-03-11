@@ -121,7 +121,42 @@ const getColumnas = (tipo) => {
       "Latitud",
       "Longitud",
     ],
-
+    capacidad: [
+      "Fecha_corte_informacion_reportada",
+      "Titulo_minero",
+      "Municipio_de_extraccion",
+      "Codigo_Municipio_extraccion",
+      "Area_Produccion",
+      "Tecnologia_Utilizada",
+      "Capacidad_Instalada",
+      "Unidad_Medida",
+      "Estado",
+    ],
+    inventarioMaquinaria: [
+      "Fecha_corte_informacion_reportada",
+      "Titulo_minero",
+      "Municipio_de_extraccion",
+      "Codigo_Municipio_extraccion",
+      "Tipo_Maquinaria",
+      "Marca",
+      "Modelo",
+      "Capacidad",
+      "Estado_Operativo",
+      "Estado",
+    ],
+    proyecciones: [
+      "Fecha_corte_informacion_reportada",
+      "Titulo_minero",
+      "Municipio_de_extraccion",
+      "Codigo_Municipio_extraccion",
+      "Mineral",
+      "Metodo_Explotacion",
+      "Capacidad_Extraccion",
+      "Capacidad_Transporte",
+      "Capacidad_Beneficio",
+      "Cantidad_Proyectada",
+      "Estado",
+    ],
     paradasActividad: [
       "Dia",
       "Usuario_id",
@@ -291,6 +326,52 @@ const transformarDatos = (datos, tipo) => {
           Resolucion_UPME: registro.resolucionUPME || "",
           Estado: base.Estado,
         };
+
+      case "capacidad":
+        return {
+          Fecha_corte_informacion_reportada:
+            base.Fecha_corte_informacion_reportada,
+          Titulo_minero: base.Titulo_minero,
+          Municipio_de_extraccion: base.Municipio_de_extraccion,
+          Codigo_Municipio_extraccion: base.Codigo_Municipio_extraccion,
+          Area_Produccion: registro.areaProduccion || "",
+          Tecnologia_Utilizada: registro.tecnologiaUtilizada || "",
+          Capacidad_Instalada: formatearNumero(registro.capacidadInstalada),
+          Unidad_Medida: registro.unidadMedida || "",
+          Estado: base.Estado,
+        };
+
+      case "inventarioMaquinaria":
+        return {
+          Fecha_corte_informacion_reportada:
+            base.Fecha_corte_informacion_reportada,
+          Titulo_minero: base.Titulo_minero,
+          Municipio_de_extraccion: base.Municipio_de_extraccion,
+          Codigo_Municipio_extraccion: base.Codigo_Municipio_extraccion,
+          Tipo_Maquinaria: registro.tipoMaquinaria || "",
+          Marca: registro.marca || "",
+          Modelo: registro.modelo || "",
+          Capacidad: formatearNumero(registro.capacidad),
+          Estado_Operativo: registro.estadoOperativo || "",
+          Estado: base.Estado,
+        };
+
+      case "proyecciones":
+        return {
+          Fecha_corte_informacion_reportada:
+            base.Fecha_corte_informacion_reportada,
+          Titulo_minero: base.Titulo_minero,
+          Municipio_de_extraccion: base.Municipio_de_extraccion,
+          Codigo_Municipio_extraccion: base.Codigo_Municipio_extraccion,
+          Mineral: registro.mineral || "",
+          Metodo_Explotacion: registro.metodoExplotacion || "",
+          Capacidad_Extraccion: formatearNumero(registro.capacidadExtraccion),
+          Capacidad_Transporte: formatearNumero(registro.capacidadTransporte),
+          Capacidad_Beneficio: formatearNumero(registro.capacidadBeneficio),
+          Cantidad_Proyectada: formatearNumero(registro.cantidadProyectada),
+          Estado: base.Estado,
+        };
+
       case "puntosActividad":
         return {
           Fecha: registro.fecha
@@ -409,6 +490,9 @@ exports.getPreview = async (req, res) => {
       ejecucion: prisma.fRIEjecucion,
       maquinaria: prisma.fRIMaquinaria,
       regalias: prisma.fRIRegalias,
+      capacidad: prisma.fRICapacidad,
+      inventarioMaquinaria: prisma.fRIInventarioMaquinaria,
+      proyecciones: prisma.fRIProyecciones,
       puntosActividad: prisma.puntos_actividad,
       certificadosOrigen: prisma.certificados_origen,
     };
@@ -655,6 +739,9 @@ exports.exportarExcel = async (req, res) => {
       ejecucion: prisma.fRIEjecucion,
       maquinaria: prisma.fRIMaquinaria,
       regalias: prisma.fRIRegalias,
+      capacidad: prisma.fRICapacidad,
+      inventarioMaquinaria: prisma.fRIInventarioMaquinaria,
+      proyecciones: prisma.fRIProyecciones,
       puntosActividad: prisma.puntos_actividad,
       paradasActividad: prisma.paradas_actividad,
       certificadosOrigen: prisma.certificados_origen,
