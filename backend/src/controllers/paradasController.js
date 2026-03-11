@@ -252,7 +252,7 @@ const getParadas = async (req, res) => {
 const getResumenDia = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
-    const { dia } = req.query;
+    const { dia, usuarioId } = req.query;
 
     // Al inicio del handler, antes de la consulta:
     if (!puedeAccederATitulo(req.user, tituloMineroId)) {
@@ -265,14 +265,15 @@ const getResumenDia = async (req, res) => {
     // Si no viene `dia`, usa la fecha Colombia de hoy
     const fecha = dia || colombiaToday();
 
-    const resumen = await prisma.$queryRaw`
+    const resumen = await prisma.$queryRawUnsafe(`
       SELECT
-        COUNT(*)::INTEGER                      AS "totalParadas",
+        COUNT(*)::INTEGER                       AS "totalParadas",
         COALESCE(SUM(minutos_paro), 0)::INTEGER AS "totalMinutos"
       FROM paradas_actividad
-      WHERE titulo_minero_id = ${tituloMineroId}
-        AND dia = ${fecha}::DATE
-    `;
+      WHERE titulo_minero_id = '${tituloMineroId}'
+        AND dia = '${fecha}'::DATE
+        ${usuarioId ? `AND usuario_id = '${usuarioId}'` : ""}
+    `);
 
     const r = resumen[0] || { totalParadas: 0, totalMinutos: 0 };
 

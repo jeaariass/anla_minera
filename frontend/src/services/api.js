@@ -35,6 +35,32 @@ api.interceptors.request.use(
 );
 
 // ============================================
+// CIERRE AUTOMÁTICO POR EXPIRACIÓN DE TOKEN
+// ============================================
+const mostrarMensajeExpiracion = () => {
+  if (window.location.pathname.includes("Login")) return;
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("usuario");
+
+  const div = document.createElement("div");
+  div.textContent =
+    "Tu sesión ha expirado. Por favor ingresa tus datos nuevamente.";
+  div.style.cssText = `
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: #1e293b; color: white; padding: 32px 48px;
+  border-radius: 14px; font-size: 17px; z-index: 99999;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  text-align: center; min-width: 320px;
+  `;
+  document.body.appendChild(div);
+
+  setTimeout(() => {
+    window.location.href = "/TU_MINA/Login";
+  }, 2500);
+};
+
+// ============================================
 // INTERCEPTOR DE SESIÓN EXPIRADA
 // ============================================
 // Este interceptor revisa TODAS las respuestas del servidor.
@@ -42,27 +68,42 @@ api.interceptors.request.use(
 // y manda al usuario al login automáticamente.
 
 api.interceptors.response.use(
-  (response) => response, // Si la respuesta es exitosa, la dejamos pasar sin tocar nada
+  (response) => response,
   (error) => {
     const data = error.response?.data;
     const status = error.response?.status;
 
-    // ¿El servidor respondió 401 (no autorizado) Y el token venció?
     if (status === 401 && data?.expired === true) {
-      // 1. Borramos la sesión guardada en el navegador
-      localStorage.removeItem("token");
-      localStorage.removeItem("usuario");
-
-      // 2. Avisamos al usuario con un mensaje claro
-      alert("Tu sesión ha expirado. Por favor inicia sesión nuevamente.");
-
-      // 3. Mandamos al usuario al login
-      window.location.href = "/TU_MINA/Login"; // ← Ajusta si tu ruta de login es diferente
+      mostrarMensajeExpiracion();
     }
 
     return Promise.reject(error);
   },
 );
+
+export const programarCierreSesion = () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const expMs = payload.exp * 1000;
+    const tiempoRestante = expMs - Date.now();
+
+    if (tiempoRestante <= 0) {
+      mostrarMensajeExpiracion();
+      return;
+    }
+
+    setTimeout(() => {
+      mostrarMensajeExpiracion();
+    }, tiempoRestante);
+  } catch (_) {
+    // Token malformado — ignorar
+  }
+};
+
+programarCierreSesion();
 
 // ============================================
 // SERVICIO DE AUTENTICACIÓN

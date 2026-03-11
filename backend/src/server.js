@@ -98,9 +98,9 @@ const androidRoutes = require("./routes/androidRoutes");
 const puntosActividadRoutes = require("./routes/puntosActividadRoutes");
 const reportRoutesSimple = require("./routes/reportRoutesSimple");
 const paradasRoutes = require("./routes/paradasRoutes");
-const clientesRoutes      = require("./routes/clientesRoutes");
-const certificadosRoutes  = require("./routes/certificadosRoutes");
-const gestorArchivosRoutes   = require("./routes/gestorArchivosRoutes");  
+const clientesRoutes = require("./routes/clientesRoutes");
+const certificadosRoutes = require("./routes/certificadosRoutes");
+const gestorArchivosRoutes = require("./routes/gestorArchivosRoutes");
 
 app.use("/api/android", androidRoutes);
 app.use("/api/actividad", puntosActividadRoutes);
@@ -108,7 +108,7 @@ app.use("/api/reports", reportRoutesSimple);
 app.use("/api/paradas", paradasRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/certificados-origen", certificadosRoutes);
-app.use("/api/archivos",             gestorArchivosRoutes);  
+app.use("/api/archivos", gestorArchivosRoutes);
 
 // ============================================
 // RUTAS BÁSICAS (públicas)
@@ -3206,6 +3206,9 @@ app.post(
         fechaInicio,
         fechaVencimiento,
         observaciones,
+        nit,
+        cedulaTitular,
+        departamento,
         titularId,
         jefePlantaId,
       } = req.body;
@@ -3269,6 +3272,9 @@ app.post(
               ? new Date(fechaVencimiento)
               : null,
             observaciones: observaciones || null,
+            nit: nit || null,
+            cedulaTitular: cedulaTitular || null,
+            departamento: departamento || null,
           },
         });
 
@@ -3312,6 +3318,9 @@ app.put(
         fechaVencimiento,
         observaciones,
         estado,
+        nit,
+        cedulaTitular,
+        departamento,
         titularId,
         jefePlantaId,
       } = req.body;
@@ -3372,6 +3381,11 @@ app.put(
               : null,
             observaciones: observaciones || null,
             estado: estado || undefined,
+            nit: nit !== undefined ? nit || null : undefined,
+            cedulaTitular:
+              cedulaTitular !== undefined ? cedulaTitular || null : undefined,
+            departamento:
+              departamento !== undefined ? departamento || null : undefined,
           },
         });
 

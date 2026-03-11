@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../services/api";
+import { authService, programarCierreSesion } from "../services/api";
 import "./Login.css";
 
 const Login = () => {
@@ -31,6 +31,7 @@ const Login = () => {
       if (response.data.success) {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("usuario", JSON.stringify(response.data.usuario));
+        programarCierreSesion();
         window.dispatchEvent(new Event("storage"));
         navigate("/home");
       } else {
