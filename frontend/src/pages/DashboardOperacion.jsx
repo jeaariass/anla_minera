@@ -31,14 +31,14 @@ const CAT_COLORS = {
   extraccion: "#e74c3c",
   acopio: "#3498db",
   procesamiento: "#f39c12",
-  inspeccion: "#27ae60",
+  
 };
 
 const CAT_LABELS = {
   extraccion: "Extracción",
   acopio: "Acopio",
   procesamiento: "Procesamiento",
-  inspeccion: "Inspección",
+
 };
 
 const MOTIVO_COLORS = [
@@ -656,9 +656,7 @@ const DashboardOperacion = () => {
                         stackId="vol"
                         fill={CAT_COLORS[cat]}
                         name={CAT_LABELS[cat]}
-                        radius={
-                          cat === "inspeccion" ? [4, 4, 0, 0] : [0, 0, 0, 0]
-                        }
+                        
                       />
                     ))}
                   </BarChart>

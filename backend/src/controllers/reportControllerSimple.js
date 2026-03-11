@@ -167,7 +167,7 @@ const transformarDatos = (datos, tipo) => {
 
     const formatearNumero = (numero) => {
       if (numero === null || numero === undefined) return "";
-      return numero;
+      return Number(numero); // ← Convierte Decimal → número nativo JS
     };
 
     const base = {
@@ -310,17 +310,9 @@ const transformarDatos = (datos, tipo) => {
           Descripcion: registro.descripcion || "",
           Maquinaria: registro.maquinaria || "",
           Volumen_m3:
-            registro.volumen_m3 === null || registro.volumen_m3 === undefined
-              ? ""
-              : registro.volumen_m3,
-          Latitud:
-            registro.latitud === null || registro.latitud === undefined
-              ? ""
-              : registro.latitud,
-          Longitud:
-            registro.longitud === null || registro.longitud === undefined
-              ? ""
-              : registro.longitud,
+            registro.volumen_m3 != null ? Number(registro.volumen_m3) : "",
+          Latitud: registro.latitud != null ? Number(registro.latitud) : "",
+          Longitud: registro.longitud != null ? Number(registro.longitud) : "",
         };
 
       case "paradasActividad":
@@ -746,12 +738,10 @@ exports.exportarExcel = async (req, res) => {
         }));
 
         if (datosCertExp.length === 0)
-          return res
-            .status(404)
-            .json({
-              success: false,
-              message: "No hay certificados para exportar",
-            });
+          return res.status(404).json({
+            success: false,
+            message: "No hay certificados para exportar",
+          });
 
         const wbCert = new ExcelJS.Workbook();
         const wsCert = wbCert.addWorksheet("Certificados de Origen");
@@ -824,18 +814,19 @@ exports.exportarExcel = async (req, res) => {
     const esGlobal = ["ADMIN", "ASESOR"].includes(decoded.rol);
     const tituloParam = req.query.tituloMineroId || null;
 
-    if (tipo === "puntosActividad") {
-      if (decoded.rol === "OPERARIO") {
+    if (tipo === "puntosActividad" || tipo === "paradasActividad") {
+      // Filtro usuario (OPERARIO ve solo los suyos)
+      if (usuarioId && usuarioId !== "") {
+        filtros.usuario_id = usuarioId;
+      } else if (decoded.rol === "OPERARIO") {
         filtros.usuario_id = decoded.id;
-      } else if (esGlobal) {
-        // ADMIN/ASESOR: filtra por el título seleccionado en el dropdown
-        if (tituloParam) filtros.titulo_minero_id = tituloParam;
-      } else if (decoded.tituloMineroId) {
-        filtros.titulo_minero_id = decoded.tituloMineroId;
+      }
+      // Solo puntosActividad tiene titulo_minero_id
+      if (tipo === "puntosActividad" && esGlobal && tituloParam) {
+        filtros.titulo_minero_id = tituloParam;
       }
     } else {
       if (esGlobal) {
-        // ADMIN/ASESOR: filtra por el título seleccionado en el dropdown
         if (tituloParam) filtros.tituloMineroId = tituloParam;
       } else if (decoded.tituloMineroId) {
         filtros.tituloMineroId = decoded.tituloMineroId;
@@ -931,12 +922,10 @@ exports.exportarExcel = async (req, res) => {
     res.end();
   } catch (error) {
     console.error("Error exportando:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error al exportar",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error al exportar",
+      error: error.message,
+    });
   }
 };
