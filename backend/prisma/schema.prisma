@@ -20,6 +20,17 @@ model TituloMinero {
   nombreTitular           String?                   @db.VarChar(150)
   cedulaTitular           String?                   @db.VarChar(20)
   departamento            String?                   @db.VarChar(100)
+
+  // ── Geodatos y clasificación ──────────────────
+  etapa                   String?
+  area_ha                 Decimal?                  @db.Decimal(12, 4)
+  clasificacion           String?
+  minerales               String?
+  modalidad               String?
+  centroid                Json?
+  polygon                 Json?
+  // ─────────────────────────────────────────────
+
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   certificados_origen     certificados_origen[]
