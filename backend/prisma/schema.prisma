@@ -354,11 +354,14 @@ model certificados_origen {
   tituloMineroId       String
   clienteId            String
   mineralExplotado     String               @db.VarChar(100)
-  cantidadM3           Decimal              @db.Decimal(15, 4)
+  cantidadM3           Decimal?             @db.Decimal(15, 4)
   unidadMedida         String               @default("M3") @db.VarChar(10)
   fechaCertificado     DateTime             @default(dbgenerated("CURRENT_DATE")) @db.Date
   usuarioId            String?
   createdAt            DateTime             @default(now())
+  consecutivo          String?              @db.VarChar(20)
+  rutaPdf              String?
+  rutaXlsx             String?
   clientes_compradores clientes_compradores @relation(fields: [clienteId], references: [id])
   titulos_mineros      TituloMinero         @relation(fields: [tituloMineroId], references: [id])
 
@@ -375,6 +378,9 @@ model clientes_compradores {
   direccion           String?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime
+  tipoIdentificacion  String?               @db.VarChar(30)
+  tipoComprador       String?               @db.VarChar(30)
+  rucom               String?               @db.VarChar(50)
   certificados_origen certificados_origen[]
 }
 
