@@ -21,14 +21,12 @@ const emptyStats = {
   extraccion: { count: 0, volumen: 0 },
   acopio: { count: 0, volumen: 0 },
   procesamiento: { count: 0, volumen: 0 },
-  inspeccion: { count: 0, volumen: 0 },
 };
 
 const CAT = [
-  { key: 'extraccion', label: 'Extracción', emoji: '⛏️', border: '#e74c3c' },
-  { key: 'acopio', label: 'Acopio', emoji: '📦', border: '#3498db' },
-  { key: 'procesamiento', label: 'Procesamiento', emoji: '⚙️', border: '#f39c12' },
-  { key: 'inspeccion', label: 'Inspección', emoji: '🔍', border: '#27ae60' },
+  { key: 'extraccion', label: 'Extracción', border: '#e74c3c' },
+  { key: 'acopio', label: 'Acopio', border: '#3498db' },
+  { key: 'procesamiento', label: 'Procesamiento', border: '#f39c12' },
 ];
 
 function safeNumber(v) {
@@ -64,7 +62,6 @@ function normalizeBackendStats(payload) {
       extraccion: { count: safeNumber(s.extraccion.count), volumen: safeNumber(s.extraccion.volumen) },
       acopio: { count: safeNumber(s.acopio?.count), volumen: safeNumber(s.acopio?.volumen) },
       procesamiento: { count: safeNumber(s.procesamiento?.count), volumen: safeNumber(s.procesamiento?.volumen) },
-      inspeccion: { count: safeNumber(s.inspeccion?.count), volumen: safeNumber(s.inspeccion?.volumen) },
     };
   }
 
@@ -86,10 +83,6 @@ function normalizeBackendStats(payload) {
       procesamiento: {
         count: safeNumber(por.procesamiento?.cantidad ?? por.procesamiento?.count),
         volumen: safeNumber(por.procesamiento?.volumen),
-      },
-      inspeccion: {
-        count: safeNumber(por.inspeccion?.cantidad ?? por.inspeccion?.count),
-        volumen: safeNumber(por.inspeccion?.volumen),
       },
     };
   }

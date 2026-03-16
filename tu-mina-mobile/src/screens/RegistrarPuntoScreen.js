@@ -25,10 +25,9 @@ import COLORS from '../utils/colors';
 // ─── Categorías ───────────────────────────────────────────────────────────────
 
 const CATEGORIAS = [
-  { id: 'extraccion',    label: '⛏️ Extracción',    color: '#e74c3c' },
-  { id: 'acopio',        label: '📦 Acopio',         color: '#3498db' },
-  { id: 'procesamiento', label: '⚙️ Procesamiento',  color: '#f39c12' },
-  { id: 'inspeccion',    label: '🔍 Inspección',      color: '#27ae60' },
+  { id: 'extraccion',    label: 'Extracción',    color: '#e74c3c' },
+  { id: 'acopio',        label: 'Acopio',         color: '#3498db' },
+  { id: 'procesamiento', label: 'Procesamiento',  color: '#f39c12' },
 ];
 
 // ─── Selector reutilizable con picker modal ───────────────────────────────────
@@ -411,22 +410,6 @@ const RegistrarPuntoScreen = ({ navigation }) => {
               <Text style={styles.contadorText}>Hoy: {puntosRegistradosHoy}</Text>
             </View>
           </View>
-        </View>
-
-        {/* ── Modo rápido ── */}
-        <View style={styles.modoRapidoContainer}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.modoRapidoLabel}>⚡ Modo Registro Rápido</Text>
-            <Text style={styles.modoRapidoDesc}>
-              {modoRapido ? 'Activo - Registra múltiples puntos' : 'Desactivado'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.toggle, modoRapido && styles.toggleActive]}
-            onPress={() => setModoRapido(!modoRapido)}
-          >
-            <View style={[styles.toggleThumb, modoRapido && styles.toggleThumbActive]} />
-          </TouchableOpacity>
         </View>
 
         {/* ── Mapa ── */}
