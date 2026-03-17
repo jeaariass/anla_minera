@@ -28,7 +28,7 @@ api.interceptors.request.use(
 
 // ===============================
 // RESPONSE INTERCEPTOR
-// ✅ Devuelve DIRECTAMENTE el JSON (response.data)
+// Devuelve DIRECTAMENTE el JSON (response.data)
 // ===============================
 api.interceptors.response.use(
   (response) => response.data,
@@ -47,15 +47,11 @@ export const authService = {
       console.log('🔵 Login request a:', `${API_BASE_URL}${ENDPOINTS.LOGIN}`);
       console.log('📧 Email:', email);
 
-      // OJO: por el interceptor, response YA es el JSON del backend
       const response = await api.post(ENDPOINTS.LOGIN, { email, password });
-
       console.log('🔵 Login response:', JSON.stringify(response, null, 2));
 
       if (response?.success) {
         console.log('💾 Guardando datos en AsyncStorage...');
-
-        // Backend: { success, token, usuario }
         const token = response.token;
         const usuario = response.usuario;
 
@@ -63,7 +59,6 @@ export const authService = {
           await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token);
           console.log('✅ Token guardado:', token.substring(0, 30) + '...');
         }
-
         if (usuario) {
           await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(usuario));
           console.log('✅ Usuario guardado');
@@ -102,17 +97,15 @@ export const authService = {
 };
 
 // ===============================
-// ANDROID SERVICE (CICLOS / ETC)
+// ANDROID SERVICE (CICLOS)
 // ===============================
 export const androidService = {
   getPuntosReferencia: async (tituloMineroId) => {
     try {
       const url = ENDPOINTS.PUNTOS_REFERENCIA(tituloMineroId);
       console.log('📍 Petición a:', `${API_BASE_URL}${url}`);
-
-      const response = await api.get(url); // ← JSON directo
+      const response = await api.get(url);
       console.log('✅ Respuesta puntos:', response);
-
       return response;
     } catch (error) {
       console.error('❌ Error obteniendo puntos:', error);
@@ -162,25 +155,17 @@ export const androidService = {
     }
   },
 
-  // Estadísticas de ciclos (no confundir con actividad/estadisticas)
   getEstadisticas: async (usuarioId, tituloMineroId) => {
     try {
       console.log('📊 Obteniendo estadísticas (ciclos):', { usuarioId, tituloMineroId });
-
       const response = await api.get(ENDPOINTS.ESTADISTICAS(usuarioId, tituloMineroId));
       console.log('📊 Respuesta estadísticas (ciclos):', response);
-
       return response;
     } catch (error) {
       console.error('❌ Error obteniendo estadísticas (ciclos):', error);
-
-      // Fallback
       return {
         success: false,
-        data: {
-          ciclosHoy: 0,
-          volumenHoy: 0,
-        },
+        data: { ciclosHoy: 0, volumenHoy: 0 },
         error: error.message,
       };
     }
@@ -191,39 +176,60 @@ export const androidService = {
 // ACTIVIDAD SERVICE (PUNTOS)
 // ===============================
 export const actividadService = {
-  registrarPunto: async (punto) => {
-    try {
-      console.log('📍 Registrando punto:', punto);
-      const response = await api.post('/actividad/punto', punto); // JSON directo
-      return response;
-    } catch (error) {
-      console.error('Error registrando punto:', error);
-      throw error;
-    }
+  getItems: async (categoria) => {
+    return api.get(`/actividad/items/${categoria}`);
   },
 
-  getPuntos: async (tituloMineroId, filtros = {}) => {
-    try {
-      const params = new URLSearchParams(filtros).toString();
-      const url = `/actividad/puntos/${tituloMineroId}${params ? `?${params}` : ''}`;
-
-      const response = await api.get(url); // JSON directo
-      return response;
-    } catch (error) {
-      console.error('Error obteniendo puntos:', error);
-      throw error;
-    }
+  getMaquinaria: async () => {
+    return api.get('/actividad/maquinaria');
   },
 
-  // ✅ Esto debe devolver: { success, estadisticas } (según tu backend)
+  registrarPunto: async (payload) => {
+    return api.post('/actividad/punto', payload);
+  },
+
+  getPuntos: async (tituloMineroId) => {
+    return api.get(`/actividad/puntos/${tituloMineroId}`);
+  },
+
   getEstadisticas: async (tituloMineroId) => {
-    try {
-      const response = await api.get(`/actividad/estadisticas/${tituloMineroId}`); // JSON directo
-      return response;
-    } catch (error) {
-      console.error('Error obteniendo estadísticas de actividad:', error);
-      throw error;
-    }
+    return api.get(`/actividad/estadisticas/${tituloMineroId}`);
+  },
+
+  editarPunto: async (id, payload) => {
+    return api.put(`/actividad/${id}`, payload);
+  },
+
+  eliminarPunto: async (id) => {
+    return api.delete(`/actividad/${id}`);
+  },
+};
+
+// ===============================
+// PARADAS SERVICE ✅ COMPLETO
+// ===============================
+export const paradasService = {
+  getMotivos: async () => {
+    return api.get('/paradas/motivos');
+  },
+
+  registrarParada: async (payload) => {
+    return api.post('/paradas', payload);
+  },
+
+  getParadas: async (tituloMineroId, filtros = {}) => {
+    const params = new URLSearchParams(filtros).toString();
+    const url = `/paradas/${tituloMineroId}${params ? `?${params}` : ''}`;
+    return api.get(url);
+  },
+
+  editarParada: async (id, payload) => {
+    return api.put(`/paradas/${id}`, payload);
+  },
+
+  // ✅ NUEVO — DELETE /paradas/:id
+  eliminarParada: async (id) => {
+    return api.delete(`/paradas/${id}`);
   },
 };
 

@@ -5,11 +5,15 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { ActivityIndicator, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import LoginScreen from '../screens/LoginScreen';
-import HomeScreen from '../screens/HomeScreen';
-import RegistrarPuntoScreen from '../screens/RegistrarPuntoScreen';
-import HistorialPuntosScreen from '../screens/HistorialPuntosScreen';
-import MapaHistorialScreen from '../screens/MapaHistorialScreen';
+import LoginScreen            from '../screens/LoginScreen';
+import HomeScreen             from '../screens/HomeScreen';
+import RegistrarPuntoScreen   from '../screens/RegistrarPuntoScreen';
+import HistorialPuntosScreen  from '../screens/HistorialPuntosScreen';
+import MapaHistorialScreen    from '../screens/MapaHistorialScreen';
+import EditarPuntoScreen      from '../screens/EditarPuntoScreen';       // ✅ NUEVO
+import RegistrarParadaScreen  from '../screens/RegistrarParadaScreen';
+import HistorialParadasScreen from '../screens/HistorialParadasScreen';
+import EditarParadaScreen     from '../screens/EditarParadaScreen';
 
 import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
@@ -17,12 +21,10 @@ import COLORS from '../utils/colors';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading,  setIsLoading]  = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  useEffect(() => { checkAuthStatus(); }, []);
 
   const checkAuthStatus = async () => {
     try {
@@ -49,45 +51,24 @@ const AppNavigator = () => {
       <Stack.Navigator
         initialRouteName={isLoggedIn ? 'Home' : 'Login'}
         screenOptions={{
-          headerStyle: {
-            backgroundColor: COLORS.primary,
-          },
-          headerTintColor: COLORS.white,
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
+          headerStyle:      { backgroundColor: COLORS.primary },
+          headerTintColor:  COLORS.white,
+          headerTitleStyle: { fontWeight: 'bold' },
         }}
       >
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ headerShown: false }}
-        />
+        <Stack.Screen name="Login"  component={LoginScreen}  options={{ headerShown: false }} />
+        <Stack.Screen name="Home"   component={HomeScreen}   options={{ headerShown: false }} />
 
-        <Stack.Screen
-          name="RegistrarPunto"
-          component={RegistrarPuntoScreen}
-          options={{ headerShown: false }}
-        />
+        {/* ── Puntos de actividad ── */}
+        <Stack.Screen name="RegistrarPunto"  component={RegistrarPuntoScreen}  options={{ headerShown: false }} />
+        <Stack.Screen name="HistorialPuntos" component={HistorialPuntosScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="MapaHistorial"   component={MapaHistorialScreen}   options={{ headerShown: false }} />
+        <Stack.Screen name="EditarPunto"     component={EditarPuntoScreen}     options={{ headerShown: false }} />
 
-        <Stack.Screen
-          name="HistorialPuntos"
-          component={HistorialPuntosScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/* ✅ ESTA ES LA PANTALLA QUE FALTABA */}
-        <Stack.Screen
-          name="MapaHistorial"
-          component={MapaHistorialScreen}
-          options={{ headerShown: false }}
-        />
+        {/* ── Paradas ── */}
+        <Stack.Screen name="RegistrarParada"  component={RegistrarParadaScreen}  options={{ headerShown: false }} />
+        <Stack.Screen name="HistorialParadas" component={HistorialParadasScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="EditarParada"     component={EditarParadaScreen}     options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -16,8 +16,20 @@ model TituloMinero {
   fechaInicio             DateTime?
   fechaVencimiento        DateTime?
   observaciones           String?
+  nit                     String?                   @db.VarChar(20)
+  nombreTitular           String?                   @db.VarChar(150)
+  cedulaTitular           String?                   @db.VarChar(20)
+  departamento            String?                   @db.VarChar(100)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
+  etapa                   String?
+  area_ha                 Decimal?                  @db.Decimal(12, 4)
+  clasificacion           String?
+  minerales               String?
+  modalidad               String?
+  centroid                Json?
+  polygon                 Json?
+  certificados_origen     certificados_origen[]
   friCapacidad            FRICapacidad[]
   friEjecucion            FRIEjecucion[]
   friInventarioMaquinaria FRIInventarioMaquinaria[]
@@ -27,9 +39,9 @@ model TituloMinero {
   friProduccion           FRIProduccion[]
   friProyecciones         FRIProyecciones[]
   friRegalias             FRIRegalias[]
+  puntosReferencia        PuntoReferencia[]
+  registrosCiclos         RegistroCicloProduccion[]
   usuarios                Usuario[]
-  puntosReferencia  PuntoReferencia[]
-  registrosCiclos   RegistroCicloProduccion[]
 
   @@map("titulos_mineros")
 }
@@ -39,7 +51,7 @@ model Usuario {
   email                   String                    @unique
   password                String
   nombre                  String
-  rol                     String                    @default("OPERADOR")
+  rol                     Rol                       @default(OPERARIO)
   activo                  Boolean                   @default(true)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
@@ -53,8 +65,8 @@ model Usuario {
   friProduccion           FRIProduccion[]
   friProyecciones         FRIProyecciones[]
   friRegalias             FRIRegalias[]
+  registrosCiclos         RegistroCicloProduccion[]
   tituloMinero            TituloMinero?             @relation(fields: [tituloMineroId], references: [id])
-  registrosCiclos   RegistroCicloProduccion[]
 
   @@map("usuarios")
 }
@@ -253,79 +265,187 @@ model FRIProyecciones {
   @@map("fri_proyecciones")
 }
 
-// ============================================
-// MODELO: PUNTOS DE REFERENCIA
-// Puntos de recolección y acopio para tracking GPS
-// ============================================
 model PuntoReferencia {
-  id                String   @id @default(uuid())
-  nombre            String
-  tipo              String   // "RECOLECCION" o "ACOPIO"
-  tituloMineroId    String
-  
-  // Ubicación geográfica
-  latitud           Decimal  @db.Decimal(10, 8)
-  longitud          Decimal  @db.Decimal(11, 8)
-  radioInfluenciaM  Decimal  @db.Decimal(10, 2) @default(50)
-  
-  // Información adicional
-  descripcion       String?
-  activo            Boolean  @default(true)
-  orden             Int      @default(1)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relación
-  tituloMinero      TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  id               String       @id @default(uuid())
+  nombre           String
+  tipo             String
+  tituloMineroId   String
+  latitud          Decimal      @db.Decimal(10, 8)
+  longitud         Decimal      @db.Decimal(11, 8)
+  radioInfluenciaM Decimal      @default(50) @db.Decimal(10, 2)
+  descripcion      String?
+  activo           Boolean      @default(true)
+  orden            Int          @default(1)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  tituloMinero     TituloMinero @relation(fields: [tituloMineroId], references: [id])
 
   @@index([tituloMineroId])
   @@index([tipo])
   @@map("puntos_referencia")
 }
 
-// ============================================
-// MODELO: REGISTRO DE CICLOS DE PRODUCCIÓN
-// Ciclos detectados automáticamente por la app móvil
-// ============================================
 model RegistroCicloProduccion {
-  id                String   @id @default(uuid())
-  fecha             DateTime @default(now())
-  usuarioId         String
-  tituloMineroId    String
-  tipoMaquina       String
-  capacidadMaxM3    Decimal  @db.Decimal(10, 2)
-  
-  // Datos del ciclo
-  numeroCiclo       Int
-  horaInicioCiclo   DateTime
-  horaFinCiclo      DateTime
-  duracionMinutos   Decimal  @db.Decimal(10, 2)
-  
-  // Ubicación del ciclo
-  latitudInicio     Decimal  @db.Decimal(10, 8)
-  longitudInicio    Decimal  @db.Decimal(11, 8)
-  latitudFin        Decimal  @db.Decimal(10, 8)
-  longitudFin       Decimal  @db.Decimal(11, 8)
-  
-  // Puntos de referencia
-  puntoRecoleccion  String
-  puntoAcopio       String
-  
-  // Metadata
-  distanciaRecorrida Decimal? @db.Decimal(10, 2)
-  estadoCiclo       String   @default("COMPLETADO")
-  observaciones     String?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relaciones
-  usuario           Usuario       @relation(fields: [usuarioId], references: [id])
-  tituloMinero      TituloMinero  @relation(fields: [tituloMineroId], references: [id])
+  id                 String       @id @default(uuid())
+  fecha              DateTime     @default(now())
+  usuarioId          String
+  tituloMineroId     String
+  tipoMaquina        String
+  capacidadMaxM3     Decimal      @db.Decimal(10, 2)
+  numeroCiclo        Int
+  horaInicioCiclo    DateTime
+  horaFinCiclo       DateTime
+  duracionMinutos    Decimal      @db.Decimal(10, 2)
+  latitudInicio      Decimal      @db.Decimal(10, 8)
+  longitudInicio     Decimal      @db.Decimal(11, 8)
+  latitudFin         Decimal      @db.Decimal(10, 8)
+  longitudFin        Decimal      @db.Decimal(11, 8)
+  puntoRecoleccion   String
+  puntoAcopio        String
+  distanciaRecorrida Decimal?     @db.Decimal(10, 2)
+  estadoCiclo        String       @default("COMPLETADO")
+  observaciones      String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime
+  tituloMinero       TituloMinero @relation(fields: [tituloMineroId], references: [id])
+  usuario            Usuario      @relation(fields: [usuarioId], references: [id])
 
   @@index([fecha])
   @@index([usuarioId])
   @@index([tituloMineroId])
   @@map("registro_ciclos_produccion")
+}
+
+model puntos_actividad {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id            String                 @db.VarChar(255)
+  titulo_minero_id      String                 @db.VarChar(255)
+  latitud               Decimal                @db.Decimal(10, 8)
+  longitud              Decimal                @db.Decimal(11, 8)
+  categoria             String                 @db.VarChar(50)
+  item_id               String?                @db.Uuid
+  item_nombre           String?                @db.VarChar(150)
+  item_otro             String?
+  maquinaria_id         String?                @db.Uuid
+  maquinaria_nombre     String?                @db.VarChar(200)
+  maquinaria_otro       String?
+  descripcion           String?
+  volumen_m3            Decimal?               @db.Decimal(10, 2)
+  fecha                 DateTime               @default(now()) @db.Timestamp(6)
+  dia                   DateTime               @db.Date
+  updated_at            DateTime?              @db.Timestamp(6)
+  puntos_items_catalogo puntos_items_catalogo? @relation(fields: [item_id], references: [id], onUpdate: NoAction, map: "fk_item")
+  maquinaria_catalogo   maquinaria_catalogo?   @relation(fields: [maquinaria_id], references: [id], onUpdate: NoAction, map: "fk_maquinaria")
+
+  @@index([categoria], map: "idx_puntos_categoria")
+  @@index([fecha(sort: Desc)], map: "idx_puntos_fecha")
+  @@index([titulo_minero_id], map: "idx_puntos_titulo")
+  @@index([dia], map: "idx_puntos_dia")
+  @@index([item_id], map: "idx_puntos_item")
+  @@index([maquinaria_id], map: "idx_puntos_maquinaria")
+}
+
+model certificados_origen {
+  id                   String               @id
+  tituloMineroId       String
+  clienteId            String
+  mineralExplotado     String               @db.VarChar(100)
+  cantidadM3           Decimal?             @db.Decimal(15, 4)
+  unidadMedida         String               @default("M3") @db.VarChar(10)
+  fechaCertificado     DateTime             @default(dbgenerated("CURRENT_DATE")) @db.Date
+  usuarioId            String?
+  createdAt            DateTime             @default(now())
+  consecutivo          String?              @db.VarChar(20)
+  rutaPdf              String?
+  rutaXlsx             String?
+  clientes_compradores clientes_compradores @relation(fields: [clienteId], references: [id])
+  titulos_mineros      TituloMinero         @relation(fields: [tituloMineroId], references: [id])
+
+  @@index([clienteId])
+  @@index([tituloMineroId])
+}
+
+model clientes_compradores {
+  id                  String                @id
+  cedula              String                @unique @db.VarChar(20)
+  nombre              String                @db.VarChar(150)
+  correo              String?               @db.VarChar(150)
+  telefono            String?               @db.VarChar(20)
+  direccion           String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  tipoIdentificacion  String?               @db.VarChar(30)
+  tipoComprador       String?               @db.VarChar(30)
+  rucom               String?               @db.VarChar(50)
+  certificados_origen certificados_origen[]
+}
+
+model maquinaria_catalogo {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo           String             @unique @db.VarChar(100)
+  marca            String             @db.VarChar(100)
+  modelo           String             @db.VarChar(100)
+  display          String?            @default(dbgenerated("(((marca)::text || ' '::text) || (modelo)::text)")) @db.VarChar(200)
+  activo           Boolean            @default(true)
+  orden            Int                @default(0)
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  puntos_actividad puntos_actividad[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model paradas_actividad {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id       String          @db.VarChar(255)
+  titulo_minero_id String          @db.VarChar(255)
+  motivo_id        String          @db.Uuid
+  motivo_nombre    String?         @db.VarChar(120)
+  motivo_otro      String?
+  inicio           DateTime        @db.Timestamp(6)
+  fin              DateTime        @db.Timestamp(6)
+  dia              DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  minutos_paro     Int?            @default(dbgenerated("((EXTRACT(epoch FROM (fin - inicio)) / (60)::numeric))::integer"))
+  observaciones    String?
+  estado           String          @default("BORRADOR") @db.VarChar(20)
+  enviado_at       DateTime?       @db.Timestamp(6)
+  created_at       DateTime        @default(now()) @db.Timestamp(6)
+  updated_at       DateTime        @default(now()) @db.Timestamp(6)
+  paradas_motivos  paradas_motivos @relation(fields: [motivo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_motivo")
+
+  @@index([dia], map: "idx_paradas_dia")
+  @@index([estado], map: "idx_paradas_estado")
+  @@index([inicio(sort: Desc)], map: "idx_paradas_inicio")
+  @@index([motivo_id], map: "idx_paradas_motivo")
+  @@index([titulo_minero_id], map: "idx_paradas_titulo")
+  @@index([usuario_id], map: "idx_paradas_usuario")
+}
+
+model paradas_motivos {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo            String              @unique @db.VarChar(50)
+  nombre            String              @db.VarChar(120)
+  activo            Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  paradas_actividad paradas_actividad[]
+}
+
+model puntos_items_catalogo {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoria        String             @db.VarChar(50)
+  codigo           String             @db.VarChar(100)
+  nombre           String             @db.VarChar(150)
+  activo           Boolean            @default(true)
+  orden            Int                @default(0)
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  puntos_actividad puntos_actividad[]
+
+  @@unique([categoria, codigo])
+}
+
+enum Rol {
+  ADMIN
+  ASESOR
+  TITULAR
+  JEFE_PLANTA
+  OPERARIO
+  VENDEDOR
 }

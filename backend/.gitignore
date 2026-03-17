@@ -1,5 +1,21 @@
-node_modules
-# Keep environment variables out of version control
+# Node
+node_modules/
+
+# Environment variables
 .env
 
+# Prisma
 /src/generated/prisma
+
+# macOS files
+.DS_Store
+**/.DS_Store
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+
+# Generated files (PDF/XLSX certificados)
+backend/storage/
+
+storage/certificados/TITULO-TEST

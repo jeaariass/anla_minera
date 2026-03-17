@@ -1,49 +1,51 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/api';
-import './Login.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService, programarCierreSesion } from "../services/api";
+import "./Login.css";
 
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setError('');
+    setError("");
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    const response = await authService.login(formData);
-    
-    if (response.data.success) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
-      navigate('/home');
-    } else {
-      setError(response.data.message || 'Error al iniciar sesión');
+    try {
+      const response = await authService.login(formData);
+
+      if (response.data.success) {
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("usuario", JSON.stringify(response.data.usuario));
+        programarCierreSesion();
+        window.dispatchEvent(new Event("storage"));
+        navigate("/home");
+      } else {
+        setError(response.data.message || "Error al iniciar sesión");
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Error al iniciar sesión. Verifica tus credenciales.",
+      );
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError(
-      err.response?.data?.message || 
-      'Error al iniciar sesión. Verifica tus credenciales.'
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="login-container">
@@ -54,7 +56,7 @@ const Login = () => {
           <div className="shape shape-3"></div>
         </div>
       </div>
-      
+
       <div className="login-content">
         <div className="login-card">
           <div className="login-header">
@@ -64,7 +66,7 @@ const Login = () => {
                 alt="Logo TU MINA"
                 width="50"
                 height="50"
-                style={{ borderRadius: '8px', objectFit: 'contain' }}
+                style={{ borderRadius: "8px", objectFit: "contain" }}
               />
             </div>
             <h1>Sistema TU MINA</h1>
@@ -73,11 +75,7 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
-            {error && (
-              <div className="alert alert-error">
-                {error}
-              </div>
-            )}
+            {error && <div className="alert alert-error">{error}</div>}
 
             <div className="form-group">
               <label htmlFor="email" className="form-label">
@@ -124,9 +122,7 @@ const Login = () => {
                   Iniciando sesión...
                 </>
               ) : (
-                <>
-                  🚀 Iniciar Sesión
-                </>
+                <>🚀 Iniciar Sesión</>
               )}
             </button>
           </form>
@@ -135,7 +131,14 @@ const Login = () => {
             <p className="login-info">
               💡 <strong>Nota:</strong>
             </p>
-            <p className="login-hint" style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>
+            <p
+              className="login-hint"
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.85rem",
+                color: "#6b7280",
+              }}
+            >
               En cumplimiento de la Resolución 371 de 2024
             </p>
           </div>

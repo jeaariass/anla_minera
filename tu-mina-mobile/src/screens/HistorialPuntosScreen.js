@@ -158,12 +158,20 @@ const HistorialPuntosScreen = ({ navigation }) => {
     setBusqueda('');
   };
 
-  // ✅ FIX: Agregar valor por defecto para volumenTotal
+  // Helper Colombia: "YYYY-MM-DD" de hoy en Bogotá (UTC-5)
+  const colombiaToday = () => {
+    const local = new Date(Date.now() - 5 * 3600000);
+    return local.toISOString().split('T')[0];
+  };
+
   const calcularEstadisticasHoy = () => {
-    const hoy = new Date().toDateString();
-    const puntosHoy = todosLosPuntos.filter(
-      (p) => new Date(p.fecha || p.createdAt).toDateString() === hoy
-    );
+    const hoy = colombiaToday();
+    const puntosHoy = todosLosPuntos.filter((p) => {
+      const f = p.fecha || p.createdAt || p.fechaRegistro;
+      if (!f) return false;
+      // El backend devuelve "YYYY-MM-DDTHH:MM:SS" sin Z → extraer parte de fecha
+      return String(f).split('T')[0] === hoy;
+    });
 
     const volumenTotal = puntosHoy.reduce(
       (sum, p) => sum + (parseFloat(p.volumenM3 || p.volumen_m3) || 0),
@@ -176,96 +184,52 @@ const HistorialPuntosScreen = ({ navigation }) => {
     };
   };
 
-  const exportarCSV = async () => {
-    try {
-      setExportando(true);
-
-      // ✅ BOM para que Excel abra bien el UTF-8
-      const BOM = '\ufeff';
-
-      const csvBody = [
-        'Fecha,Categoría,Latitud,Longitud,Descripción,Maquinaria,Volumen (m³)',
-        ...puntosFiltrados.map((p) => {
-          const fecha = p.fecha || p.createdAt || '';
-          const fechaFormateada = fecha ? new Date(fecha).toLocaleString('es-CO') : '';
-
-          // ✅ usa llaves consistentes (en su app se ven latitud/longitud)
-          const lat = p.latitud ?? p.lat ?? '';
-          const lon = p.longitud ?? p.lon ?? '';
-
-          return `"${fechaFormateada}","${p.categoria}","${lat}","${lon}","${p.descripcion || ''}","${p.maquinaria || ''}","${p.volumenM3 || p.volumen_m3 || ''}"`;
-        }),
-      ].join('\n');
-
-      const csv = BOM + csvBody;
-
-      const fileName = `historial-${new Date().toISOString().split('T')[0]}.csv`;
-
-      // 1) Siempre generar primero en sandbox de la app
-      const tempUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(tempUri, csv);
-
-      // 2) ANDROID: guardar en una carpeta elegida (ideal: Descargas)
-      if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
-        const perms = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-        if (!perms.granted) {
-          // fallback: compartir
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(tempUri, { mimeType: 'text/csv', dialogTitle: 'Exportar Historial' });
-            Alert.alert('✅ Exportado', 'Se abrió el menú para compartir el CSV.');
-          } else {
-            Alert.alert('✅ Exportado', `CSV generado en:\n${tempUri}`);
-          }
-          setModalExportar(false);
-          return;
-        }
-
-        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          perms.directoryUri,
-          fileName,
-          'text/csv'
-        );
-
-        await FileSystem.writeAsStringAsync(destUri, csv);
-
-        Alert.alert('✅ Exportado', 'CSV guardado en la carpeta seleccionada (recomendado: Descargas).');
-        setModalExportar(false);
-        return;
-      }
-
-      // 3) iOS / fallback: compartir
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(tempUri, { mimeType: 'text/csv', dialogTitle: 'Exportar Historial' });
-        Alert.alert('✅ Exportado', 'Se abrió el menú para compartir el CSV.');
-      } else {
-        Alert.alert('✅ Exportado', `CSV generado en:\n${tempUri}`);
-      }
-
-      setModalExportar(false);
-    } catch (error) {
-      console.error(error);
-      Alert.alert('❌ Error', 'No se pudo exportar el CSV');
-    } finally {
-      setExportando(false);
-    }
+  // "YYYY-MM-DD" en hora Colombia para comparar con punto.dia
+  const colombiaTodayStr = () => {
+    const local = new Date(Date.now() - 5 * 3600000);
+    return local.toISOString().split('T')[0];
   };
 
-  const eliminarPunto = (punto) => {
+  const esDeHoy = (dia) => !!dia && String(dia).split('T')[0] === colombiaTodayStr();
+
+  const confirmarEditar = (punto) => {
+    if (!esDeHoy(punto.dia)) {
+      Alert.alert('🔒 No permitido', 'Solo se pueden editar puntos del día de hoy.');
+      return;
+    }
+    navigation.navigate('EditarPunto', { punto });
+  };
+
+  const confirmarEliminar = (punto) => {
+    if (!esDeHoy(punto.dia)) {
+      Alert.alert('🔒 No permitido', 'Solo se pueden eliminar puntos del día de hoy.');
+      return;
+    }
     Alert.alert(
       '🗑️ Eliminar Punto',
-      '¿Estás seguro?',
+      `¿Eliminar el punto "${punto.itemDisplay || punto.itemNombre || punto.categoria}"? Esta acción no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
-            setTodosLosPuntos(prev => prev.filter(p => p.id !== punto.id));
-            Alert.alert('✅ Eliminado');
-          },
+          onPress: () => ejecutarEliminar(punto.id),
         },
       ]
     );
+  };
+
+  const ejecutarEliminar = async (id) => {
+    try {
+      const resp = await actividadService.eliminarPunto(id);
+      if (resp?.success) {
+        setTodosLosPuntos(prev => prev.filter(p => p.id !== id));
+      } else {
+        Alert.alert('Error', resp?.message || 'No se pudo eliminar el punto.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo conectar con el servidor.');
+    }
   };
 
   const contarPorCategoria = (categoria) => {
@@ -276,18 +240,13 @@ const HistorialPuntosScreen = ({ navigation }) => {
   const renderPunto = ({ item, index }) => {
     const rawFecha = item.fechaRegistro ?? item.createdAt ?? item.fecha ?? null;
 
+    // El backend devuelve fecha como "YYYY-MM-DDTHH:MM:SS" (sin Z, hora Colombia).
+    // Extraemos directamente del string para evitar conversión de zona horaria.
     let fechaTexto = '—';
     if (rawFecha) {
-      const d = new Date(rawFecha);
-      if (!Number.isNaN(d.getTime())) {
-        fechaTexto = d.toLocaleString('es-CO', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      }
+      const s = String(rawFecha);
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      if (m) fechaTexto = `${m[3]}/${m[2]}/${m[1]}  ${m[4]}:${m[5]}`;
     }
 
     const volumen = item.volumenM3 ?? item.volumen_m3 ?? null;
@@ -315,6 +274,13 @@ const HistorialPuntosScreen = ({ navigation }) => {
               <Text style={styles.descripcion}>{item.descripcion}</Text>
             )}
 
+            {(item.itemDisplay || item.itemNombre) && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>📦 Ítem:</Text>
+                <Text style={styles.infoValue}>{item.itemDisplay || item.itemNombre}</Text>
+              </View>
+            )}
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>📍 Ubicación:</Text>
               <Text style={styles.infoValue}>
@@ -322,10 +288,10 @@ const HistorialPuntosScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            {item.maquinaria && (
+            {(item.maquinariaNombre || item.maquinaria) && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>🚜 Maquinaria:</Text>
-                <Text style={styles.infoValue}>{item.maquinaria}</Text>
+                <Text style={styles.infoValue}>{item.maquinariaNombre || item.maquinaria}</Text>
               </View>
             )}
 
@@ -338,10 +304,20 @@ const HistorialPuntosScreen = ({ navigation }) => {
 
             <View style={styles.footerRow}>
               <Text style={styles.fecha}>🕒 {fechaTexto}</Text>
-              
-              <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarPunto(item)}>
-                <Text style={styles.deleteIcon}>🗑️</Text>
-              </TouchableOpacity>
+              <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.actionBtnEdit, !esDeHoy(item.dia) && styles.actionBtnLocked]}
+                  onPress={() => confirmarEditar(item)}
+                >
+                  <Text style={styles.actionBtnText}>{esDeHoy(item.dia) ? '✏️' : '🔒'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.actionBtnDelete, !esDeHoy(item.dia) && styles.actionBtnLocked]}
+                  onPress={() => confirmarEliminar(item)}
+                >
+                  <Text style={styles.actionBtnText}>{esDeHoy(item.dia) ? '🗑️' : '🔒'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -375,25 +351,21 @@ const HistorialPuntosScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* ✅ BOTONES MÁS GRANDES Y VISIBLES */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => {
-                console.log('🗺️ Navegando a mapa...');
-                navigation.navigate('MapaHistorial', { puntos: puntosFiltrados });
-              }}
+              onPress={() => navigation.navigate('RegistrarPunto')}
             >
-              <Text style={styles.iconButtonText}>🗺️</Text>
-              <Text style={styles.iconButtonLabel}>Mapa</Text>
+              <Text style={styles.iconButtonText}>➕</Text>
+              <Text style={styles.iconButtonLabel}>Nuevo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => setModalExportar(true)}
+              onPress={() => navigation.navigate('MapaHistorial', { puntos: puntosFiltrados })}
             >
-              <Text style={styles.iconButtonText}>📥</Text>
-              <Text style={styles.iconButtonLabel}>CSV</Text>
+              <Text style={styles.iconButtonText}>🗺️</Text>
+              <Text style={styles.iconButtonLabel}>Mapa</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.iconButton} onPress={onRefresh}>
@@ -492,55 +464,13 @@ const HistorialPuntosScreen = ({ navigation }) => {
                 style={styles.emptyButton}
                 onPress={() => navigation.navigate('RegistrarPunto')}
               >
-                <Text style={styles.emptyButtonText}>Registrar Punto</Text>
+                <Text style={styles.emptyButtonText}>📍 Registrar Punto</Text>
               </TouchableOpacity>
             )}
           </View>
         }
       />
 
-      {/* FAB */}
-      {puntosFiltrados.length > 0 && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => navigation.navigate('RegistrarPunto')}
-        >
-          <Text style={styles.fabText}>+</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Modal Exportar */}
-      <Modal visible={modalExportar} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>📥 Exportar</Text>
-            <Text style={styles.modalText}>
-              Se exportarán {puntosFiltrados.length} puntos
-            </Text>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => setModalExportar(false)}
-              >
-                <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonConfirm]}
-                onPress={exportarCSV}
-                disabled={exportando}
-              >
-                {exportando ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.modalButtonText}>Exportar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -594,15 +524,17 @@ const styles = StyleSheet.create({
   infoValue: { flex: 1, fontSize: 13, color: '#333', fontWeight: '600' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   fecha: { fontSize: 12, color: '#999', flex: 1 },
-  deleteButton: { padding: 8 },
-  deleteIcon: { fontSize: 18 },
+  cardActions:     { flexDirection: 'row', gap: 8 },
+  actionBtn:       { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  actionBtnEdit:   { backgroundColor: '#fff8e1', borderColor: '#f39c12' },
+  actionBtnDelete: { backgroundColor: '#fff0f0', borderColor: '#e74c3c' },
+  actionBtnLocked: { backgroundColor: '#f5f5f5', borderColor: '#ccc' },
+  actionBtnText:   { fontSize: 15 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', padding: 60, paddingTop: 80 },
   emptyIcon: { fontSize: 64, marginBottom: 20 },
   emptyText: { fontSize: 18, color: '#333', fontWeight: '600', textAlign: 'center', marginBottom: 30 },
   emptyButton: { backgroundColor: COLORS.primary, paddingHorizontal: 30, paddingVertical: 15, borderRadius: 10 },
   emptyButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  fab: { position: 'absolute', right: 20, bottom: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', elevation: 8 },
-  fabText: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 400 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 12, textAlign: 'center' },
