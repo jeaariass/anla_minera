@@ -124,9 +124,19 @@ const PERMISOS = {
     ROLES.OPERARIO,
   ],
   // Editar formularios operativos propios (solo si están en estado editable)
-  EDITAR_FORMULARIO_OPERATIVO: [ROLES.ADMIN, ROLES.JEFE_PLANTA, ROLES.OPERARIO],
+  EDITAR_FORMULARIO_OPERATIVO: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.JEFE_PLANTA,
+    ROLES.OPERARIO,
+  ],
   // Eliminar formularios operativos (no operarios)
-  ELIMINAR_FORMULARIO_OPERATIVO: [ROLES.ADMIN, ROLES.JEFE_PLANTA],
+  ELIMINAR_FORMULARIO_OPERATIVO: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.JEFE_PLANTA,
+    ROLES.OPERARIO,
+  ],
   // Aprobar o rechazar formularios operativos enviados por operarios
   APROBAR_FORMULARIO_OPERATIVO: [ROLES.ADMIN, ROLES.JEFE_PLANTA],
   // Ver estadísticas operativas (puntos y paradas)
