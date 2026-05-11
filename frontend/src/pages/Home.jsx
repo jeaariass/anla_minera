@@ -450,6 +450,16 @@ const Home = () => {
       cardBg: "#f87171",
       permiso: "VER_PAGINA_MAPA",
     },
+    {
+      categoria: "operacion",
+      icon: <Wrench size={26} />,
+      title: "Catálogos de Campo",
+      description:
+        "Administra maquinaria y los ítems de cada proceso (extracción, acopio, procesamiento)",
+      path: "/catalogos-campo",
+      cardBg: "#fca5a5",
+      permiso: "VER_PAGINA_CATALOGOS_CAMPO",
+    },
     /* Certificados — tonos verde esmeralda */
     {
       categoria: "certificados",

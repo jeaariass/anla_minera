@@ -64,14 +64,14 @@ app.use(
       "http://127.0.0.1:3000",
       "http://localhost:5173",
       "http://127.0.0.1:5173",
-      "http://192.168.1.6:3000", // Frontend local en red
-      "http://192.168.1.6:3001", // Backend local
+      "http://192.168.1.9:3000", // Frontend local en red
+      "http://192.168.1.9:3001", // Backend local
 
       // === APP MÓVIL - DESARROLLO LOCAL ===
-      "http://192.168.1.6:8081", // Expo Dev Server
-      "http://192.168.1.6:19000", // Expo Metro
-      "http://192.168.1.6:19006", // Expo Web
-      "exp://192.168.1.6:8081", // Expo protocolo
+      "http://192.168.1.9:8081", // Expo Dev Server
+      "http://192.168.1.9:19000", // Expo Metro
+      "http://192.168.1.9:19006", // Expo Web
+      "exp://192.168.1.9:8081", // Expo protocolo
 
       // === PRODUCCIÓN - HOSTINGER/VPS ===
       "https://ctglobal.com.co", // Frontend producción raíz
@@ -101,6 +101,7 @@ const paradasRoutes = require("./routes/paradasRoutes");
 const clientesRoutes = require("./routes/clientesRoutes");
 const certificadosRoutes = require("./routes/certificadosRoutes");
 const gestorArchivosRoutes = require("./routes/gestorArchivosRoutes");
+const catalogosCampoRoutes = require("./routes/catalogosCampoRoutes");
 
 app.use("/api/android", androidRoutes);
 app.use("/api/actividad", puntosActividadRoutes);
@@ -109,6 +110,7 @@ app.use("/api/paradas", paradasRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/certificados-origen", certificadosRoutes);
 app.use("/api/archivos", gestorArchivosRoutes);
+app.use("/api/catalogos-campo", catalogosCampoRoutes);
 
 // ============================================
 // RUTAS BÁSICAS (públicas)

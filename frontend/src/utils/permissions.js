@@ -107,6 +107,10 @@ const PERMISOS = {
     "JEFE_PLANTA",
     "OPERARIO",
   ],
+
+  // Catálogos de campo (maquinaria + ítems por proceso) — solo ADMIN
+  GESTIONAR_CATALOGOS_CAMPO: ["ADMIN"],
+  VER_PAGINA_CATALOGOS_CAMPO: ["ADMIN"],
 };
 
 export const tienePermiso = (accion) => {

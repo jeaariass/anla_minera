@@ -248,4 +248,21 @@ export const tituloService = {
   update: (id, data) => api.put(`/titulos/${id}`, data),
 };
 
+// Catálogos de campo (admin) — items por proceso y maquinaria
+export const catalogosCampoService = {
+  // Items
+  listarItems: (params) => api.get("/catalogos-campo/items", { params }),
+  crearItem: (data) => api.post("/catalogos-campo/items", data),
+  editarItem: (id, data) => api.put(`/catalogos-campo/items/${id}`, data),
+  eliminarItem: (id) => api.delete(`/catalogos-campo/items/${id}`),
+
+  // Maquinaria
+  listarMaquinaria: (params) =>
+    api.get("/catalogos-campo/maquinaria", { params }),
+  crearMaquinaria: (data) => api.post("/catalogos-campo/maquinaria", data),
+  editarMaquinaria: (id, data) =>
+    api.put(`/catalogos-campo/maquinaria/${id}`, data),
+  eliminarMaquinaria: (id) => api.delete(`/catalogos-campo/maquinaria/${id}`),
+};
+
 export default api;

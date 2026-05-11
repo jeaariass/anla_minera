@@ -101,6 +101,12 @@ const PERMISOS = {
     ROLES.JEFE_PLANTA,
   ],
 
+  // ---------- CATÁLOGOS DE CAMPO (maquinaria + ítems por proceso) ----------
+  // Solo el ADMIN gestiona los catálogos que alimentan los formularios
+  // operativos: maquinaria y opciones de cada categoría
+  // (extracción, acopio, procesamiento, inspección).
+  GESTIONAR_CATALOGOS_CAMPO: [ROLES.ADMIN],
+
   // ---------- ESTADÍSTICAS ----------
   // Ver estadísticas globales (todos los títulos)
   VER_ESTADISTICAS_GLOBALES: [ROLES.ADMIN, ROLES.ASESOR],

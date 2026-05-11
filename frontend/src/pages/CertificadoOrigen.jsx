@@ -1253,7 +1253,7 @@ const CertificadoOrigen = () => {
                     <tbody>
                       {dashData.ultimos.map(c => (
                         <tr key={c.id}>
-                          <td>{c.fechaCertificado ? new Date(c.fechaCertificado).toLocaleDateString("es-CO") : "—"}</td>
+                          <td>{c.fechaCertificado ? new Date(c.fechaCertificado).toLocaleDateString("es-CO", { timeZone: "UTC" }) : "—"}</td>
                           <td>{c.mineralExplotado || "—"}</td>
                           <td>{c.clientes_compradores?.nombre || c.clienteId}</td>
                           <td style={{textAlign:"right"}}>{parseFloat(c.cantidadM3 || 0).toLocaleString("es-CO",{maximumFractionDigits:2})}</td>
