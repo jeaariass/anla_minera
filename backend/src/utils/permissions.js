@@ -101,6 +101,12 @@ const PERMISOS = {
     ROLES.JEFE_PLANTA,
   ],
 
+  // ---------- CATÁLOGOS DE CAMPO (maquinaria + ítems por proceso) ----------
+  // Solo el ADMIN gestiona los catálogos que alimentan los formularios
+  // operativos: maquinaria y opciones de cada categoría
+  // (extracción, acopio, procesamiento, inspección).
+  GESTIONAR_CATALOGOS_CAMPO: [ROLES.ADMIN],
+
   // ---------- ESTADÍSTICAS ----------
   // Ver estadísticas globales (todos los títulos)
   VER_ESTADISTICAS_GLOBALES: [ROLES.ADMIN, ROLES.ASESOR],
@@ -124,9 +130,19 @@ const PERMISOS = {
     ROLES.OPERARIO,
   ],
   // Editar formularios operativos propios (solo si están en estado editable)
-  EDITAR_FORMULARIO_OPERATIVO: [ROLES.ADMIN, ROLES.JEFE_PLANTA, ROLES.OPERARIO],
+  EDITAR_FORMULARIO_OPERATIVO: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.JEFE_PLANTA,
+    ROLES.OPERARIO,
+  ],
   // Eliminar formularios operativos (no operarios)
-  ELIMINAR_FORMULARIO_OPERATIVO: [ROLES.ADMIN, ROLES.JEFE_PLANTA],
+  ELIMINAR_FORMULARIO_OPERATIVO: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.JEFE_PLANTA,
+    ROLES.OPERARIO,
+  ],
   // Aprobar o rechazar formularios operativos enviados por operarios
   APROBAR_FORMULARIO_OPERATIVO: [ROLES.ADMIN, ROLES.JEFE_PLANTA],
   // Ver estadísticas operativas (puntos y paradas)

@@ -23,6 +23,7 @@ import { TituloProvider } from "./context/TituloContext";
 import Usuarios from "./pages/Usuarios";
 import CertificadoOrigen from "./pages/CertificadoOrigen";
 import GestorArchivos from "./pages/GestorArchivos";
+import CatalogosCampo from "./pages/CatalogosCampo";
 
 // Solo verifica que haya sesión activa
 const ProtectedRoute = ({ children }) => {
@@ -118,6 +119,15 @@ function App() {
             element={
               <RoleProtectedRoute permiso="VER_PAGINA_OPERACION">
                 <DashboardOperacion />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/catalogos-campo"
+            element={
+              <RoleProtectedRoute permiso="VER_PAGINA_CATALOGOS_CAMPO">
+                <CatalogosCampo />
               </RoleProtectedRoute>
             }
           />

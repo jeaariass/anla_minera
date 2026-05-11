@@ -137,6 +137,12 @@ const FormulariosOperacion = () => {
 
   const [tab, setTab] = useState("paradas");
 
+  /** True si el usuario puede editar/eliminar este registro */
+  const puedeModificar = (registro) =>
+    user?.rol === "ADMIN" ||
+    user?.rol === "ASESOR" ||
+    registro.usuarioId === user?.id;
+
   // ── Catálogos ──────────────────────────────────────────────────────────────
   const [motivos, setMotivos] = useState([]);
   const [items, setItems] = useState([]);
@@ -937,7 +943,7 @@ const FormulariosOperacion = () => {
                                 {p.observaciones || "—"}
                               </td>
                               <td>
-                                {hoy ? (
+                                {hoy && puedeModificar(p) ? (
                                   <div className="fop-actions">
                                     <button
                                       className="fop-action-btn fop-edit-btn"
@@ -954,9 +960,13 @@ const FormulariosOperacion = () => {
                                       🗑️
                                     </button>
                                   </div>
-                                ) : (
+                                ) : !hoy ? (
                                   <span className="fop-locked">
                                     🔒 Solo hoy
+                                  </span>
+                                ) : (
+                                  <span className="fop-locked">
+                                    🔒 Sin permiso
                                   </span>
                                 )}
                               </td>
@@ -1481,7 +1491,7 @@ const FormulariosOperacion = () => {
                                   : "—"}
                               </td>
                               <td>
-                                {hoy ? (
+                                {hoy && puedeModificar(pt) ? (
                                   <div className="fop-actions">
                                     <button
                                       className="fop-action-btn fop-edit-btn"
@@ -1498,9 +1508,13 @@ const FormulariosOperacion = () => {
                                       🗑️
                                     </button>
                                   </div>
-                                ) : (
+                                ) : !hoy ? (
                                   <span className="fop-locked">
                                     🔒 Solo hoy
+                                  </span>
+                                ) : (
+                                  <span className="fop-locked">
+                                    🔒 Sin permiso
                                   </span>
                                 )}
                               </td>

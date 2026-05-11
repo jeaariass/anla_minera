@@ -15,7 +15,5 @@ node_modules/
 ~$*.xlsx
 ~$*.xls
 
-# Generated files (PDF/XLSX certificados)
-backend/storage/
-
-storage/certificados/TITULO-TEST
+# Generated files (PDF/XLSX certificados, uploads, etc.)
+storage/

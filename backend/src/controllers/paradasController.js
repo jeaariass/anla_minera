@@ -310,7 +310,7 @@ const editarParada = async (req, res) => {
 
     // Verificar que existe
     const existing = await prisma.$queryRaw`
-      SELECT id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
+      SELECT id, usuario_id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
       FROM paradas_actividad
       WHERE id = ${id}::UUID LIMIT 1
     `;
@@ -320,10 +320,16 @@ const editarParada = async (req, res) => {
         .json({ success: false, message: "Paro no encontrado." });
 
     // Después de obtener el registro existente, antes de la verificación del día:
-    if (req.user.rol === "OPERARIO" && existing[0].usuario_id !== req.user.id) {
+    const puedeModificar =
+      req.user.rol === "ADMIN" ||
+      req.user.rol === "ASESOR" ||
+      existing[0].usuario_id === req.user.id;
+
+    if (!puedeModificar) {
       return res.status(403).json({
         success: false,
-        message: "Solo puedes editar tus propios registros",
+        message:
+          "No tienes permiso para modificar este registro. Solo el operario que lo creó, un Admin o un Asesor pueden hacerlo.",
       });
     }
 
@@ -409,12 +415,13 @@ const editarParada = async (req, res) => {
 // DELETE /api/paradas/:id
 // Solo eliminable si es del mismo día Colombia
 // ============================================
+// ✅ DESPUÉS
 const eliminarParada = async (req, res) => {
   try {
     const { id } = req.params;
 
     const existing = await prisma.$queryRaw`
-      SELECT id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
+      SELECT id, usuario_id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
       FROM paradas_actividad
       WHERE id = ${id}::UUID LIMIT 1
     `;
@@ -422,6 +429,19 @@ const eliminarParada = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Paro no encontrado." });
+
+    const puedeModificar =
+      req.user.rol === "ADMIN" ||
+      req.user.rol === "ASESOR" ||
+      existing[0].usuario_id === req.user.id;
+
+    if (!puedeModificar) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "No tienes permiso para modificar este registro. Solo el operario que lo creó, un Admin o un Asesor pueden hacerlo.",
+      });
+    }
 
     const diaRegistro = String(existing[0].dia).split("T")[0];
     if (diaRegistro !== colombiaToday()) {
