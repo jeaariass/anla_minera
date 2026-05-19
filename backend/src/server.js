@@ -102,6 +102,7 @@ const clientesRoutes = require("./routes/clientesRoutes");
 const certificadosRoutes = require("./routes/certificadosRoutes");
 const gestorArchivosRoutes = require("./routes/gestorArchivosRoutes");
 const catalogosCampoRoutes = require("./routes/catalogosCampoRoutes");
+const mobileVersionRoutes = require("./routes/mobileVersionRoutes");
 
 app.use("/api/android", androidRoutes);
 app.use("/api/actividad", puntosActividadRoutes);
@@ -111,6 +112,7 @@ app.use("/api/clientes", clientesRoutes);
 app.use("/api/certificados-origen", certificadosRoutes);
 app.use("/api/archivos", gestorArchivosRoutes);
 app.use("/api/catalogos-campo", catalogosCampoRoutes);
+app.use("/api/mobile", mobileVersionRoutes);
 
 // ============================================
 // RUTAS BÁSICAS (públicas)

@@ -504,6 +504,130 @@ eas build --platform android
 
 ---
 
+## Actualizaciones de la app móvil
+
+La app tiene **dos mecanismos de actualización** que conviven y se complementan:
+
+| Ruta | Para qué sirve | Frecuencia típica |
+|---|---|---|
+| **A — EAS Update (OTA)** | Push de cambios JS/UI sin reinstalar APK | Cualquier cambio en `src/` |
+| **B — Version check + APK nuevo** | Forzar/sugerir descarga de APK cuando hay cambios nativos | Cambios en `app.json`, libs nativas, SDK Expo |
+
+### ¿Cuándo necesito generar un APK nuevo?
+
+Heurística: **si tu cambio solo toca archivos dentro de `tu-mina-mobile/src/`, NO necesitas APK nuevo** — basta con `eas update`. Solo necesitas APK nuevo cuando:
+
+| Tipo de cambio | ¿APK nuevo? |
+|---|---|
+| Editar JSX / lógica / estilos / textos dentro de `src/` | ❌ No — usa EAS Update |
+| Agregar lib **pure JS** (`axios`, `date-fns`, `lodash`, etc.) | ❌ No — usa EAS Update |
+| Modificar assets referenciados con `require()` | ❌ No — usa EAS Update |
+| Editar `app.json` (versión, permisos, plugins, splash) | ✅ Sí |
+| Agregar lib con código nativo (`react-native-*`, `expo-*` con módulo nativo) | ✅ Sí |
+| Bump del SDK Expo (54 → 55) | ✅ Sí |
+| Cambiar `runtimeVersion` o `updates.url` | ✅ Sí |
+
+### Ruta A — EAS Update (push OTA)
+
+Configurado en `app.json`:
+
+```json
+"runtimeVersion": { "policy": "appVersion" },
+"updates": {
+  "url": "https://u.expo.dev/bb635bf8-99f4-4505-a0fa-dd718ae09248",
+  "enabled": true,
+  "checkAutomatically": "ON_LOAD"
+}
+```
+
+**Setup inicial** (solo una vez):
+
+```bash
+cd tu-mina-mobile
+npx expo install expo-updates
+eas update:configure
+eas build --platform android --profile production   # APK con expo-updates integrado
+```
+
+Distribuye ese APK al equipo (es el último APK manual que entregas durante un buen rato).
+
+**Publicar update OTA** (en cualquier cambio JS posterior):
+
+```bash
+eas update --branch production --message "Descripción del cambio"
+```
+
+El equipo recibe el bundle al abrir la app. El modal "Actualización descargada / Reiniciar ahora" aparece automáticamente (configurado en `AppNavigator.js`).
+
+### Ruta B — Version check + APK forzado
+
+Cuando un cambio sí requiere APK nuevo, controla el rollout con el endpoint:
+
+```
+GET /api/mobile/version    (público, sin auth)
+```
+
+Config editable en **`backend/storage/mobile-version.json`**:
+
+```json
+{
+  "latest": "1.4.0",
+  "minimum": "1.2.0",
+  "apkUrl": "https://intranet.ctglobal.com.co/documentos/tumina-1.4.0.apk",
+  "releaseNotes": "Soporte reprocesamiento, fix sesión expirada"
+}
+```
+
+**Cómo decide la app**:
+
+| Comparación | Comportamiento |
+|---|---|
+| `current < minimum` | Modal **bloqueante** — solo botón "Descargar APK", no se puede cerrar |
+| `minimum ≤ current < latest` | Modal **sugerente** — botones "Después" y "Descargar" |
+| `current ≥ latest` | Silencio — está al día |
+
+**Flujo de release de APK nuevo** (5 pasos):
+
+1. **Bump versión** en `tu-mina-mobile/app.json`:
+   ```json
+   "version": "1.4.0"
+   ```
+2. **Build APK**:
+   ```bash
+   cd tu-mina-mobile
+   eas build --platform android --profile production
+   ```
+3. **Subir APK** a `https://intranet.ctglobal.com.co/documentos/tumina-1.4.0.apk`.
+4. **Editar `backend/storage/mobile-version.json`** con los nuevos valores:
+   - `latest` → la versión nueva.
+   - `minimum` → déjala igual si solo quieres **sugerir**; súbela si quieres **forzar**.
+   - `apkUrl` → URL del APK recién subido.
+   - `releaseNotes` → texto corto que verá el usuario en el modal.
+5. **Reiniciar backend** (o esperar — el endpoint relee el JSON en cada request, no necesita restart):
+   ```bash
+   ssh vps "pm2 restart tumina-backend"
+   ```
+
+El equipo verá el modal al abrir la app o al volver del background.
+
+### ¿Cómo elijo entre "sugerir" y "forzar"?
+
+| Quiero... | Edito `mobile-version.json` así |
+|---|---|
+| **Sugerir** descarga (usuario puede aplazar) | Subir `latest`, dejar `minimum` igual |
+| **Forzar** descarga (bloquea uso de versiones viejas) | Subir `latest` y `minimum` a la misma versión nueva |
+| **Forzar solo a usuarios muy desactualizados** | Subir `latest` a la nueva, `minimum` a una intermedia |
+
+### Resumen de qué pasa al abrir la app
+
+1. **OTA check** (Ruta A) — descarga bundle JS si hay update.
+2. **Token check** — si el JWT expiró, redirige al Login.
+3. **Version check** (Ruta B) — consulta `/api/mobile/version` y muestra modal si corresponde.
+
+Los tres flujos también re-corren cuando la app vuelve del background (`AppState → active`).
+
+---
+
 ## Reportes y archivos
 
 ### Excel oficiales ANM

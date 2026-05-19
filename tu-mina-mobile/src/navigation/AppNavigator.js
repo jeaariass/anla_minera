@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { verificarVersion } from '../services/versionCheck';
 
 import LoginScreen            from '../screens/LoginScreen';
 import HomeScreen             from '../screens/HomeScreen';
@@ -76,10 +77,46 @@ const AppNavigator = () => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (appState.current.match(/inactive|background/) && nextState === 'active') {
         verificarTokenVigente();
+        verificarVersion(); // re-chequea versión al volver del background
       }
       appState.current = nextState;
     });
     return () => sub.remove();
+  }, []);
+
+  // ── Verificar versión APK al iniciar (Ruta B — version check) ───────────────
+  // Endpoint público: GET /api/mobile/version (config en backend/storage).
+  useEffect(() => {
+    verificarVersion();
+  }, []);
+
+  // ── Auto-update OTA (Ruta A — EAS Update) ──────────────────────────────────
+  // Carga `expo-updates` con require dinámico para no romper si la lib aún no
+  // está instalada en el proyecto. Después de `npx expo install expo-updates`
+  // y rebuild del APK, esto descarga bundles JS nuevos al abrir la app.
+  useEffect(() => {
+    (async () => {
+      if (__DEV__) return; // OTA solo en builds de producción
+      try {
+        const Updates = require('expo-updates');
+        if (!Updates?.checkForUpdateAsync) return;
+
+        const check = await Updates.checkForUpdateAsync();
+        if (!check.isAvailable) return;
+
+        await Updates.fetchUpdateAsync();
+        Alert.alert(
+          '🔄 Actualización descargada',
+          'Se aplicará al reiniciar la app.',
+          [
+            { text: 'Después',          style: 'cancel' },
+            { text: 'Reiniciar ahora',  onPress: () => Updates.reloadAsync() },
+          ]
+        );
+      } catch (e) {
+        console.log('OTA check omitido —', e?.message);
+      }
+    })();
   }, []);
 
   if (isLoading) {

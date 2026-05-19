@@ -226,3 +226,45 @@ No usar `new Date(iso)` en cliente para formatear; parsear el string directo
 - Mobile builds con `eas build --platform android`. `projectId` en `app.json`.
 
 **Plan unificación VPS** (pendiente): ver `PROXIMOS_CAMBIOS.md`.
+
+---
+
+## Estrategia de updates mobile (Rutas A + B)
+
+Combo configurado:
+
+- **Ruta A — EAS Update (OTA)**: cualquier cambio en `tu-mina-mobile/src/`
+  se publica con `eas update --branch production --message "..."`. La app lo
+  descarga al abrir y propone reiniciar.
+- **Ruta B — Version check**: backend expone `GET /api/mobile/version`
+  (público, sin auth). La app compara `app.json → version` con el JSON de
+  config y muestra modal sugerente o bloqueante.
+
+**Archivo de config editable** (no requiere redeploy del backend, solo
+relectura en cada request): `backend/storage/mobile-version.json`.
+
+**Para Claude**: cuando el usuario pida "publicar cambio mobile":
+1. Ver si el cambio toca solo `src/` (entonces es OTA via `eas update`).
+2. Si toca `app.json`, libs nativas o SDK: requiere APK nuevo + bump del
+   JSON de config. Recordarle subir el APK a
+   `https://intranet.ctglobal.com.co/documentos/`.
+
+Setup inicial pendiente (usuario debe ejecutar **una sola vez**):
+
+```bash
+cd tu-mina-mobile
+npx expo install expo-updates
+eas update:configure
+eas build --platform android --profile production
+```
+
+El primer APK con `expo-updates` integrado debe distribuirse manualmente.
+Después de eso, los updates JS son OTA.
+
+**Detalles de comportamiento implementado** (`AppNavigator.js`):
+- En cada mount + cada vuelta del background:
+  1. Chequea token JWT (decodifica `exp`, cierra sesión si expiró).
+  2. Llama `verificarVersion()` (modal sugerente/bloqueante).
+- En cada mount (solo producción):
+  3. `Updates.checkForUpdateAsync()` + fetch + Alert con botón "Reiniciar ahora".
+- El interceptor de `api.js` también reacciona a `401 { expired: true }`.
