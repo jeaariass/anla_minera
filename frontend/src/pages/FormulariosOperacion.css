@@ -215,10 +215,11 @@
 }
 
 .cat-btn:hover { border-color: #94a3b8; background: #f8fafc; }
-.cat-btn.cat-active-extraccion   { background: #e74c3c; border-color: #e74c3c; color: white; }
-.cat-btn.cat-active-acopio       { background: #3498db; border-color: #3498db; color: white; }
-.cat-btn.cat-active-procesamiento{ background: #f39c12; border-color: #f39c12; color: white; }
-.cat-btn.cat-active-inspeccion   { background: #27ae60; border-color: #27ae60; color: white; }
+.cat-btn.cat-active-extraccion     { background: #e74c3c; border-color: #e74c3c; color: white; }
+.cat-btn.cat-active-acopio         { background: #3498db; border-color: #3498db; color: white; }
+.cat-btn.cat-active-procesamiento  { background: #f39c12; border-color: #f39c12; color: white; }
+.cat-btn.cat-active-reprocesamiento{ background: #14b8a6; border-color: #14b8a6; color: white; }
+.cat-btn.cat-active-inspeccion     { background: #27ae60; border-color: #27ae60; color: white; }
 
 /* ── List card ── */
 .fop-list-card {
@@ -282,10 +283,11 @@
 }
 
 .fop-cat-chip.chip-all.chip-active  { background: #1e293b; border-color: #1e293b; color: white; }
-.fop-cat-chip.chip-extraccion.chip-active    { background: #e74c3c; border-color: #e74c3c; color: white; }
-.fop-cat-chip.chip-acopio.chip-active        { background: #3498db; border-color: #3498db; color: white; }
-.fop-cat-chip.chip-procesamiento.chip-active { background: #f39c12; border-color: #f39c12; color: white; }
-.fop-cat-chip.chip-inspeccion.chip-active    { background: #27ae60; border-color: #27ae60; color: white; }
+.fop-cat-chip.chip-extraccion.chip-active      { background: #e74c3c; border-color: #e74c3c; color: white; }
+.fop-cat-chip.chip-acopio.chip-active          { background: #3498db; border-color: #3498db; color: white; }
+.fop-cat-chip.chip-procesamiento.chip-active   { background: #f39c12; border-color: #f39c12; color: white; }
+.fop-cat-chip.chip-reprocesamiento.chip-active { background: #14b8a6; border-color: #14b8a6; color: white; }
+.fop-cat-chip.chip-inspeccion.chip-active      { background: #27ae60; border-color: #27ae60; color: white; }
 
 /* ── Table ── */
 .fop-table-wrap { overflow-x: auto; }
@@ -365,10 +367,11 @@
   font-weight: 700;
 }
 
-.fop-cat-badge.extraccion   { background: #fee2e2; color: #c0392b; }
-.fop-cat-badge.acopio       { background: #dbeafe; color: #1e40af; }
-.fop-cat-badge.procesamiento{ background: #fef3c7; color: #b45309; }
-.fop-cat-badge.inspeccion   { background: #d1fae5; color: #065f46; }
+.fop-cat-badge.extraccion     { background: #fee2e2; color: #c0392b; }
+.fop-cat-badge.acopio         { background: #dbeafe; color: #1e40af; }
+.fop-cat-badge.procesamiento  { background: #fef3c7; color: #b45309; }
+.fop-cat-badge.reprocesamiento{ background: #ccfbf1; color: #0f766e; }
+.fop-cat-badge.inspeccion     { background: #d1fae5; color: #065f46; }
 
 .fop-dur-pill {
   display: inline-flex;

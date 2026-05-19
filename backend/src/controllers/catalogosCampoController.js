@@ -5,15 +5,9 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const CATEGORIAS_VALIDAS = [
-  "extraccion",
-  "acopio",
-  "procesamiento",
-  "inspeccion",
-];
-
-const validarCategoria = (categoria) =>
-  CATEGORIAS_VALIDAS.includes((categoria || "").toLowerCase());
+// Fuente única de categorías — ver backend/src/utils/categorias.js.
+const { CATEGORIAS_VALIDAS, esCategoriaValida } = require("../utils/categorias");
+const validarCategoria = esCategoriaValida;
 
 // ─────────────────────────────────────────────────────────────
 // ITEMS DE PROCESOS  (puntos_items_catalogo)

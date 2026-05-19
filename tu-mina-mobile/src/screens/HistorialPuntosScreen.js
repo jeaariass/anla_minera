@@ -21,20 +21,10 @@ import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-
-const CATEGORIA_COLORS = {
-  extraccion: '#e74c3c',
-  acopio: '#3498db',
-  procesamiento: '#f39c12',
-  inspeccion: '#27ae60',
-};
-
-const CATEGORIA_LABELS = {
-  extraccion: '⛏️ Extracción',
-  acopio: '📦 Acopio',
-  procesamiento: '⚙️ Procesamiento',
-  inspeccion: '🔍 Inspección',
-};
+import {
+  CATEGORIA_COLORS,
+  CATEGORIA_LABELS,
+} from '../utils/categorias';
 
 const HistorialPuntosScreen = ({ navigation }) => {
   const [todosLosPuntos, setTodosLosPuntos] = useState([]);

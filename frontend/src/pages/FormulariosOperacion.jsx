@@ -33,6 +33,7 @@ import "leaflet/dist/leaflet.css";
 
 import SelectorTitulo from "../components/SelectorTitulo";
 import { useTituloActivo } from "../context/TituloContext";
+import { CATEGORIAS_CAMPO, CATEGORIA_LABELS as CAT_LABELS } from "../constants/categorias";
 
 // Fix Leaflet default icons for Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -44,19 +45,11 @@ L.Icon.Default.mergeOptions({
 });
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
-const CATEGORIAS = [
-  { id: "extraccion", label: "⛏️ Extracción" },
-  { id: "acopio", label: "📦 Acopio" },
-  { id: "procesamiento", label: "⚙️ Procesamiento" },
-  //{ id: 'inspeccion',    label: '🔍 Inspección' },
-];
-
-const CAT_LABELS = {
-  extraccion: "⛏️ Extracción",
-  acopio: "📦 Acopio",
-  procesamiento: "⚙️ Procesamiento", //inspeccion: '🔍 Inspección',
-};
+// Formulario operativo excluye "inspeccion" (eso vive en certificados de origen).
+const CATEGORIAS = CATEGORIAS_CAMPO.map((c) => ({
+  id:    c.id,
+  label: `${c.emoji} ${c.label}`,
+}));
 
 /** "YYYY-MM-DD" en hora Colombia */
 const colombiaToday = () => {

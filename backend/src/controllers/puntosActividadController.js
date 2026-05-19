@@ -3,6 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
+const { CATEGORIAS_VALIDAS } = require("../utils/categorias");
 
 // ─── Helpers Colombia ─────────────────────────────────────────────────────────
 
@@ -34,12 +35,6 @@ const getItems = async (req, res) => {
   try {
     const { categoria } = req.params;
 
-    const CATEGORIAS_VALIDAS = [
-      "extraccion",
-      "acopio",
-      "procesamiento",
-      "inspeccion",
-    ];
     if (!CATEGORIAS_VALIDAS.includes(categoria)) {
       return res.status(400).json({
         success: false,

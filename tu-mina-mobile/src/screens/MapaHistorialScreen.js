@@ -9,20 +9,11 @@ import {
 } from 'react-native';
 import MapView, { Marker, Callout, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import COLORS from '../utils/colors';
+import { CATEGORIAS } from '../utils/categorias';
 
-const CATEGORIA_COLORS = {
-  extraccion: '#e74c3c',
-  acopio: '#3498db',
-  procesamiento: '#f39c12',
-  inspeccion: '#27ae60',
-};
-
-const CATEGORIA_LABELS = {
-  extraccion: '⛏️',
-  acopio: '📦',
-  procesamiento: '⚙️',
-  inspeccion: '🔍',
-};
+const CATEGORIA_COLORS = Object.fromEntries(CATEGORIAS.map((c) => [c.id, c.color]));
+// El mapa usa solo emoji como etiqueta corta sobre el marker.
+const CATEGORIA_LABELS = Object.fromEntries(CATEGORIAS.map((c) => [c.id, c.emoji]));
 
 const MapaHistorialScreen = ({ route, navigation }) => {
   const { puntos = [] } = route.params || {};

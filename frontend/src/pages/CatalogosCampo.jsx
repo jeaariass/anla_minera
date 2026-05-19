@@ -21,35 +21,25 @@ import {
 import { authService, catalogosCampoService } from "../services/api";
 import { tienePermiso } from "../utils/permissions";
 import SelectorTitulo from "../components/SelectorTitulo";
+import { CATEGORIAS as CATEGORIAS_BASE } from "../constants/categorias";
 import "./Reportes.css";
 import "./CatalogosCampo.css";
 
-const CATEGORIAS = [
-  {
-    id: "extraccion",
-    label: "⛏️ Extracción",
-    icon: <Pickaxe size={16} />,
-    color: "#e74c3c",
-  },
-  {
-    id: "acopio",
-    label: "📦 Acopio",
-    icon: <Boxes size={16} />,
-    color: "#3498db",
-  },
-  {
-    id: "procesamiento",
-    label: "⚙️ Procesamiento",
-    icon: <Cog size={16} />,
-    color: "#f39c12",
-  },
-  {
-    id: "inspeccion",
-    label: "🔍 Inspección",
-    icon: <ClipboardCheck size={16} />,
-    color: "#10b981",
-  },
-];
+// Mapeo de icono por categoría — vive solo aquí porque es UI-specific.
+const ICONOS = {
+  extraccion:      <Pickaxe size={16} />,
+  acopio:          <Boxes size={16} />,
+  procesamiento:   <Cog size={16} />,
+  reprocesamiento: <Cog size={16} />,
+  inspeccion:      <ClipboardCheck size={16} />,
+};
+
+const CATEGORIAS = CATEGORIAS_BASE.map((c) => ({
+  id:    c.id,
+  label: `${c.emoji} ${c.label}`,
+  icon:  ICONOS[c.id] ?? <Cog size={16} />,
+  color: c.color,
+}));
 
 const TABS = [
   { id: "items", label: "Procesos / Ítems", icon: <Cog size={16} /> },

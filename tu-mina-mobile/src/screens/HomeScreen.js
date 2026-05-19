@@ -15,19 +15,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService, actividadService } from '../services/api';
 import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
+import { CATEGORIAS_CAMPO } from '../utils/categorias';
 
 const emptyStats = {
   totalPuntos: 0,
-  extraccion: { count: 0, volumen: 0 },
-  acopio: { count: 0, volumen: 0 },
-  procesamiento: { count: 0, volumen: 0 },
+  ...Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, { count: 0, volumen: 0 }])),
 };
 
-const CAT = [
-  { key: 'extraccion', label: 'Extracción', border: '#e74c3c' },
-  { key: 'acopio', label: 'Acopio', border: '#3498db' },
-  { key: 'procesamiento', label: 'Procesamiento', border: '#f39c12' },
-];
+// Tarjetas-resumen de Home: solo categorías de campo.
+const CAT = CATEGORIAS_CAMPO.map((c) => ({
+  key:    c.id,
+  label:  c.label,
+  emoji:  c.emoji,
+  border: c.color,
+}));
 
 function safeNumber(v) {
   const n = Number(v);
@@ -57,12 +58,14 @@ function normalizeBackendStats(payload) {
 
   // Caso: ya listo como UI { totalPuntos, extraccion:{count,volumen}, ... }
   if (typeof s.totalPuntos !== 'undefined' && s.extraccion && typeof s.extraccion.count !== 'undefined') {
-    return {
-      totalPuntos: safeNumber(s.totalPuntos),
-      extraccion: { count: safeNumber(s.extraccion.count), volumen: safeNumber(s.extraccion.volumen) },
-      acopio: { count: safeNumber(s.acopio?.count), volumen: safeNumber(s.acopio?.volumen) },
-      procesamiento: { count: safeNumber(s.procesamiento?.count), volumen: safeNumber(s.procesamiento?.volumen) },
-    };
+    const out = { totalPuntos: safeNumber(s.totalPuntos) };
+    for (const c of CATEGORIAS_CAMPO) {
+      out[c.id] = {
+        count:   safeNumber(s[c.id]?.count),
+        volumen: safeNumber(s[c.id]?.volumen),
+      };
+    }
+    return out;
   }
 
   // Caso: { total, porCategoria: { extraccion:{cantidad|count, volumen} ... } }
@@ -70,21 +73,14 @@ function normalizeBackendStats(payload) {
   const total = s.total ?? s.totalPuntos ?? s.total_puntos ?? null;
 
   if (por) {
-    return {
-      totalPuntos: safeNumber(total),
-      extraccion: {
-        count: safeNumber(por.extraccion?.cantidad ?? por.extraccion?.count),
-        volumen: safeNumber(por.extraccion?.volumen),
-      },
-      acopio: {
-        count: safeNumber(por.acopio?.cantidad ?? por.acopio?.count),
-        volumen: safeNumber(por.acopio?.volumen),
-      },
-      procesamiento: {
-        count: safeNumber(por.procesamiento?.cantidad ?? por.procesamiento?.count),
-        volumen: safeNumber(por.procesamiento?.volumen),
-      },
-    };
+    const out = { totalPuntos: safeNumber(total) };
+    for (const c of CATEGORIAS_CAMPO) {
+      out[c.id] = {
+        count:   safeNumber(por[c.id]?.cantidad ?? por[c.id]?.count),
+        volumen: safeNumber(por[c.id]?.volumen),
+      };
+    }
+    return out;
   }
 
   return null;

@@ -40,13 +40,7 @@ import "leaflet/dist/leaflet.css";
 import "./Home.css";
 import { tienePermiso } from "../utils/permissions";
 import SelectorTitulo from "../components/SelectorTitulo";
-
-/* ── Colores por categoría ── */
-const CAT_COLORS = {
-  extraccion: "#e74c3c",
-  acopio: "#3498db",
-  procesamiento: "#f39c12",
-};
+import { CATEGORIA_COLORS as CAT_COLORS } from "../constants/categorias";
 
 /* Centro por defecto: Colombia */
 const DEFAULT_CENTER = [

@@ -10,15 +10,16 @@ import Breadcrumb from '../components/Breadcrumb';
 import { actividadService } from '../services/api';
 import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
+import { CATEGORIAS as CATEGORIAS_BASE } from '../utils/categorias';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
-const CATEGORIAS = [
-  { id: 'extraccion',    label: '⛏️ Extracción',   color: '#e74c3c' },
-  { id: 'acopio',        label: '📦 Acopio',        color: '#3498db' },
-  { id: 'procesamiento', label: '⚙️ Procesamiento', color: '#f39c12' },
-  { id: 'inspeccion',    label: '🔍 Inspección',     color: '#27ae60' },
-];
+// EditarPunto muestra todas las categorías (incluyendo inspeccion) porque
+// puede editar un punto creado con cualquier categoría histórica.
+const CATEGORIAS = CATEGORIAS_BASE.map((c) => ({
+  id:    c.id,
+  label: `${c.emoji} ${c.label}`,
+  color: c.color,
+}));
 
 /** "YYYY-MM-DD" según hora Colombia ahora mismo */
 const colombiaToday = () => {

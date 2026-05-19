@@ -38,7 +38,7 @@ api.interceptors.request.use(
 // CIERRE AUTOMÁTICO POR EXPIRACIÓN DE TOKEN
 // ============================================
 const mostrarMensajeExpiracion = () => {
-  if (window.location.pathname.includes("Login")) return;
+  if (window.location.pathname === "/TU_MINA/" || window.location.pathname === "/TU_MINA") return;
 
   localStorage.removeItem("token");
   localStorage.removeItem("usuario");
@@ -56,7 +56,7 @@ const mostrarMensajeExpiracion = () => {
   document.body.appendChild(div);
 
   setTimeout(() => {
-    window.location.href = "/TU_MINA/Login";
+    window.location.href = "/TU_MINA/";
   }, 2500);
 };
 

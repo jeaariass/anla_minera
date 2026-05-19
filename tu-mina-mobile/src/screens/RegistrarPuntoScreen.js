@@ -21,14 +21,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { actividadService } from '../services/api';
 import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
+import { CATEGORIAS_CAMPO } from '../utils/categorias';
 
 // ─── Categorías ───────────────────────────────────────────────────────────────
-
-const CATEGORIAS = [
-  { id: 'extraccion',    label: 'Extracción',    color: '#e74c3c' },
-  { id: 'acopio',        label: 'Acopio',         color: '#3498db' },
-  { id: 'procesamiento', label: 'Procesamiento',  color: '#f39c12' },
-];
+// Solo categorías de campo (sin inspeccion) para registro operativo.
+const CATEGORIAS = CATEGORIAS_CAMPO.map((c) => ({
+  id:    c.id,
+  label: c.label,
+  color: c.color,
+}));
 
 // ─── Selector reutilizable con picker modal ───────────────────────────────────
 
