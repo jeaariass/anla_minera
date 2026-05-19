@@ -609,3 +609,7 @@ TUMINA-main/
 ## Soporte
 
 Repositorio mantenido por **CT Global** — `direccion@ctglobal.com.co`.
+
+
+cd /srv/anm-fri-backend
+pm2 restart tumina-backend
