@@ -554,10 +554,26 @@ Distribuye ese APK al equipo (es el último APK manual que entregas durante un b
 **Publicar update OTA** (en cualquier cambio JS posterior):
 
 ```bash
-eas update --branch production --message "Descripción del cambio"
+cd tu-mina-mobile
+eas update --branch production --platform android --message "Descripción del cambio"
+```
+
+> ⚠️ **Importante**: usa `--platform android` (o `--platform ios`). Sin la flag, EAS intenta empacar también web y falla con `Importing native-only module "react-native/Libraries/Utilities/codegenNativeCommands" on web from: node_modules/react-native-maps/...` porque `react-native-maps` no soporta web. Esta app es solo Android/iOS, no web.
+
+Si necesitas iOS también:
+
+```bash
+eas update --branch production --platform ios --message "Descripción del cambio"
 ```
 
 El equipo recibe el bundle al abrir la app. El modal "Actualización descargada / Reiniciar ahora" aparece automáticamente (configurado en `AppNavigator.js`).
+
+**Ejemplo real** (cambio de logo + textos sin APK nuevo):
+
+```bash
+cd tu-mina-mobile
+eas update --branch production --platform android --message "Logo GEOGLOBAL en login + textos"
+```
 
 ### Ruta B — Version check + APK forzado
 

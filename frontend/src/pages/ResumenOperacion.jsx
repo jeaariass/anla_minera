@@ -191,7 +191,7 @@ const ResumenOperacion = () => {
                   TU MINA
                 </h1>
                 <p style={{ fontSize: 13, color: "#718096", margin: 0 }}>
-                  Desarrollado por CTGlobal
+                  Desarrollado por GEOGLOBAL
                 </p>
               </div>
             </div>

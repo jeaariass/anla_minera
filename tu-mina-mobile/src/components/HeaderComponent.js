@@ -36,7 +36,7 @@ const HeaderComponent = () => {
 
         <View style={styles.brandContainer}>
           <Text style={styles.headerTitle}>TU MINA</Text>
-          <Text style={styles.headerSubtitle}>Desarrollado por CTGlobal</Text>
+          <Text style={styles.headerSubtitle}>Desarrollado por GEOGLOBAL</Text>
         </View>
       </View>
       

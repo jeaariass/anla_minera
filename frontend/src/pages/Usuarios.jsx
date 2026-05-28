@@ -522,7 +522,7 @@ const Usuarios = () => {
               </div>
               <div>
                 <h1>TU MINA</h1>
-                <p>Desarrollado por CTGlobal</p>
+                <p>Desarrollado por GEOGLOBAL</p>
               </div>
             </div>
             <div className="header-right">
