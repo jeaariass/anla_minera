@@ -29,6 +29,7 @@ model TituloMinero {
   modalidad               String?
   centroid                Json?
   polygon                 Json?
+  esDemo                  Boolean                   @default(false)
   certificados_origen     certificados_origen[]
   friCapacidad            FRICapacidad[]
   friEjecucion            FRIEjecucion[]
@@ -42,8 +43,38 @@ model TituloMinero {
   puntosReferencia        PuntoReferencia[]
   registrosCiclos         RegistroCicloProduccion[]
   usuarios                Usuario[]
+  categorias              TituloCategoria[]
+  modulos                 TituloModulo[]
 
   @@map("titulos_mineros")
+}
+
+model TituloCategoria {
+  id             String       @id @default(uuid())
+  tituloMineroId String
+  categoria      String // 'extraccion' | 'acopio' | 'procesamiento' | 'reprocesamiento' | 'inspeccion'
+  activo         Boolean      @default(true)
+  orden          Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  tituloMinero   TituloMinero @relation(fields: [tituloMineroId], references: [id], onDelete: Cascade)
+
+  @@unique([tituloMineroId, categoria])
+  @@map("titulo_categorias")
+}
+
+model TituloModulo {
+  id             String       @id @default(uuid())
+  tituloMineroId String
+  modulo         String // ids en backend/src/utils/modulos.js
+  activo         Boolean      @default(true)
+  orden          Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  tituloMinero   TituloMinero @relation(fields: [tituloMineroId], references: [id], onDelete: Cascade)
+
+  @@unique([tituloMineroId, modulo])
+  @@map("titulo_modulos")
 }
 
 model Usuario {
@@ -53,6 +84,7 @@ model Usuario {
   nombre                  String
   rol                     Rol                       @default(OPERARIO)
   activo                  Boolean                   @default(true)
+  esDemo                  Boolean                   @default(false)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   tituloMineroId          String?

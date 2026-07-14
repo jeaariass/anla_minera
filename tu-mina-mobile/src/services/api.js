@@ -207,6 +207,11 @@ export const actividadService = {
     return api.get(`/actividad/estadisticas/${tituloMineroId}`);
   },
 
+  // Categorías habilitadas para el título minero
+  getCategoriasActivas: async (tituloMineroId) => {
+    return api.get(`/titulos/${tituloMineroId}/categorias`);
+  },
+
   editarPunto: async (id, payload) => {
     return api.put(`/actividad/${id}`, payload);
   },

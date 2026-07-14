@@ -8,6 +8,8 @@ const jwt = require("jsonwebtoken");
 // SERVICIOS
 const excelReports = require("./services/excelReports");
 const simpleExporter = require("./services/simpleExporter");
+const { CATEGORIAS, CATEGORIAS_VALIDAS } = require("./utils/categorias");
+const { MODULOS, MODULOS_VALIDOS } = require("./utils/modulos");
 
 // -------------------------------------------------------
 // CAMBIO: importamos también permisoMiddleware y los
@@ -18,6 +20,7 @@ const {
   roleMiddleware,
   permisoMiddleware,
 } = require("./middleware/authMiddleware");
+const { moduloMiddleware } = require("./middleware/moduloMiddleware");
 
 const {
   esRolGlobal,
@@ -103,6 +106,7 @@ const certificadosRoutes = require("./routes/certificadosRoutes");
 const gestorArchivosRoutes = require("./routes/gestorArchivosRoutes");
 const catalogosCampoRoutes = require("./routes/catalogosCampoRoutes");
 const mobileVersionRoutes = require("./routes/mobileVersionRoutes");
+const demoRoutes = require("./routes/demoRoutes");
 
 app.use("/api/android", androidRoutes);
 app.use("/api/actividad", puntosActividadRoutes);
@@ -113,6 +117,7 @@ app.use("/api/certificados-origen", certificadosRoutes);
 app.use("/api/archivos", gestorArchivosRoutes);
 app.use("/api/catalogos-campo", catalogosCampoRoutes);
 app.use("/api/mobile", mobileVersionRoutes);
+app.use("/api/demos", demoRoutes);
 
 // ============================================
 // RUTAS BÁSICAS (públicas)
@@ -2798,6 +2803,7 @@ app.get(
   "/api/list-users",
   authMiddleware,
   permisoMiddleware("VER_USUARIOS"),
+  moduloMiddleware("usuarios"),
   async (req, res) => {
     try {
       const filtro = esRolGlobal(req.user)
@@ -2814,6 +2820,7 @@ app.get(
           activo: true,
           createdAt: true,
           tituloMineroId: true,
+          esDemo: true,
           tituloMinero: {
             select: {
               id: true,
@@ -2842,6 +2849,7 @@ app.post(
   "/api/list-users",
   authMiddleware,
   permisoMiddleware("CREAR_USUARIO"),
+  moduloMiddleware("usuarios"),
   async (req, res) => {
     try {
       const { email, password, nombre, rol, tituloMineroId } = req.body;
@@ -2926,6 +2934,7 @@ app.patch(
   "/api/list-users/:id/status",
   authMiddleware,
   permisoMiddleware("CAMBIAR_ESTADO_USUARIO"),
+  moduloMiddleware("usuarios"),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -2975,6 +2984,7 @@ app.put(
   "/api/list-users/:id",
   authMiddleware,
   permisoMiddleware("EDITAR_USUARIO"),
+  moduloMiddleware("usuarios"),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -3061,6 +3071,7 @@ app.get(
   "/api/list-users/:id",
   authMiddleware,
   permisoMiddleware("VER_USUARIOS"),
+  moduloMiddleware("usuarios"),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -3075,6 +3086,7 @@ app.get(
           activo: true,
           createdAt: true,
           tituloMineroId: true,
+          esDemo: true,
           tituloMinero: {
             select: {
               id: true,
@@ -3293,6 +3305,29 @@ app.post(
           }),
         ]);
 
+        // Categorías activas por defecto (todas). El ADMIN puede
+        // desactivarlas después desde el modal "Editar Título".
+        await tx.tituloCategoria.createMany({
+          data: CATEGORIAS.map((c) => ({
+            tituloMineroId: titulo.id,
+            categoria: c.id,
+            activo: true,
+            orden: c.orden,
+          })),
+          skipDuplicates: true,
+        });
+
+        // Módulos activos por defecto (todos).
+        await tx.tituloModulo.createMany({
+          data: MODULOS.map((m) => ({
+            tituloMineroId: titulo.id,
+            modulo: m.id,
+            activo: true,
+            orden: m.orden,
+          })),
+          skipDuplicates: true,
+        });
+
         return titulo;
       });
 
@@ -3494,6 +3529,232 @@ app.get("/api/titulos/:id", authMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// Obtener categorías activas de un título
+app.get("/api/titulos/:id/categorias", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!puedeAccederATitulo(req.user, id)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+
+    const filas = await prisma.tituloCategoria.findMany({
+      where: { tituloMineroId: id },
+      orderBy: { orden: "asc" },
+      select: { categoria: true, activo: true, orden: true },
+    });
+
+    // Título anterior al backfill (sin filas) → todas activas (legacy)
+    const categorias =
+      filas.length > 0
+        ? filas
+        : CATEGORIAS.map((c) => ({
+            categoria: c.id,
+            activo: true,
+            orden: c.orden,
+          }));
+
+    res.json({ success: true, categorias });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Actualizar categorías activas de un título (solo ADMIN)
+app.put(
+  "/api/titulos/:id/categorias",
+  authMiddleware,
+  permisoMiddleware("EDITAR_TITULO"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { categorias } = req.body;
+
+      if (!Array.isArray(categorias) || categorias.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Debes enviar un array de categorías",
+        });
+      }
+
+      const invalidas = categorias.filter(
+        (c) => !CATEGORIAS_VALIDAS.includes(c.categoria),
+      );
+      if (invalidas.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Categorías inválidas: ${invalidas.map((c) => c.categoria).join(", ")}`,
+        });
+      }
+
+      const existe = await prisma.tituloMinero.findUnique({ where: { id } });
+      if (!existe) {
+        return res.status(404).json({
+          success: false,
+          message: "Título minero no encontrado",
+        });
+      }
+
+      await prisma.$transaction(
+        categorias.map((c) =>
+          prisma.tituloCategoria.upsert({
+            where: {
+              tituloMineroId_categoria: {
+                tituloMineroId: id,
+                categoria: c.categoria,
+              },
+            },
+            update: {
+              activo: !!c.activo,
+              orden: c.orden ?? 0,
+            },
+            create: {
+              tituloMineroId: id,
+              categoria: c.categoria,
+              activo: !!c.activo,
+              orden: c.orden ?? 0,
+            },
+          }),
+        ),
+      );
+
+      const actualizadas = await prisma.tituloCategoria.findMany({
+        where: { tituloMineroId: id },
+        orderBy: { orden: "asc" },
+        select: { categoria: true, activo: true, orden: true },
+      });
+
+      res.json({
+        success: true,
+        message: "✅ Categorías actualizadas correctamente",
+        categorias: actualizadas,
+      });
+    } catch (error) {
+      console.error("Error actualizando categorías del título:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error interno del servidor",
+      });
+    }
+  },
+);
+
+// Obtener módulos activos de un título
+app.get("/api/titulos/:id/modulos", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!puedeAccederATitulo(req.user, id)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+
+    const filas = await prisma.tituloModulo.findMany({
+      where: { tituloMineroId: id },
+      orderBy: { orden: "asc" },
+      select: { modulo: true, activo: true, orden: true },
+    });
+
+    // Título anterior al backfill (sin filas) → todos activos (legacy)
+    const modulos =
+      filas.length > 0
+        ? filas
+        : MODULOS.map((m) => ({
+            modulo: m.id,
+            activo: true,
+            orden: m.orden,
+          }));
+
+    res.json({ success: true, modulos });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Actualizar módulos activos de un título (solo ADMIN)
+app.put(
+  "/api/titulos/:id/modulos",
+  authMiddleware,
+  permisoMiddleware("EDITAR_TITULO"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { modulos } = req.body;
+
+      if (!Array.isArray(modulos) || modulos.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Debes enviar un array de módulos",
+        });
+      }
+
+      const invalidos = modulos.filter(
+        (m) => !MODULOS_VALIDOS.includes(m.modulo),
+      );
+      if (invalidos.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Módulos inválidos: ${invalidos.map((m) => m.modulo).join(", ")}`,
+        });
+      }
+
+      const existe = await prisma.tituloMinero.findUnique({ where: { id } });
+      if (!existe) {
+        return res.status(404).json({
+          success: false,
+          message: "Título minero no encontrado",
+        });
+      }
+
+      await prisma.$transaction(
+        modulos.map((m) =>
+          prisma.tituloModulo.upsert({
+            where: {
+              tituloMineroId_modulo: {
+                tituloMineroId: id,
+                modulo: m.modulo,
+              },
+            },
+            update: {
+              activo: !!m.activo,
+              orden: m.orden ?? 0,
+            },
+            create: {
+              tituloMineroId: id,
+              modulo: m.modulo,
+              activo: !!m.activo,
+              orden: m.orden ?? 0,
+            },
+          }),
+        ),
+      );
+
+      const actualizados = await prisma.tituloModulo.findMany({
+        where: { tituloMineroId: id },
+        orderBy: { orden: "asc" },
+        select: { modulo: true, activo: true, orden: true },
+      });
+
+      res.json({
+        success: true,
+        message: "✅ Módulos actualizados correctamente",
+        modulos: actualizados,
+      });
+    } catch (error) {
+      console.error("Error actualizando módulos del título:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error interno del servidor",
+      });
+    }
+  },
+);
 
 // ============================================
 // INICIAR SERVIDOR

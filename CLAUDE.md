@@ -55,12 +55,33 @@ Categorías actuales (ene 2026):
 
 ---
 
-## Fase 3 — categorías activas por título minero (pendiente)
+## Fase 3 — categorías activas por título minero (IMPLEMENTADO jul 2026)
 
-Cada título minero debe poder elegir qué categorías usa
+Cada título minero puede elegir qué categorías usa
 (ej. mina A solo `extraccion`+`acopio`; mina B las 4 de campo).
 
-**No implementado todavía.** Lo siguiente es el plan acordado.
+**Estado: implementado y verificado con smoke test.** Piezas:
+
+- Schema: `model TituloCategoria` en `schema.prisma` (tabla `titulo_categorias`).
+- DDL + backfill: `backend/scripts/backfill_titulo_categorias.js` (idempotente,
+  crea tabla con `CREATE TABLE IF NOT EXISTS` — **NO usar `prisma db push`**,
+  la BD tiene drift y push borraría columnas como
+  `puntos_actividad.punto_actividad_id`). Ya ejecutado contra la BD del VPS.
+- Endpoints: `GET/PUT /api/titulos/:id/categorias` en `server.js`
+  (GET con `puedeAccederATitulo`; PUT con `EDITAR_TITULO`).
+  GET devuelve las 5 activas si el título no tiene filas (legacy).
+- `POST /api/titulos` crea las 5 categorías activas dentro del `$transaction`.
+- Validación: `categoriaActivaParaTitulo()` en `puntosActividadController.js`,
+  aplicada en `registrarPunto` y `editarPunto` (título sin filas → permite todo).
+- Web: hook `frontend/src/hooks/useCategoriasActivas.js` (cache localStorage
+  `categoriasActivas:<tituloId>`); `FormulariosOperacion.jsx` filtra los botones
+  de registro (el histórico y los chips de filtro muestran todas); modal de
+  título en `Usuarios.jsx` tiene checkboxes "Categorías activas" (crear+editar,
+  guarda via `tituloService.updateCategorias`).
+- Mobile: `actividadService.getCategoriasActivas()` + filtro en
+  `RegistrarPuntoScreen` (requiere `eas update` para publicar).
+
+Plan original (referencia):
 
 ### Decisión técnica
 
@@ -164,6 +185,79 @@ Agregar al modal "Editar Título" de `Usuarios.jsx` (pestaña "Títulos Mineros"
 4. Hook frontend + función mobile.
 5. UI admin (modal editar título).
 6. Reemplazar consumers de `CATEGORIAS_CAMPO` por hook/función filtrada.
+
+---
+
+## Fase 4 — módulos activos por título minero (IMPLEMENTADO jul 2026)
+
+Cada título minero puede activar/desactivar MÓDULOS completos de la
+plataforma (las tarjetas del Home web): Formularios FRI, Estadísticas FRI,
+Exportar Reportes, Registrar Operación, Estadísticas de Operación, Mapa,
+Catálogos de Campo, Certificado de Origen, Gestor de Archivos y Gestión
+de Usuarios. Mismo patrón que Fase 3 (categorías).
+
+Definición central (espejados manualmente):
+
+- `backend/src/utils/modulos.js` — `MODULOS`, `MODULOS_VALIDOS`, `GRUPOS_MODULOS`
+- `frontend/src/constants/modulos.js` — igual + campo `ruta` y `color` de grupo
+
+Piezas:
+
+- Schema: `model TituloModulo` (tabla `titulo_modulos`), relación
+  `modulos TituloModulo[]` en `TituloMinero`.
+- DDL + backfill: `backend/scripts/backfill_titulo_modulos.js` (idempotente,
+  `CREATE TABLE IF NOT EXISTS` — **NO usar `prisma db push`**, ver Fase 3).
+  **Pendiente ejecutarlo en el VPS tras el deploy.**
+- Endpoints: `GET/PUT /api/titulos/:id/modulos` en `server.js`
+  (GET con `puedeAccederATitulo`; PUT con `EDITAR_TITULO`).
+  GET devuelve todos activos si el título no tiene filas (legacy).
+- `POST /api/titulos` crea todos los módulos activos en el `$transaction`.
+- Enforcement backend: `backend/src/middleware/moduloMiddleware.js`
+  (factory `moduloMiddleware("certificado_origen")`, va SIEMPRE después de
+  `authMiddleware`). Aplicado en `certificadosRoutes.js`,
+  `gestorArchivosRoutes.js` y los endpoints `/api/list-users` de `server.js`.
+  Reglas: ADMIN siempre pasa; roles locales validan contra su
+  `usuario.tituloMineroId`; globales contra `tituloMineroId` de query/body
+  (sin él, pasan); título sin filas o error del chequeo → pasa.
+- Web: hook `frontend/src/hooks/useModulosActivos.js` (cache localStorage
+  `modulosActivos:<tituloId>`, ADMIN ve todo); `Home.jsx` filtra tarjetas
+  (`quickActions[].modulo`); `App.jsx` `RoleProtectedRoute` acepta prop
+  opcional `modulo`; modal de título en `Usuarios.jsx` tiene checkboxes
+  "Módulos activos" agrupados (crear+editar, via `tituloService.updateModulos`).
+- Mobile: sin cambios (la app móvil solo registra puntos; las categorías
+  activas de Fase 3 ya la cubren).
+
+---
+
+## Demos comerciales (IMPLEMENTADO jul 2026)
+
+Sistema de generación de demos: título minero + usuarios por rol +
+datos de muestra, todo marcado `esDemo=true` y borrable en un clic.
+
+- Columnas: `esDemo` en `usuarios` y `titulos_mineros`
+  (DDL aditivo: `backend/scripts/add_es_demo.js`, ya ejecutado en la BD).
+- Backend: `backend/src/controllers/demoController.js` +
+  `routes/demoRoutes.js`, montado en `/api/demos`.
+  - `POST /api/demos` (permiso `CREAR_DEMO`, solo ADMIN).
+    Body `{ nombre, numOperarios }`. Crea: título `DEMO-<slug>-<rand>`
+    con categorías y módulos activos; usuarios TITULAR, JEFE_PLANTA,
+    OPERARIO×N, VENDEDOR (emails `rol@<slug>.demo.tumina.co`, contraseña
+    compartida generada, se muestra UNA vez en la respuesta); datos de
+    muestra: ~20 puntos de actividad (7 días), paradas (si hay motivos
+    en catálogo) y FRIs en borrador. Los datos de muestra van fuera de
+    la transacción: si fallan, el demo queda usable igual.
+  - `DELETE /api/demos/:tituloId` (permiso `ELIMINAR_DEMO`, solo ADMIN).
+    Rechaza títulos con `esDemo=false`. Borra en transacción: puntos,
+    paradas, certificados, ciclos, puntos de referencia, los 9 FRI,
+    categorías/módulos, usuarios demo (los no-demo solo se desasignan)
+    y el título.
+- Web (`Usuarios.jsx`, pestaña Títulos): botón "Crear Demo" (morado),
+  modal con nombre + # operarios, panel de credenciales con "Copiar";
+  badge DEMO en tablas de títulos y usuarios; botón 🗑 eliminar demo
+  (solo filas esDemo) con confirm.
+- Timezone: los datos de muestra usan naive Colombia (mismo criterio
+  `-5h` que `puntosActividadController`).
+- Smoke test: crear+eliminar verificado contra la BD (jul 2026).
 
 ---
 

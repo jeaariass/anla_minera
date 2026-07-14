@@ -34,6 +34,7 @@ import "leaflet/dist/leaflet.css";
 import SelectorTitulo from "../components/SelectorTitulo";
 import { useTituloActivo } from "../context/TituloContext";
 import { CATEGORIAS_CAMPO, CATEGORIA_LABELS as CAT_LABELS } from "../constants/categorias";
+import { useCategoriasActivas } from "../hooks/useCategoriasActivas";
 
 // Fix Leaflet default icons for Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -127,6 +128,14 @@ const FormulariosOperacion = () => {
   const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
     useTituloActivo();
   const usuarioId = user?.id;
+
+  // Categorías habilitadas para el título activo (solo afecta el registro;
+  // el histórico sigue mostrando todas).
+  const { categoriasActivas } = useCategoriasActivas();
+  const categoriasRegistro = categoriasActivas.map((c) => ({
+    id: c.id,
+    label: `${c.emoji} ${c.label}`,
+  }));
 
   const [tab, setTab] = useState("paradas");
 
@@ -997,8 +1006,14 @@ const FormulariosOperacion = () => {
                     <label className="fop-label">
                       Categoría <span>*</span>
                     </label>
+                    {categoriasRegistro.length === 0 && (
+                      <div className="fop-alert error">
+                        Este título minero no tiene categorías activas.
+                        Contacta al administrador.
+                      </div>
+                    )}
                     <div className="cat-grid">
-                      {CATEGORIAS.map((cat) => (
+                      {categoriasRegistro.map((cat) => (
                         <button
                           key={cat.id}
                           type="button"
