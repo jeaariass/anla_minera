@@ -3,6 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
+const { CATEGORIAS_VALIDAS } = require("../utils/categorias");
 
 // ─── Helpers Colombia ─────────────────────────────────────────────────────────
 
@@ -27,6 +28,21 @@ const toColombiaStr = (date) => {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 };
 
+// ─── Categorías activas por título ────────────────────────────────────────────
+
+/**
+ * True si la categoría está activa para el título minero.
+ * Título sin filas en titulo_categorias (anterior al backfill) → todas activas.
+ */
+const categoriaActivaParaTitulo = async (tituloMineroId, categoria) => {
+  const filas = await prisma.$queryRaw`
+    SELECT categoria, activo FROM titulo_categorias
+    WHERE "tituloMineroId" = ${tituloMineroId}
+  `;
+  if (filas.length === 0) return true; // legacy: sin configuración
+  return filas.some((f) => f.categoria === categoria && f.activo === true);
+};
+
 // ============================================
 // 1. GET /api/actividad/items/:categoria
 // ============================================
@@ -34,12 +50,6 @@ const getItems = async (req, res) => {
   try {
     const { categoria } = req.params;
 
-    const CATEGORIAS_VALIDAS = [
-      "extraccion",
-      "acopio",
-      "procesamiento",
-      "inspeccion",
-    ];
     if (!CATEGORIAS_VALIDAS.includes(categoria)) {
       return res.status(400).json({
         success: false,
@@ -122,6 +132,13 @@ const registrarPunto = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Faltan campos obligatorios: latitud, longitud, categoria",
+      });
+    }
+
+    if (!(await categoriaActivaParaTitulo(tituloMineroId, categoria))) {
+      return res.status(400).json({
+        success: false,
+        message: "Categoría no activa para este título minero",
       });
     }
 
@@ -331,7 +348,7 @@ const editarPunto = async (req, res) => {
 
     // Verificar que existe y obtener su día
     const existing = await prisma.$queryRaw`
-      SELECT id, usuario_id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
+      SELECT id, usuario_id, titulo_minero_id, TO_CHAR(dia, 'YYYY-MM-DD') AS dia
       FROM puntos_actividad WHERE id = ${id}::UUID LIMIT 1
     `;
     if (existing.length === 0)
@@ -358,6 +375,18 @@ const editarPunto = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "Solo se pueden editar puntos registrados hoy.",
+      });
+    }
+
+    if (
+      !(await categoriaActivaParaTitulo(
+        existing[0].titulo_minero_id,
+        categoria,
+      ))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Categoría no activa para este título minero",
       });
     }
 

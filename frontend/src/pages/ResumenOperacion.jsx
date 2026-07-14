@@ -19,27 +19,19 @@ import {
 } from "lucide-react";
 import "./ResumenOperacion.css";
 import "./Reportes.css";
+import { CATEGORIAS } from "../constants/categorias";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
-const CATEGORIA_META = {
-  extraccion: {
-    label: "⛏️ Extracción",
-    color: "#e74c3c",
-    cls: "cat-extraccion",
-  },
-  acopio: { label: "📦 Acopio", color: "#3498db", cls: "cat-acopio" },
-  procesamiento: {
-    label: "⚙️ Procesamiento",
-    color: "#f39c12",
-    cls: "cat-procesamiento",
-  },
-  inspeccion: {
-    label: "🔍 Inspección",
-    color: "#27ae60",
-    cls: "cat-inspeccion",
-  },
-};
+const CATEGORIA_META = Object.fromEntries(
+  CATEGORIAS.map((c) => [
+    c.id,
+    {
+      label: `${c.emoji} ${c.label}`,
+      color: c.color,
+      cls:   `cat-${c.id}`,
+    },
+  ])
+);
 
 /** Extrae "HH:MM" de un string "YYYY-MM-DDTHH:MM:SS" sin conversión de zona */
 const toHHMM = (iso) => {
@@ -199,7 +191,7 @@ const ResumenOperacion = () => {
                   TU MINA
                 </h1>
                 <p style={{ fontSize: 13, color: "#718096", margin: 0 }}>
-                  Desarrollado por CTGlobal
+                  Desarrollado por GEOGLOBAL
                 </p>
               </div>
             </div>

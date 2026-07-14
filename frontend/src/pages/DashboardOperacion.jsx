@@ -24,22 +24,12 @@ import "./DashboardOperacion.css";
 import "./Reportes.css"; // reutiliza header/breadcrumb/page-title
 
 import SelectorTitulo from "../components/SelectorTitulo";
+import { CATEGORIAS_CAMPO } from "../constants/categorias";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
-const CAT_COLORS = {
-  extraccion: "#e74c3c",
-  acopio: "#3498db",
-  procesamiento: "#f39c12",
-  
-};
-
-const CAT_LABELS = {
-  extraccion: "Extracción",
-  acopio: "Acopio",
-  procesamiento: "Procesamiento",
-
-};
+// Dashboard operación solo grafica categorías de campo (sin inspeccion).
+const CAT_COLORS = Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, c.color]));
+const CAT_LABELS = Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, c.label]));
 
 const MOTIVO_COLORS = [
   "#667eea",
@@ -361,7 +351,7 @@ const DashboardOperacion = () => {
                   TU MINA
                 </h1>
                 <p style={{ fontSize: 13, color: "#718096", margin: 0 }}>
-                  Desarrollado por CTGlobal
+                  Desarrollado por GEOGLOBAL
                 </p>
               </div>
             </div>

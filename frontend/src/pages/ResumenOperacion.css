@@ -204,10 +204,11 @@
   color: white;
 }
 
-.filter-chip.active-extraccion  { background: #e74c3c; border-color: #e74c3c; color: white; }
-.filter-chip.active-acopio      { background: #3498db; border-color: #3498db; color: white; }
-.filter-chip.active-procesamiento{ background: #f39c12; border-color: #f39c12; color: white; }
-.filter-chip.active-inspeccion  { background: #27ae60; border-color: #27ae60; color: white; }
+.filter-chip.active-extraccion     { background: #e74c3c; border-color: #e74c3c; color: white; }
+.filter-chip.active-acopio         { background: #3498db; border-color: #3498db; color: white; }
+.filter-chip.active-procesamiento  { background: #f39c12; border-color: #f39c12; color: white; }
+.filter-chip.active-reprocesamiento{ background: #14b8a6; border-color: #14b8a6; color: white; }
+.filter-chip.active-inspeccion     { background: #27ae60; border-color: #27ae60; color: white; }
 
 .search-input {
   padding: 9px 16px;
@@ -284,10 +285,11 @@
   font-weight: 700;
 }
 
-.cat-extraccion   { background: #fee2e2; color: #c0392b; }
-.cat-acopio       { background: #dbeafe; color: #1e40af; }
-.cat-procesamiento{ background: #fef3c7; color: #b45309; }
-.cat-inspeccion   { background: #d1fae5; color: #065f46; }
+.cat-extraccion     { background: #fee2e2; color: #c0392b; }
+.cat-acopio         { background: #dbeafe; color: #1e40af; }
+.cat-procesamiento  { background: #fef3c7; color: #b45309; }
+.cat-reprocesamiento{ background: #ccfbf1; color: #0f766e; }
+.cat-inspeccion     { background: #d1fae5; color: #065f46; }
 
 /* ── Motivo badge (paradas) ── */
 .motivo-badge {

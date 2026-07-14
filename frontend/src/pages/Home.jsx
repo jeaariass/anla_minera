@@ -39,14 +39,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Home.css";
 import { tienePermiso } from "../utils/permissions";
+import { useModulosActivos } from "../hooks/useModulosActivos";
 import SelectorTitulo from "../components/SelectorTitulo";
-
-/* ── Colores por categoría ── */
-const CAT_COLORS = {
-  extraccion: "#e74c3c",
-  acopio: "#3498db",
-  procesamiento: "#f39c12",
-};
+import { CATEGORIA_COLORS as CAT_COLORS } from "../constants/categorias";
 
 /* Centro por defecto: Colombia */
 const DEFAULT_CENTER = [
@@ -235,6 +230,7 @@ const Home = () => {
 
   const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
     useTituloActivo();
+  const { esModuloActivo } = useModulosActivos();
   const tituloActivo =
     titulos?.find((t) => t.id === tituloActivoId) || user?.tituloMinero || null;
 
@@ -403,6 +399,7 @@ const Home = () => {
       path: "/formularios",
       cardBg: "#4f46e5",
       permiso: "VER_PAGINA_FORMULARIOS",
+      modulo: "formularios_fri",
     },
     {
       categoria: "fri",
@@ -412,6 +409,7 @@ const Home = () => {
       path: "/dashboard",
       cardBg: "#6366f1",
       permiso: "VER_PAGINA_DASHBOARD",
+      modulo: "dashboard_fri",
     },
     {
       categoria: "fri",
@@ -421,6 +419,7 @@ const Home = () => {
       path: "/reportes",
       cardBg: "#818cf8",
       permiso: "VER_PAGINA_REPORTES",
+      modulo: "reportes",
     },
     /* Operación — tonos rojo/coral */
     {
@@ -431,6 +430,7 @@ const Home = () => {
       path: "/formularios-operacion",
       cardBg: "#dc2626",
       permiso: "VER_PAGINA_OPERACION",
+      modulo: "registrar_operacion",
     },
     {
       categoria: "operacion",
@@ -440,6 +440,7 @@ const Home = () => {
       path: "/dashboard-operacion",
       cardBg: "#ef4444",
       permiso: "VER_PAGINA_OPERACION",
+      modulo: "dashboard_operacion",
     },
     {
       categoria: "operacion",
@@ -449,6 +450,7 @@ const Home = () => {
       path: "/mapa",
       cardBg: "#f87171",
       permiso: "VER_PAGINA_MAPA",
+      modulo: "mapa",
     },
     {
       categoria: "operacion",
@@ -459,6 +461,7 @@ const Home = () => {
       path: "/catalogos-campo",
       cardBg: "#fca5a5",
       permiso: "VER_PAGINA_CATALOGOS_CAMPO",
+      modulo: "catalogos_campo",
     },
     /* Certificados — tonos verde esmeralda */
     {
@@ -469,6 +472,7 @@ const Home = () => {
       path: "/certificado-origen",
       cardBg: "#059669",
       permiso: "VER_PAGINA_CERTIFICADO_ORIGEN",
+      modulo: "certificado_origen",
     },
     {
       categoria: "certificados",
@@ -478,6 +482,7 @@ const Home = () => {
       path: "/gestor-archivos",
       cardBg: "#10b981",
       permiso: "VER_GESTOR_ARCHIVOS",
+      modulo: "gestor_archivos",
     },
     /* Admin — tonos azul marino */
     {
@@ -488,6 +493,7 @@ const Home = () => {
       path: "/usuarios",
       cardBg: "#1e3a5f",
       permiso: "VER_PAGINA_USUARIOS",
+      modulo: "usuarios",
     },
   ];
 
@@ -503,7 +509,9 @@ const Home = () => {
     { id: "proyecciones", nombre: "Proyecciones", color: "#764ba2" },
   ];
 
-  const accionesFiltradas = quickActions.filter((a) => tienePermiso(a.permiso));
+  const accionesFiltradas = quickActions.filter(
+    (a) => tienePermiso(a.permiso) && esModuloActivo(a.modulo),
+  );
   const accionesPorCategoria = CATEGORIAS.map((cat) => ({
     ...cat,
     acciones: accionesFiltradas.filter((a) => a.categoria === cat.id),

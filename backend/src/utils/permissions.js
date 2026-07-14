@@ -58,6 +58,10 @@ const PERMISOS = {
     ROLES.OPERARIO,
     ROLES.VENDEDOR,
   ],
+
+  // ---------- DEMOS ----------
+  CREAR_DEMO: [ROLES.ADMIN],
+  ELIMINAR_DEMO: [ROLES.ADMIN],
   // ---------- FORMULARIOS FRI ----------
   // Crear cualquier formulario FRI
   CREAR_FRI: [ROLES.ADMIN, ROLES.ASESOR],

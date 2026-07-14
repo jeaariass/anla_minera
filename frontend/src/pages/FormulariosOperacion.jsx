@@ -33,6 +33,8 @@ import "leaflet/dist/leaflet.css";
 
 import SelectorTitulo from "../components/SelectorTitulo";
 import { useTituloActivo } from "../context/TituloContext";
+import { CATEGORIAS_CAMPO, CATEGORIA_LABELS as CAT_LABELS } from "../constants/categorias";
+import { useCategoriasActivas } from "../hooks/useCategoriasActivas";
 
 // Fix Leaflet default icons for Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -44,19 +46,11 @@ L.Icon.Default.mergeOptions({
 });
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
-const CATEGORIAS = [
-  { id: "extraccion", label: "⛏️ Extracción" },
-  { id: "acopio", label: "📦 Acopio" },
-  { id: "procesamiento", label: "⚙️ Procesamiento" },
-  //{ id: 'inspeccion',    label: '🔍 Inspección' },
-];
-
-const CAT_LABELS = {
-  extraccion: "⛏️ Extracción",
-  acopio: "📦 Acopio",
-  procesamiento: "⚙️ Procesamiento", //inspeccion: '🔍 Inspección',
-};
+// Formulario operativo excluye "inspeccion" (eso vive en certificados de origen).
+const CATEGORIAS = CATEGORIAS_CAMPO.map((c) => ({
+  id:    c.id,
+  label: `${c.emoji} ${c.label}`,
+}));
 
 /** "YYYY-MM-DD" en hora Colombia */
 const colombiaToday = () => {
@@ -134,6 +128,14 @@ const FormulariosOperacion = () => {
   const { tituloActivoId, titulos, cargando, esRolGlobal, intentoCargado } =
     useTituloActivo();
   const usuarioId = user?.id;
+
+  // Categorías habilitadas para el título activo (solo afecta el registro;
+  // el histórico sigue mostrando todas).
+  const { categoriasActivas } = useCategoriasActivas();
+  const categoriasRegistro = categoriasActivas.map((c) => ({
+    id: c.id,
+    label: `${c.emoji} ${c.label}`,
+  }));
 
   const [tab, setTab] = useState("paradas");
 
@@ -589,7 +591,7 @@ const FormulariosOperacion = () => {
                   TU MINA
                 </h1>
                 <p style={{ fontSize: 13, color: "#718096", margin: 0 }}>
-                  Desarrollado por CTGlobal
+                  Desarrollado por GEOGLOBAL
                 </p>
               </div>
             </div>
@@ -1004,8 +1006,14 @@ const FormulariosOperacion = () => {
                     <label className="fop-label">
                       Categoría <span>*</span>
                     </label>
+                    {categoriasRegistro.length === 0 && (
+                      <div className="fop-alert error">
+                        Este título minero no tiene categorías activas.
+                        Contacta al administrador.
+                      </div>
+                    )}
                     <div className="cat-grid">
-                      {CATEGORIAS.map((cat) => (
+                      {categoriasRegistro.map((cat) => (
                         <button
                           key={cat.id}
                           type="button"

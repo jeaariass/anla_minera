@@ -18,9 +18,19 @@ import {
   Building2,
   Calendar,
   MapPin,
+  Trash2,
+  Copy,
+  Sparkles,
 } from "lucide-react";
-import { authService, usuarioService, tituloService } from "../services/api";
+import {
+  authService,
+  usuarioService,
+  tituloService,
+  demoService,
+} from "../services/api";
 import { tienePermiso, getUsuarioActual } from "../utils/permissions";
+import { CATEGORIAS } from "../constants/categorias";
+import { MODULOS, GRUPOS_MODULOS } from "../constants/modulos";
 import "./Usuarios.css";
 
 import SelectorTitulo from "../components/SelectorTitulo";
@@ -115,6 +125,20 @@ const Usuarios = () => {
     jefePlantaId: "",
   });
   const [erroresTitulo, setErroresTitulo] = useState({});
+  // Categorías activas del título: { extraccion: true, acopio: false, ... }
+  const catsTodas = () =>
+    Object.fromEntries(CATEGORIAS.map((c) => [c.id, true]));
+  const [catsTitulo, setCatsTitulo] = useState(catsTodas());
+  // Módulos activos del título: { certificado_origen: true, usuarios: false, ... }
+  const modsTodos = () =>
+    Object.fromEntries(MODULOS.map((m) => [m.id, true]));
+  const [modsTitulo, setModsTitulo] = useState(modsTodos());
+
+  // ── Demos ──
+  const [modalDemo, setModalDemo] = useState(false);
+  const [formDemo, setFormDemo] = useState({ nombre: "", numOperarios: 2 });
+  const [loadingDemo, setLoadingDemo] = useState(false);
+  const [demoCreado, setDemoCreado] = useState(null); // credenciales tras crear
 
   // ── Carga inicial ──
   useEffect(() => {
@@ -381,6 +405,8 @@ const Usuarios = () => {
       jefePlantaId: "",
     });
     setErroresTitulo({});
+    setCatsTitulo(catsTodas());
+    setModsTitulo(modsTodos());
     setModoEdicionTitulo(false);
     setTituloEditId(null);
     setModalTitulo(true);
@@ -393,8 +419,32 @@ const Usuarios = () => {
       setModoEdicionTitulo(true);
       setTituloEditId(t.id);
 
-      const res = await tituloService.getById(t.id);
+      const [res, resCats, resMods] = await Promise.all([
+        tituloService.getById(t.id),
+        tituloService.getCategorias(t.id),
+        tituloService.getModulos(t.id),
+      ]);
       const titulo = res.data.titulo;
+
+      if (resCats.data.success) {
+        const mapa = catsTodas();
+        for (const c of resCats.data.categorias) {
+          mapa[c.categoria] = !!c.activo;
+        }
+        setCatsTitulo(mapa);
+      } else {
+        setCatsTitulo(catsTodas());
+      }
+
+      if (resMods.data.success) {
+        const mapaMods = modsTodos();
+        for (const m of resMods.data.modulos) {
+          mapaMods[m.modulo] = !!m.activo;
+        }
+        setModsTitulo(mapaMods);
+      } else {
+        setModsTitulo(modsTodos());
+      }
 
       // Buscar titular y jefe asignados actualmente
       const titularActual = titulo.usuarios?.find((u) => u.rol === "TITULAR");
@@ -432,6 +482,75 @@ const Usuarios = () => {
     setErroresTitulo({});
   };
 
+  // ── Demos ──
+  const abrirModalDemo = () => {
+    setFormDemo({ nombre: "", numOperarios: 2 });
+    setDemoCreado(null);
+    setModalDemo(true);
+  };
+
+  const cerrarModalDemo = async () => {
+    setModalDemo(false);
+    if (demoCreado) {
+      setDemoCreado(null);
+      await cargarDatos();
+    }
+  };
+
+  const handleCrearDemo = async (e) => {
+    e.preventDefault();
+    if (!formDemo.nombre.trim()) return;
+    try {
+      setLoadingDemo(true);
+      const res = await demoService.crear({
+        nombre: formDemo.nombre.trim(),
+        numOperarios: formDemo.numOperarios,
+      });
+      setDemoCreado(res.data.demo);
+    } catch (error) {
+      mostrarMensaje(
+        "error",
+        `❌ ${error.response?.data?.message || "Error al crear el demo"}`,
+      );
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
+
+  const copiarCredenciales = () => {
+    if (!demoCreado) return;
+    const texto = [
+      `DEMO TU MINA — ${demoCreado.nombre}`,
+      `Título: ${demoCreado.numeroTitulo}`,
+      `Contraseña (todos los usuarios): ${demoCreado.password}`,
+      "",
+      ...demoCreado.usuarios.map((u) => `${u.rol}: ${u.email}`),
+    ].join("\n");
+    navigator.clipboard
+      .writeText(texto)
+      .then(() => mostrarMensaje("success", "✅ Credenciales copiadas"))
+      .catch(() => mostrarMensaje("error", "No se pudo copiar"));
+  };
+
+  const handleEliminarDemo = async (t) => {
+    if (
+      !window.confirm(
+        `¿Eliminar el demo ${t.numeroTitulo}?\n\nSe borrarán sus usuarios demo y TODOS sus datos (puntos, paradas, FRIs, certificados). Esta acción no se puede deshacer.`,
+      )
+    )
+      return;
+    try {
+      const res = await demoService.eliminar(t.id);
+      mostrarMensaje("success", res.data.message || "✅ Demo eliminado");
+      await cargarDatos();
+    } catch (error) {
+      mostrarMensaje(
+        "error",
+        `❌ ${error.response?.data?.message || "Error al eliminar el demo"}`,
+      );
+    }
+  };
+
   const validarFormTitulo = () => {
     const e = {};
     if (!formTitulo.numeroTitulo.trim())
@@ -453,6 +572,17 @@ const Usuarios = () => {
       setErroresTitulo(errores);
       return;
     }
+    const payloadCategorias = CATEGORIAS.map((c) => ({
+      categoria: c.id,
+      activo: !!catsTitulo[c.id],
+      orden: c.orden,
+    }));
+    const payloadModulos = MODULOS.map((m) => ({
+      modulo: m.id,
+      activo: !!modsTitulo[m.id],
+      orden: m.orden,
+    }));
+
     try {
       setLoadingModalTit(true);
       if (modoEdicionTitulo) {
@@ -469,9 +599,11 @@ const Usuarios = () => {
           titularId: formTitulo.titularId || null,
           jefePlantaId: formTitulo.jefePlantaId || null,
         });
+        await tituloService.updateCategorias(tituloEditId, payloadCategorias);
+        await tituloService.updateModulos(tituloEditId, payloadModulos);
         mostrarMensaje("success", "✅ Título actualizado correctamente");
       } else {
-        await tituloService.create({
+        const resCrear = await tituloService.create({
           numeroTitulo: formTitulo.numeroTitulo,
           municipio: formTitulo.municipio,
           codigoMunicipio: formTitulo.codigoMunicipio || null,
@@ -484,6 +616,15 @@ const Usuarios = () => {
           titularId: formTitulo.titularId,
           jefePlantaId: formTitulo.jefePlantaId,
         });
+        // El backend crea categorías y módulos activos por defecto;
+        // si el admin desmarcó alguno, sincronizar.
+        const nuevoId = resCrear.data?.titulo?.id;
+        if (nuevoId && payloadCategorias.some((c) => !c.activo)) {
+          await tituloService.updateCategorias(nuevoId, payloadCategorias);
+        }
+        if (nuevoId && payloadModulos.some((m) => !m.activo)) {
+          await tituloService.updateModulos(nuevoId, payloadModulos);
+        }
         mostrarMensaje(
           "success",
           "✅ Título creado y usuarios asignados correctamente",
@@ -522,7 +663,7 @@ const Usuarios = () => {
               </div>
               <div>
                 <h1>TU MINA</h1>
-                <p>Desarrollado por CTGlobal</p>
+                <p>Desarrollado por GEOGLOBAL</p>
               </div>
             </div>
             <div className="header-right">
@@ -708,7 +849,25 @@ const Usuarios = () => {
                                 {u.nombre.charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <p className="user-nombre">{u.nombre}</p>
+                                <p className="user-nombre">
+                                  {u.nombre}
+                                  {u.esDemo && (
+                                    <span
+                                      style={{
+                                        marginLeft: "0.4rem",
+                                        padding: "0.1rem 0.45rem",
+                                        borderRadius: "6px",
+                                        fontSize: "0.7rem",
+                                        fontWeight: 700,
+                                        background: "#ede9fe",
+                                        color: "#7c3aed",
+                                        letterSpacing: "0.03em",
+                                      }}
+                                    >
+                                      DEMO
+                                    </span>
+                                  )}
+                                </p>
                                 <p className="user-email">{u.email}</p>
                               </div>
                             </div>
@@ -804,6 +963,21 @@ const Usuarios = () => {
                     {titulosFiltrados.length} título
                     {titulosFiltrados.length !== 1 ? "s" : ""}
                   </span>
+                  {tienePermiso("CREAR_DEMO") && (
+                    <button
+                      className="btn"
+                      style={{
+                        background: "#7c3aed",
+                        color: "#fff",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                      }}
+                      onClick={abrirModalDemo}
+                    >
+                      <Sparkles size={18} /> Crear Demo
+                    </button>
+                  )}
                   <button
                     className="btn btn-primary"
                     onClick={abrirModalCrearTitulo}
@@ -844,6 +1018,22 @@ const Usuarios = () => {
                             <div className="titulo-numero">
                               <Building2 size={16} className="titulo-icon" />
                               <strong>{t.numeroTitulo}</strong>
+                              {t.esDemo && (
+                                <span
+                                  style={{
+                                    marginLeft: "0.4rem",
+                                    padding: "0.1rem 0.45rem",
+                                    borderRadius: "6px",
+                                    fontSize: "0.7rem",
+                                    fontWeight: 700,
+                                    background: "#ede9fe",
+                                    color: "#7c3aed",
+                                    letterSpacing: "0.03em",
+                                  }}
+                                >
+                                  DEMO
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td>
@@ -894,6 +1084,16 @@ const Usuarios = () => {
                               >
                                 <Edit size={16} />
                               </button>
+                              {t.esDemo && tienePermiso("ELIMINAR_DEMO") && (
+                                <button
+                                  className="btn-icon"
+                                  title="Eliminar demo (borra usuarios y datos)"
+                                  style={{ color: "#dc2626" }}
+                                  onClick={() => handleEliminarDemo(t)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1195,6 +1395,134 @@ const Usuarios = () => {
       )}
 
       {/* ══════════════════════════════════════════════
+          MODAL CREAR DEMO
+      ══════════════════════════════════════════════ */}
+      {modalDemo && (
+        <div className="modal-overlay" onClick={cerrarModalDemo}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "560px" }}
+          >
+            <div className="modal-header">
+              <h2>
+                <Sparkles size={20} /> {demoCreado ? "Demo creado" : "Crear Demo"}
+              </h2>
+              <button className="btn-close" onClick={cerrarModalDemo}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {!demoCreado ? (
+              <form onSubmit={handleCrearDemo} className="modal-form">
+                <p className="seccion-desc">
+                  Genera un título minero de demostración con usuarios por rol
+                  (contraseña compartida) y datos de muestra en operación y
+                  FRI. Todo queda marcado como DEMO y se puede eliminar por
+                  completo después.
+                </p>
+                <div className="form-group">
+                  <label>Nombre del demo / empresa *</label>
+                  <input
+                    type="text"
+                    value={formDemo.nombre}
+                    onChange={(e) =>
+                      setFormDemo((p) => ({ ...p, nombre: e.target.value }))
+                    }
+                    placeholder="Ej: Minera La Esperanza"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Número de operarios</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formDemo.numOperarios}
+                    onChange={(e) =>
+                      setFormDemo((p) => ({
+                        ...p,
+                        numOperarios: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={cerrarModalDemo}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={loadingDemo}
+                  >
+                    {loadingDemo ? "Generando…" : "Crear Demo"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="modal-form">
+                <p className="seccion-desc">
+                  ✅ Demo <strong>{demoCreado.numeroTitulo}</strong> creado con{" "}
+                  {demoCreado.usuarios.length} usuarios,{" "}
+                  {demoCreado.datos?.puntos ?? 0} puntos,{" "}
+                  {demoCreado.datos?.paradas ?? 0} paradas y{" "}
+                  {demoCreado.datos?.fris ?? 0} FRIs de muestra.
+                </p>
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    padding: "0.75rem 1rem",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <p style={{ margin: "0 0 0.5rem" }}>
+                    🔑 Contraseña (todos):{" "}
+                    <strong style={{ fontFamily: "monospace" }}>
+                      {demoCreado.password}
+                    </strong>
+                  </p>
+                  {demoCreado.usuarios.map((u) => (
+                    <p key={u.id} style={{ margin: "0.15rem 0" }}>
+                      <strong>{u.rol}</strong>:{" "}
+                      <span style={{ fontFamily: "monospace" }}>{u.email}</span>
+                    </p>
+                  ))}
+                </div>
+                <p className="field-hint" style={{ color: "#d97706" }}>
+                  ⚠️ Guarda estas credenciales ahora — la contraseña no se
+                  vuelve a mostrar.
+                </p>
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={copiarCredenciales}
+                  >
+                    <Copy size={16} /> Copiar credenciales
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={cerrarModalDemo}
+                  >
+                    Listo
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════
           MODAL TÍTULO MINERO
       ══════════════════════════════════════════════ */}
       {modalTitulo && (
@@ -1398,6 +1726,136 @@ const Usuarios = () => {
                     placeholder="Observaciones adicionales..."
                     rows="2"
                   />
+                </div>
+
+                {/* Categorías activas */}
+                <div className="seccion-asignacion">
+                  <h4 className="seccion-titulo">
+                    <CheckCircle size={16} /> Categorías activas
+                  </h4>
+                  <p className="seccion-desc">
+                    Define qué utilidades de campo puede usar este título.
+                    Las desactivadas no permiten nuevos registros, pero el
+                    histórico sigue visible.
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                      gap: "0.5rem",
+                      marginTop: "0.5rem",
+                    }}
+                  >
+                    {CATEGORIAS.map((c) => (
+                      <label
+                        key={c.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          padding: "0.5rem 0.75rem",
+                          border: `1px solid ${catsTitulo[c.id] ? c.color : "#e2e8f0"}`,
+                          borderRadius: "8px",
+                          background: catsTitulo[c.id] ? `${c.color}14` : "#f8fafc",
+                          cursor: "pointer",
+                          userSelect: "none",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!catsTitulo[c.id]}
+                          onChange={(e) =>
+                            setCatsTitulo((p) => ({
+                              ...p,
+                              [c.id]: e.target.checked,
+                            }))
+                          }
+                        />
+                        <span>
+                          {c.emoji} {c.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {CATEGORIAS.every((c) => !catsTitulo[c.id]) && (
+                    <p className="field-hint" style={{ color: "#d97706" }}>
+                      ⚠️ Sin categorías activas este título no podrá registrar
+                      actividades en campo.
+                    </p>
+                  )}
+                </div>
+
+                {/* Módulos activos */}
+                <div className="seccion-asignacion">
+                  <h4 className="seccion-titulo">
+                    <CheckCircle size={16} /> Módulos activos
+                  </h4>
+                  <p className="seccion-desc">
+                    Define qué módulos de la plataforma puede usar este
+                    título. Los desactivados desaparecen del Home y sus
+                    páginas quedan bloqueadas (el ADMIN siempre ve todo).
+                  </p>
+                  {GRUPOS_MODULOS.map((g) => (
+                    <div key={g.id} style={{ marginTop: "0.75rem" }}>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          color: g.color,
+                          margin: "0 0 0.35rem",
+                        }}
+                      >
+                        {g.label}
+                      </p>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fill, minmax(200px, 1fr))",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        {MODULOS.filter((m) => m.grupo === g.id).map((m) => (
+                          <label
+                            key={m.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              padding: "0.5rem 0.75rem",
+                              border: `1px solid ${modsTitulo[m.id] ? g.color : "#e2e8f0"}`,
+                              borderRadius: "8px",
+                              background: modsTitulo[m.id]
+                                ? `${g.color}14`
+                                : "#f8fafc",
+                              cursor: "pointer",
+                              userSelect: "none",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!modsTitulo[m.id]}
+                              onChange={(e) =>
+                                setModsTitulo((p) => ({
+                                  ...p,
+                                  [m.id]: e.target.checked,
+                                }))
+                              }
+                            />
+                            <span>
+                              {m.emoji} {m.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {MODULOS.every((m) => !modsTitulo[m.id]) && (
+                    <p className="field-hint" style={{ color: "#d97706" }}>
+                      ⚠️ Sin módulos activos los usuarios de este título solo
+                      verán el Home vacío.
+                    </p>
+                  )}
                 </div>
 
                 {/* Asignación de usuarios */}

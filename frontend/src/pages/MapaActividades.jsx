@@ -31,6 +31,11 @@ import {
 import "./Reportes.css";
 
 import SelectorTitulo from "../components/SelectorTitulo";
+import {
+  CATEGORIAS_CAMPO,
+  CATEGORIA_COLORS as CATEGORIA_COLORS_BASE,
+  CATEGORIA_LABELS as CATEGORIA_LABELS_BASE,
+} from "../constants/categorias";
 
 // Fix iconos de Leaflet para Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -54,17 +59,9 @@ const FlyToFirst = ({ center }) => {
   return null;
 };
 
-const CATEGORIA_COLORS = {
-  extraccion: "#e74c3c",
-  acopio: "#3498db",
-  procesamiento: "#f39c12",
-};
-
-const CATEGORIA_LABELS = {
-  extraccion: "⛏️ Extracción",
-  acopio: "📦 Acopio",
-  procesamiento: "⚙️ Procesamiento",
-};
+// El mapa de actividades solo muestra categorías de campo (sin inspeccion).
+const CATEGORIA_COLORS = Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, c.color]));
+const CATEGORIA_LABELS = Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, `${c.emoji} ${c.label}`]));
 
 // ── Helper: ordenamiento genérico ──────────────────────────
 const ordenar = (arr, col, dir) => {
@@ -645,7 +642,7 @@ const MapaActividades = () => {
               </div>
               <div>
                 <h1>TU MINA</h1>
-                <p>Desarrollado por CTGlobal</p>
+                <p>Desarrollado por GEOGLOBAL</p>
               </div>
             </div>
             <div className="header-right">
@@ -706,9 +703,7 @@ const MapaActividades = () => {
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                 {[
                   ["", "Todos", "#3D9B9B"],
-                  ["extraccion", "⛏️ Extracción", "#e74c3c"],
-                  ["acopio", "📦 Acopio", "#3498db"],
-                  ["procesamiento", "⚙️ Procesamiento", "#f39c12"],
+                  ...CATEGORIAS_CAMPO.map((c) => [c.id, `${c.emoji} ${c.label}`, c.color]),
                 ].map(([cat, label, color]) => {
                   const activo = filtroCategoria === cat;
                   return (
@@ -918,9 +913,11 @@ const MapaActividades = () => {
                     onChange={(e) => setPCategoria(e.target.value)}
                   >
                     <option value="">Todas</option>
-                    <option value="extraccion">⛏️ Extracción</option>
-                    <option value="acopio">📦 Acopio</option>
-                    <option value="procesamiento">⚙️ Procesamiento</option>
+                    {CATEGORIAS_CAMPO.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.emoji} {c.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="form-group">

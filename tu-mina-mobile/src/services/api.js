@@ -2,6 +2,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, ENDPOINTS, STORAGE_KEYS } from '../utils/constants';
+import { cerrarSesionPorExpiracion } from './navigationRef';
 
 // ===============================
 // AXIOS INSTANCE
@@ -33,7 +34,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error('Error en API:', error.response?.data || error.message);
+    const status = error.response?.status;
+    const data = error.response?.data;
+
+    // Token expirado o inválido → cerrar sesión y mandar al Login.
+    // El backend marca expiración con { expired: true } en authMiddleware.js,
+    // pero también capturamos 401 sin esa bandera para tokens corruptos/revocados.
+    if (status === 401 && (data?.expired === true || data?.message === 'Token inválido')) {
+      cerrarSesionPorExpiracion();
+    }
+
+    console.error('Error en API:', data || error.message);
     return Promise.reject(error);
   }
 );
@@ -194,6 +205,11 @@ export const actividadService = {
 
   getEstadisticas: async (tituloMineroId) => {
     return api.get(`/actividad/estadisticas/${tituloMineroId}`);
+  },
+
+  // Categorías habilitadas para el título minero
+  getCategoriasActivas: async (tituloMineroId) => {
+    return api.get(`/titulos/${tituloMineroId}/categorias`);
   },
 
   editarPunto: async (id, payload) => {

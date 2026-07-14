@@ -38,7 +38,7 @@ api.interceptors.request.use(
 // CIERRE AUTOMÁTICO POR EXPIRACIÓN DE TOKEN
 // ============================================
 const mostrarMensajeExpiracion = () => {
-  if (window.location.pathname.includes("Login")) return;
+  if (window.location.pathname === "/TU_MINA/" || window.location.pathname === "/TU_MINA") return;
 
   localStorage.removeItem("token");
   localStorage.removeItem("usuario");
@@ -56,7 +56,7 @@ const mostrarMensajeExpiracion = () => {
   document.body.appendChild(div);
 
   setTimeout(() => {
-    window.location.href = "/TU_MINA/Login";
+    window.location.href = "/TU_MINA/";
   }, 2500);
 };
 
@@ -246,6 +246,18 @@ export const tituloService = {
   getById: (id) => api.get(`/titulos/${id}`),
   create: (data) => api.post("/titulos", data),
   update: (id, data) => api.put(`/titulos/${id}`, data),
+  getCategorias: (id) => api.get(`/titulos/${id}/categorias`),
+  updateCategorias: (id, categorias) =>
+    api.put(`/titulos/${id}/categorias`, { categorias }),
+  getModulos: (id) => api.get(`/titulos/${id}/modulos`),
+  updateModulos: (id, modulos) =>
+    api.put(`/titulos/${id}/modulos`, { modulos }),
+};
+
+// Demos comerciales (solo ADMIN)
+export const demoService = {
+  crear: (data) => api.post("/demos", data),
+  eliminar: (tituloId) => api.delete(`/demos/${tituloId}`),
 };
 
 // Catálogos de campo (admin) — items por proceso y maquinaria

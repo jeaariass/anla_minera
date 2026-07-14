@@ -21,14 +21,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { actividadService } from '../services/api';
 import { STORAGE_KEYS } from '../utils/constants';
 import COLORS from '../utils/colors';
+import { CATEGORIAS_CAMPO } from '../utils/categorias';
 
 // ─── Categorías ───────────────────────────────────────────────────────────────
-
-const CATEGORIAS = [
-  { id: 'extraccion',    label: 'Extracción',    color: '#e74c3c' },
-  { id: 'acopio',        label: 'Acopio',         color: '#3498db' },
-  { id: 'procesamiento', label: 'Procesamiento',  color: '#f39c12' },
-];
+// Solo categorías de campo (sin inspeccion) para registro operativo.
+const CATEGORIAS = CATEGORIAS_CAMPO.map((c) => ({
+  id:    c.id,
+  label: c.label,
+  color: c.color,
+}));
 
 // ─── Selector reutilizable con picker modal ───────────────────────────────────
 
@@ -160,6 +161,8 @@ const RegistrarPuntoScreen = ({ navigation }) => {
 
   // Categoría
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
+  // Categorías habilitadas para el título del usuario (default: todas)
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState(CATEGORIAS);
 
   // Ítems del catálogo (cambian según categoría)
   const [items, setItems]                       = useState([]);
@@ -200,6 +203,29 @@ const RegistrarPuntoScreen = ({ navigation }) => {
     setItemSeleccionado(null);
     setItemOtro('');
   }, [categoriaSeleccionada]);
+
+  // Categorías activas del título (cuando ya conocemos el usuario)
+  useEffect(() => {
+    if (userData) cargarCategoriasActivas();
+  }, [userData]);
+
+  const cargarCategoriasActivas = async () => {
+    try {
+      const tituloMineroId = userData?.tituloMinero?.id || userData?.tituloMineroId;
+      if (!tituloMineroId) return;
+
+      const resp = await actividadService.getCategoriasActivas(tituloMineroId);
+      if (resp?.success && Array.isArray(resp?.categorias)) {
+        const activas = resp.categorias
+          .filter(c => c.activo)
+          .map(c => c.categoria);
+        setCategoriasDisponibles(CATEGORIAS.filter(c => activas.includes(c.id)));
+      }
+    } catch (error) {
+      // Sin respuesta → dejar todas; el backend valida igual al registrar
+      console.log('Error cargando categorías activas:', error);
+    }
+  };
 
   const cargarDatos = async () => {
     try {
@@ -448,8 +474,13 @@ const RegistrarPuntoScreen = ({ navigation }) => {
         {/* ── Categoría ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Categoría *</Text>
+          {categoriasDisponibles.length === 0 && (
+            <Text style={{ color: '#d97706', marginBottom: 8 }}>
+              ⚠️ Este título minero no tiene categorías activas. Contacta al administrador.
+            </Text>
+          )}
           <View style={styles.categoriaGrid}>
-            {CATEGORIAS.map(cat => (
+            {categoriasDisponibles.map(cat => (
               <TouchableOpacity
                 key={cat.id}
                 style={[

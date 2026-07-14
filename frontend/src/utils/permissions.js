@@ -31,6 +31,10 @@ const PERMISOS = {
   // Títulos mineros
   CREAR_TITULO: ["ADMIN"],
   EDITAR_TITULO: ["ADMIN"],
+
+  // Demos
+  CREAR_DEMO: ["ADMIN"],
+  ELIMINAR_DEMO: ["ADMIN"],
   VER_TITULOS: [
     "ADMIN",
     "ASESOR",

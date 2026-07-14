@@ -301,10 +301,11 @@
   font-size: 11px;
   font-weight: 700;
 }
-.dopd-cat-badge.extraccion    { background: #fee2e2; color: #c0392b; }
-.dopd-cat-badge.acopio        { background: #dbeafe; color: #1e40af; }
-.dopd-cat-badge.procesamiento { background: #fef3c7; color: #b45309; }
-.dopd-cat-badge.inspeccion    { background: #d1fae5; color: #065f46; }
+.dopd-cat-badge.extraccion      { background: #fee2e2; color: #c0392b; }
+.dopd-cat-badge.acopio          { background: #dbeafe; color: #1e40af; }
+.dopd-cat-badge.procesamiento   { background: #fef3c7; color: #b45309; }
+.dopd-cat-badge.reprocesamiento { background: #ccfbf1; color: #0f766e; }
+.dopd-cat-badge.inspeccion      { background: #d1fae5; color: #065f46; }
 
 .dopd-vol-pill {
   display: inline-flex;
