@@ -462,8 +462,7 @@ const transformarDatos = (datos, tipo) => {
 // ══════════════════════════════════════════════════════════════
 exports.getPreview = async (req, res) => {
   try {
-    const decoded = verificarToken(req, res);
-    if (!decoded) return;
+    const decoded = req.user;
 
     const {
       tipo,
@@ -700,8 +699,7 @@ exports.getPreview = async (req, res) => {
 // EXPORTAR - Generar Excel
 exports.exportarExcel = async (req, res) => {
   try {
-    const decoded = verificarToken(req, res);
-    if (!decoded) return;
+    const decoded = req.user;
 
     const {
       tipo,
