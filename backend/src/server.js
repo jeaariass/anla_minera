@@ -3024,7 +3024,10 @@ app.put(
         });
       }
 
-      const dataToUpdate = { nombre, tituloMineroId };
+      const dataToUpdate = { nombre };
+      if (req.user.rol === "ADMIN" && tituloMineroId !== undefined) {
+        dataToUpdate.tituloMineroId = tituloMineroId;
+      }
       if (rol && tienePermiso(req.user, "ASIGNAR_ROL")) dataToUpdate.rol = rol;
       if (password) {
         if (
