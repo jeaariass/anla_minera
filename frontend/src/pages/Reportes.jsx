@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/pages/Reportes.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, reportService, usuarioService } from "../services/api";

@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/context/TituloContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService, tituloService } from "../services/api";
 

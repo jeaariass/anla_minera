@@ -109,7 +109,11 @@ const permisoMiddleware = (accion) => {
 // -------------------------------------------------------
 const tituloMiddleware = (req, res, next) => {
   // El ID del título puede venir como parámetro de ruta o en el body
-  const tituloId = req.params.tituloId || req.body.tituloMineroId;
+  const tituloId =
+    req.params.tituloId ||
+    req.params.tituloMineroId ||
+    req.body.tituloMineroId ||
+    req.query.tituloMineroId;
 
   // Si no hay ID de título en la petición, dejamos pasar
   // (la validación de existencia la hace el handler)

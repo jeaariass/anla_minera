@@ -1,7 +1,7 @@
 // backend/src/controllers/paradasController.js
 const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
 
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient, Prisma } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 // ─── Helpers timezone Colombia (UTC-5, sin DST) ───────────────────────────────
@@ -125,45 +125,33 @@ const registrarParada = async (req, res) => {
       motivoRow[0].codigo === "OTRO" ? motivoOtro.trim() : motivoRow[0].nombre;
 
     if (puntoActividadId) {
-      await prisma.$executeRawUnsafe(
-        `
-        INSERT INTO paradas_actividad (
-          usuario_id, titulo_minero_id,
-          punto_actividad_id,
-          motivo_id, motivo_nombre, motivo_otro,
-          inicio, fin, dia,
-          observaciones, estado, enviado_at
-        ) VALUES (
-          '${usuarioId}', '${tituloMineroId}',
-          '${puntoActividadId}'::UUID,
-          '${motivoId}'::UUID, $1, $2,
-          '${inicioStr}'::TIMESTAMP, '${finStr}'::TIMESTAMP, '${diaStr}'::DATE,
-          $3, 'ENVIADO', NOW()
-        )
-      `,
-        motivoNombre,
-        motivoOtro || null,
-        observaciones || null,
-      );
+      await prisma.$executeRaw`
+    INSERT INTO paradas_actividad (
+      usuario_id, titulo_minero_id, punto_actividad_id,
+      motivo_id, motivo_nombre, motivo_otro,
+      inicio, fin, dia,
+      observaciones, estado, enviado_at
+    ) VALUES (
+      ${usuarioId}, ${tituloMineroId}, ${puntoActividadId}::UUID,
+      ${motivoId}::UUID, ${motivoNombre}, ${motivoOtro || null},
+      ${inicioStr}::TIMESTAMP, ${finStr}::TIMESTAMP, ${diaStr}::DATE,
+      ${observaciones || null}, 'ENVIADO', NOW()
+    )
+  `;
     } else {
-      await prisma.$executeRawUnsafe(
-        `
-        INSERT INTO paradas_actividad (
-          usuario_id, titulo_minero_id,
-          motivo_id, motivo_nombre, motivo_otro,
-          inicio, fin, dia,
-          observaciones, estado, enviado_at
-        ) VALUES (
-          '${usuarioId}', '${tituloMineroId}',
-          '${motivoId}'::UUID, $1, $2,
-          '${inicioStr}'::TIMESTAMP, '${finStr}'::TIMESTAMP, '${diaStr}'::DATE,
-          $3, 'ENVIADO', NOW()
-        )
-      `,
-        motivoNombre,
-        motivoOtro || null,
-        observaciones || null,
-      );
+      await prisma.$executeRaw`
+    INSERT INTO paradas_actividad (
+      usuario_id, titulo_minero_id,
+      motivo_id, motivo_nombre, motivo_otro,
+      inicio, fin, dia,
+      observaciones, estado, enviado_at
+    ) VALUES (
+      ${usuarioId}, ${tituloMineroId},
+      ${motivoId}::UUID, ${motivoNombre}, ${motivoOtro || null},
+      ${inicioStr}::TIMESTAMP, ${finStr}::TIMESTAMP, ${diaStr}::DATE,
+      ${observaciones || null}, 'ENVIADO', NOW()
+    )
+  `;
     }
 
     const minutos = Math.round((fechaFin - fechaInicio) / 60000);
@@ -199,16 +187,17 @@ const getParadas = async (req, res) => {
       });
     }
 
-    let whereExtra = "";
-    if (dia) whereExtra += ` AND pa.dia = '${dia}'::DATE`;
-    if (usuarioId) whereExtra += ` AND pa.usuario_id = '${usuarioId}'`;
+    const fecha = dia || colombiaToday();
 
-    // OPERARIO solo ve sus propios registros
+    const condiciones = [Prisma.sql`pa.titulo_minero_id = ${tituloMineroId}`];
+    if (dia) condiciones.push(Prisma.sql`pa.dia = ${dia}::DATE`);
+    if (usuarioId) condiciones.push(Prisma.sql`pa.usuario_id = ${usuarioId}`);
     if (req.user.rol === "OPERARIO") {
-      whereExtra += ` AND pa.usuario_id = '${req.user.id}'`;
+      condiciones.push(Prisma.sql`pa.usuario_id = ${req.user.id}`);
     }
+    const where = Prisma.join(condiciones, " AND ");
 
-    const paradas = await prisma.$queryRawUnsafe(`
+    const paradas = await prisma.$queryRaw`
       SELECT
         pa.id::TEXT                  AS id,
         pa.usuario_id                AS "usuarioId",
@@ -230,10 +219,9 @@ const getParadas = async (req, res) => {
         TO_CHAR(pa.created_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS "createdAt"
       FROM paradas_actividad pa
       JOIN paradas_motivos pm ON pm.id = pa.motivo_id
-      WHERE pa.titulo_minero_id = '${tituloMineroId}'
-      ${whereExtra}
+      WHERE ${where}
       ORDER BY pa.inicio DESC
-    `);
+    `;
 
     res.json({ success: true, data: paradas, total: paradas.length });
   } catch (error) {
@@ -262,18 +250,22 @@ const getResumenDia = async (req, res) => {
       });
     }
 
-    // Si no viene `dia`, usa la fecha Colombia de hoy
     const fecha = dia || colombiaToday();
 
-    const resumen = await prisma.$queryRawUnsafe(`
+    const condiciones = [
+      Prisma.sql`titulo_minero_id = ${tituloMineroId}`,
+      Prisma.sql`dia = ${fecha}::DATE`,
+    ];
+    if (usuarioId) condiciones.push(Prisma.sql`usuario_id = ${usuarioId}`);
+    const where = Prisma.join(condiciones, " AND ");
+
+    const resumen = await prisma.$queryRaw`
       SELECT
         COUNT(*)::INTEGER                       AS "totalParadas",
         COALESCE(SUM(minutos_paro), 0)::INTEGER AS "totalMinutos"
       FROM paradas_actividad
-      WHERE titulo_minero_id = '${tituloMineroId}'
-        AND dia = '${fecha}'::DATE
-        ${usuarioId ? `AND usuario_id = '${usuarioId}'` : ""}
-    `);
+      WHERE ${where}
+    `;
 
     const r = resumen[0] || { totalParadas: 0, totalMinutos: 0 };
 
@@ -377,23 +369,18 @@ const editarParada = async (req, res) => {
     const motivoNombre =
       motivoRow[0].codigo === "OTRO" ? motivoOtro.trim() : motivoRow[0].nombre;
 
-    await prisma.$executeRawUnsafe(
-      `
+    await prisma.$executeRaw`
       UPDATE paradas_actividad SET
-        motivo_id     = '${motivoId}'::UUID,
-        motivo_nombre = $1,
-        motivo_otro   = $2,
-        inicio        = '${inicioStr}'::TIMESTAMP,
-        fin           = '${finStr}'::TIMESTAMP,
-        dia           = '${diaStr}'::DATE,
-        observaciones = $3,
+        motivo_id     = ${motivoId}::UUID,
+        motivo_nombre = ${motivoNombre},
+        motivo_otro   = ${motivoOtro || null},
+        inicio        = ${inicioStr}::TIMESTAMP,
+        fin           = ${finStr}::TIMESTAMP,
+        dia           = ${diaStr}::DATE,
+        observaciones = ${observaciones || null},
         updated_at    = NOW()
-      WHERE id = '${id}'::UUID
-    `,
-      motivoNombre,
-      motivoOtro || null,
-      observaciones || null,
-    );
+      WHERE id = ${id}::UUID
+    `;
 
     const minutos = Math.round((fechaFin - fechaInicio) / 60000);
     res.json({

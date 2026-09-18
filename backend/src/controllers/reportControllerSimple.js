@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-// REPORT CONTROLLER — TU MINA / ANM-FRI
+// anla_minera/backend/src/controllers/reportControllerSimple.js
 // ══════════════════════════════════════════════════════════════
 const { PrismaClient } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
@@ -462,8 +462,7 @@ const transformarDatos = (datos, tipo) => {
 // ══════════════════════════════════════════════════════════════
 exports.getPreview = async (req, res) => {
   try {
-    const decoded = verificarToken(req, res);
-    if (!decoded) return;
+    const decoded = req.user;
 
     const {
       tipo,
@@ -700,8 +699,7 @@ exports.getPreview = async (req, res) => {
 // EXPORTAR - Generar Excel
 exports.exportarExcel = async (req, res) => {
   try {
-    const decoded = verificarToken(req, res);
-    if (!decoded) return;
+    const decoded = req.user;
 
     const {
       tipo,
@@ -908,9 +906,11 @@ exports.exportarExcel = async (req, res) => {
       } else if (decoded.rol === "OPERARIO") {
         filtros.usuario_id = decoded.id;
       }
-      // Solo puntosActividad tiene titulo_minero_id
-      if (tipo === "puntosActividad" && esGlobal && tituloParam) {
+      // Filtro de título minero
+      if (esGlobal && tituloParam) {
         filtros.titulo_minero_id = tituloParam;
+      } else if (!esGlobal && decoded.tituloMineroId) {
+        filtros.titulo_minero_id = decoded.tituloMineroId;
       }
     } else {
       if (esGlobal) {

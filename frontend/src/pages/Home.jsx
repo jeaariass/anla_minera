@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/pages/Home.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, friService } from "../services/api";

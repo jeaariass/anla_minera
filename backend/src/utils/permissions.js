@@ -111,6 +111,33 @@ const PERMISOS = {
   // (extracción, acopio, procesamiento, inspección).
   GESTIONAR_CATALOGOS_CAMPO: [ROLES.ADMIN],
 
+  // ---------- CLIENTES COMPRADORES ----------
+  GESTIONAR_CLIENTES: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.TITULAR,
+    ROLES.JEFE_PLANTA,
+    ROLES.VENDEDOR,
+  ],
+
+  // ---------- CERTIFICADOS DE ORIGEN ----------
+  GESTIONAR_CERTIFICADOS: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.TITULAR,
+    ROLES.JEFE_PLANTA,
+    ROLES.VENDEDOR,
+  ],
+
+  // ---------- GESTOR DE ARCHIVOS ----------
+  VER_GESTOR_ARCHIVOS: [
+    ROLES.ADMIN,
+    ROLES.ASESOR,
+    ROLES.TITULAR,
+    ROLES.JEFE_PLANTA,
+    ROLES.VENDEDOR,
+  ],
+
   // ---------- ESTADÍSTICAS ----------
   // Ver estadísticas globales (todos los títulos)
   VER_ESTADISTICAS_GLOBALES: [ROLES.ADMIN, ROLES.ASESOR],

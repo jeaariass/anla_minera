@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/pages/CatalogosCampo.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,17 +28,17 @@ import "./CatalogosCampo.css";
 
 // Mapeo de icono por categoría — vive solo aquí porque es UI-specific.
 const ICONOS = {
-  extraccion:      <Pickaxe size={16} />,
-  acopio:          <Boxes size={16} />,
-  procesamiento:   <Cog size={16} />,
+  extraccion: <Pickaxe size={16} />,
+  acopio: <Boxes size={16} />,
+  procesamiento: <Cog size={16} />,
   reprocesamiento: <Cog size={16} />,
-  inspeccion:      <ClipboardCheck size={16} />,
+  inspeccion: <ClipboardCheck size={16} />,
 };
 
 const CATEGORIAS = CATEGORIAS_BASE.map((c) => ({
-  id:    c.id,
+  id: c.id,
   label: `${c.emoji} ${c.label}`,
-  icon:  ICONOS[c.id] ?? <Cog size={16} />,
+  icon: ICONOS[c.id] ?? <Cog size={16} />,
   color: c.color,
 }));
 
@@ -161,10 +162,7 @@ const CatalogosCampo = () => {
       mostrarAviso("ok", res.data?.message || "Eliminado");
       cargarItems();
     } catch (err) {
-      mostrarAviso(
-        "error",
-        err.response?.data?.message || "Error al eliminar",
-      );
+      mostrarAviso("error", err.response?.data?.message || "Error al eliminar");
     }
   };
 
@@ -257,10 +255,7 @@ const CatalogosCampo = () => {
       mostrarAviso("ok", res.data?.message || "Eliminada");
       cargarMaquinaria();
     } catch (err) {
-      mostrarAviso(
-        "error",
-        err.response?.data?.message || "Error al eliminar",
-      );
+      mostrarAviso("error", err.response?.data?.message || "Error al eliminar");
     }
   };
 
@@ -353,8 +348,7 @@ const CatalogosCampo = () => {
             <div
               className="page-title-icon"
               style={{
-                background:
-                  "linear-gradient(135deg, #fca5a5 0%, #f87171 100%)",
+                background: "linear-gradient(135deg, #fca5a5 0%, #f87171 100%)",
                 boxShadow: "0 8px 16px rgba(252, 165, 165, 0.45)",
               }}
             >
@@ -535,7 +529,9 @@ const CatalogosCampo = () => {
                                 })
                               }
                             />
-                            <span>{formItem.activo ? "Activo" : "Inactivo"}</span>
+                            <span>
+                              {formItem.activo ? "Activo" : "Inactivo"}
+                            </span>
                           </label>
                         </div>
                       </div>
@@ -550,10 +546,7 @@ const CatalogosCampo = () => {
                             Cancelar
                           </button>
                         )}
-                        <button
-                          type="submit"
-                          className="btn btn-secondary"
-                        >
+                        <button type="submit" className="btn btn-secondary">
                           <Check size={16} />
                           {formItem.id ? "Guardar cambios" : "Crear ítem"}
                         </button>

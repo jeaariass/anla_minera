@@ -1,8 +1,9 @@
 // backend/src/controllers/androidController.js
 // Controlador para la aplicación Android de registro de producción
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
 
 // ============================================
 // 1. OBTENER PUNTOS DE REFERENCIA POR TÍTULO MINERO
@@ -11,26 +12,33 @@ const getPuntosReferencia = async (req, res) => {
   try {
     const { tituloMineroId } = req.params;
 
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+
     const puntos = await prisma.puntoReferencia.findMany({
       where: {
         tituloMineroId: tituloMineroId,
-        activo: true
+        activo: true,
       },
       orderBy: {
-        orden: 'asc'
-      }
+        orden: "asc",
+      },
     });
 
     res.json({
       success: true,
-      data: puntos
+      data: puntos,
     });
   } catch (error) {
-    console.error('Error al obtener puntos de referencia:', error);
+    console.error("Error al obtener puntos de referencia:", error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener puntos de referencia',
-      error: error.message
+      message: "Error al obtener puntos de referencia",
+      error: error.message,
     });
   }
 };
@@ -40,59 +48,50 @@ const getPuntosReferencia = async (req, res) => {
 // ============================================
 const iniciarSesionRegistro = async (req, res) => {
   try {
-    const { usuarioId, tituloMineroId, tipoMaquina, capacidadMaxM3 } = req.body;
+    const { tituloMineroId, tipoMaquina, capacidadMaxM3 } = req.body;
+    const usuarioId = req.user.id; // nunca confiar en el body
 
-    // Validar que el usuario existe
-    const usuario = await prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      include: { tituloMinero: true }
-    });
-
-    if (!usuario) {
-      return res.status(404).json({
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
         success: false,
-        message: 'Usuario no encontrado'
+        message: "No tienes acceso a este título minero",
       });
     }
 
-    // Obtener los puntos de referencia
     const puntos = await prisma.puntoReferencia.findMany({
-      where: {
-        tituloMineroId: tituloMineroId,
-        activo: true
-      },
-      orderBy: { orden: 'asc' }
+      where: { tituloMineroId, activo: true },
+      orderBy: { orden: "asc" },
     });
 
     if (puntos.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'Se requieren al menos 2 puntos de referencia (Recolección y Acopio)'
+        message:
+          "Se requieren al menos 2 puntos de referencia (Recolección y Acopio)",
       });
     }
 
-    // Crear sesión de registro
     const sesion = {
       usuarioId,
       tituloMineroId,
       tipoMaquina,
       capacidadMaxM3,
       fechaInicio: new Date(),
-      puntos: puntos,
-      numeroCiclosCompletados: 0
+      puntos,
+      numeroCiclosCompletados: 0,
     };
 
     res.json({
       success: true,
-      message: 'Sesión de registro iniciada',
-      data: sesion
+      message: "Sesión de registro iniciada",
+      data: sesion,
     });
   } catch (error) {
-    console.error('Error al iniciar sesión de registro:', error);
+    console.error("Error al iniciar sesión de registro:", error);
     res.status(500).json({
       success: false,
-      message: 'Error al iniciar sesión de registro',
-      error: error.message
+      message: "Error al iniciar sesión de registro",
+      error: error.message,
     });
   }
 };
@@ -103,7 +102,6 @@ const iniciarSesionRegistro = async (req, res) => {
 const registrarCiclo = async (req, res) => {
   try {
     const {
-      usuarioId,
       tituloMineroId,
       tipoMaquina,
       capacidadMaxM3,
@@ -118,8 +116,16 @@ const registrarCiclo = async (req, res) => {
       puntoAcopio,
       distanciaRecorrida,
       observaciones,
-      fecha
+      fecha,
     } = req.body;
+    const usuarioId = req.user.id; // nunca confiar en el body
+
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
 
     // Calcular duración en minutos
     const inicio = new Date(horaInicioCiclo);
@@ -143,24 +149,26 @@ const registrarCiclo = async (req, res) => {
         longitudFin: longitudFin ? parseFloat(longitudFin) : null,
         puntoRecoleccion: puntoRecoleccion || null,
         puntoAcopio: puntoAcopio || null,
-        distanciaRecorrida: distanciaRecorrida ? parseFloat(distanciaRecorrida) : null,
-        estadoCiclo: 'COMPLETADO',
+        distanciaRecorrida: distanciaRecorrida
+          ? parseFloat(distanciaRecorrida)
+          : null,
+        estadoCiclo: "COMPLETADO",
         observaciones: observaciones || null,
-        fecha: fecha ? new Date(fecha) : new Date()
-      }
+        fecha: fecha ? new Date(fecha) : new Date(),
+      },
     });
 
     res.json({
       success: true,
-      message: 'Ciclo registrado exitosamente',
-      data: ciclo
+      message: "Ciclo registrado exitosamente",
+      data: ciclo,
     });
   } catch (error) {
-    console.error('Error al registrar ciclo:', error);
+    console.error("Error al registrar ciclo:", error);
     res.status(500).json({
       success: false,
-      message: 'Error al registrar ciclo',
-      error: error.message
+      message: "Error al registrar ciclo",
+      error: error.message,
     });
   }
 };
@@ -171,6 +179,19 @@ const registrarCiclo = async (req, res) => {
 const getCiclosDelDia = async (req, res) => {
   try {
     const { usuarioId, tituloMineroId } = req.params;
+
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+    if (!esRolGlobal(req.user) && usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No puedes consultar ciclos de otro usuario",
+      });
+    }
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
@@ -179,25 +200,25 @@ const getCiclosDelDia = async (req, res) => {
         usuarioId,
         tituloMineroId,
         fecha: {
-          gte: hoy
-        }
+          gte: hoy,
+        },
       },
       orderBy: {
-        numeroCiclo: 'asc'
-      }
+        numeroCiclo: "asc",
+      },
     });
 
     res.json({
       success: true,
       totalCiclos: ciclos.length,
-      data: ciclos
+      data: ciclos,
     });
   } catch (error) {
-    console.error('Error al obtener ciclos del día:', error);
+    console.error("Error al obtener ciclos del día:", error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener ciclos del día',
-      error: error.message
+      message: "Error al obtener ciclos del día",
+      error: error.message,
     });
   }
 };
@@ -209,7 +230,20 @@ const getEstadisticasProduccion = async (req, res) => {
   try {
     const { usuarioId, tituloMineroId } = req.params;
 
-    console.log('📊 Obteniendo estadísticas:', { usuarioId, tituloMineroId });
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+    if (!esRolGlobal(req.user) && usuarioId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No puedes consultar ciclos de otro usuario",
+      });
+    }
+
+    console.log("📊 Obteniendo estadísticas:", { usuarioId, tituloMineroId });
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -222,17 +256,17 @@ const getEstadisticasProduccion = async (req, res) => {
         fecha: {
           gte: hoy,
         },
-        estadoCiclo: 'COMPLETADO',
+        estadoCiclo: "COMPLETADO",
       },
     });
 
     const ciclosHoy = ciclos.length;
     const volumenHoy = ciclos.reduce(
       (sum, ciclo) => sum + parseFloat(ciclo.capacidadMaxM3 || 0),
-      0
+      0,
     );
 
-    console.log('📊 Estadísticas calculadas:', { ciclosHoy, volumenHoy });
+    console.log("📊 Estadísticas calculadas:", { ciclosHoy, volumenHoy });
 
     res.json({
       success: true,
@@ -242,10 +276,10 @@ const getEstadisticasProduccion = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('❌ Error obteniendo estadísticas:', error);
+    console.error("❌ Error obteniendo estadísticas:", error);
     res.status(500).json({
       success: false,
-      message: 'Error obteniendo estadísticas',
+      message: "Error obteniendo estadísticas",
       error: error.message,
     });
   }
@@ -259,28 +293,37 @@ const registrarCiclosBatch = async (req, res) => {
     const { ciclos } = req.body;
 
     if (!Array.isArray(ciclos) || ciclos.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Se requiere un array de ciclos'
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Se requiere un array de ciclos" });
     }
 
-    // Procesar cada ciclo
+    // Validar acceso a todos los títulos mineros del lote ANTES de insertar nada
+    const titulosUnicos = [...new Set(ciclos.map((c) => c.tituloMineroId))];
+    for (const t of titulosUnicos) {
+      if (!puedeAccederATitulo(req.user, t)) {
+        return res.status(403).json({
+          success: false,
+          message: `No tienes acceso al título minero ${t}`,
+        });
+      }
+    }
+
     const ciclosCreados = await prisma.$transaction(
-      ciclos.map(ciclo => {
+      ciclos.map((ciclo) => {
         const inicio = new Date(ciclo.horaInicioCiclo);
         const fin = new Date(ciclo.horaFinCiclo);
         const duracionMinutos = (fin - inicio) / (1000 * 60);
 
         return prisma.registroCicloProduccion.create({
           data: {
-            usuarioId: ciclo.usuarioId,
+            usuarioId: req.user.id, // nunca confiar en el body
             tituloMineroId: ciclo.tituloMineroId,
             tipoMaquina: ciclo.tipoMaquina,
             capacidadMaxM3: parseFloat(ciclo.capacidadMaxM3),
             numeroCiclo: parseInt(ciclo.numeroCiclo),
-            horaInicioCiclo: new Date(ciclo.horaInicioCiclo),
-            horaFinCiclo: new Date(ciclo.horaFinCiclo),
+            horaInicioCiclo: inicio,
+            horaFinCiclo: fin,
             duracionMinutos: parseFloat(duracionMinutos.toFixed(2)),
             latitudInicio: parseFloat(ciclo.latitudInicio),
             longitudInicio: parseFloat(ciclo.longitudInicio),
@@ -288,26 +331,28 @@ const registrarCiclosBatch = async (req, res) => {
             longitudFin: parseFloat(ciclo.longitudFin),
             puntoRecoleccion: ciclo.puntoRecoleccion,
             puntoAcopio: ciclo.puntoAcopio,
-            distanciaRecorrida: ciclo.distanciaRecorrida ? parseFloat(ciclo.distanciaRecorrida) : null,
-            estadoCiclo: 'COMPLETADO',
+            distanciaRecorrida: ciclo.distanciaRecorrida
+              ? parseFloat(ciclo.distanciaRecorrida)
+              : null,
+            estadoCiclo: "COMPLETADO",
             observaciones: ciclo.observaciones || null,
-            fecha: ciclo.fecha ? new Date(ciclo.fecha) : new Date()
-          }
+            fecha: ciclo.fecha ? new Date(ciclo.fecha) : new Date(),
+          },
         });
-      })
+      }),
     );
 
     res.json({
       success: true,
       message: `${ciclosCreados.length} ciclos registrados exitosamente`,
-      data: ciclosCreados
+      data: ciclosCreados,
     });
   } catch (error) {
-    console.error('Error al registrar ciclos batch:', error);
+    console.error("Error al registrar ciclos batch:", error);
     res.status(500).json({
       success: false,
-      message: 'Error al registrar ciclos batch',
-      error: error.message
+      message: "Error al registrar ciclos batch",
+      error: error.message,
     });
   }
 };
@@ -318,5 +363,5 @@ module.exports = {
   registrarCiclo,
   getCiclosDelDia,
   getEstadisticasProduccion,
-  registrarCiclosBatch
+  registrarCiclosBatch,
 };

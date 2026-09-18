@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/components/SelectorTitulo.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Building2, ChevronDown, Check } from "lucide-react";
 import { useTituloActivo } from "../context/TituloContext";

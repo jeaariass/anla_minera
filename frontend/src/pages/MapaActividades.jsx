@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/pages/MapaActividades.jsx
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -60,8 +61,12 @@ const FlyToFirst = ({ center }) => {
 };
 
 // El mapa de actividades solo muestra categorías de campo (sin inspeccion).
-const CATEGORIA_COLORS = Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, c.color]));
-const CATEGORIA_LABELS = Object.fromEntries(CATEGORIAS_CAMPO.map((c) => [c.id, `${c.emoji} ${c.label}`]));
+const CATEGORIA_COLORS = Object.fromEntries(
+  CATEGORIAS_CAMPO.map((c) => [c.id, c.color]),
+);
+const CATEGORIA_LABELS = Object.fromEntries(
+  CATEGORIAS_CAMPO.map((c) => [c.id, `${c.emoji} ${c.label}`]),
+);
 
 // ── Helper: ordenamiento genérico ──────────────────────────
 const ordenar = (arr, col, dir) => {
@@ -703,7 +708,11 @@ const MapaActividades = () => {
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                 {[
                   ["", "Todos", "#3D9B9B"],
-                  ...CATEGORIAS_CAMPO.map((c) => [c.id, `${c.emoji} ${c.label}`, c.color]),
+                  ...CATEGORIAS_CAMPO.map((c) => [
+                    c.id,
+                    `${c.emoji} ${c.label}`,
+                    c.color,
+                  ]),
                 ].map(([cat, label, color]) => {
                   const activo = filtroCategoria === cat;
                   return (

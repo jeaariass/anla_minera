@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/pages/Usuarios.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -130,8 +131,7 @@ const Usuarios = () => {
     Object.fromEntries(CATEGORIAS.map((c) => [c.id, true]));
   const [catsTitulo, setCatsTitulo] = useState(catsTodas());
   // Módulos activos del título: { certificado_origen: true, usuarios: false, ... }
-  const modsTodos = () =>
-    Object.fromEntries(MODULOS.map((m) => [m.id, true]));
+  const modsTodos = () => Object.fromEntries(MODULOS.map((m) => [m.id, true]));
   const [modsTitulo, setModsTitulo] = useState(modsTodos());
 
   // ── Demos ──
@@ -1406,7 +1406,8 @@ const Usuarios = () => {
           >
             <div className="modal-header">
               <h2>
-                <Sparkles size={20} /> {demoCreado ? "Demo creado" : "Crear Demo"}
+                <Sparkles size={20} />{" "}
+                {demoCreado ? "Demo creado" : "Crear Demo"}
               </h2>
               <button className="btn-close" onClick={cerrarModalDemo}>
                 <X size={20} />
@@ -1417,9 +1418,9 @@ const Usuarios = () => {
               <form onSubmit={handleCrearDemo} className="modal-form">
                 <p className="seccion-desc">
                   Genera un título minero de demostración con usuarios por rol
-                  (contraseña compartida) y datos de muestra en operación y
-                  FRI. Todo queda marcado como DEMO y se puede eliminar por
-                  completo después.
+                  (contraseña compartida) y datos de muestra en operación y FRI.
+                  Todo queda marcado como DEMO y se puede eliminar por completo
+                  después.
                 </p>
                 <div className="form-group">
                   <label>Nombre del demo / empresa *</label>
@@ -1734,14 +1735,15 @@ const Usuarios = () => {
                     <CheckCircle size={16} /> Categorías activas
                   </h4>
                   <p className="seccion-desc">
-                    Define qué utilidades de campo puede usar este título.
-                    Las desactivadas no permiten nuevos registros, pero el
-                    histórico sigue visible.
+                    Define qué utilidades de campo puede usar este título. Las
+                    desactivadas no permiten nuevos registros, pero el histórico
+                    sigue visible.
                   </p>
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                      gridTemplateColumns:
+                        "repeat(auto-fill, minmax(200px, 1fr))",
                       gap: "0.5rem",
                       marginTop: "0.5rem",
                     }}
@@ -1756,7 +1758,9 @@ const Usuarios = () => {
                           padding: "0.5rem 0.75rem",
                           border: `1px solid ${catsTitulo[c.id] ? c.color : "#e2e8f0"}`,
                           borderRadius: "8px",
-                          background: catsTitulo[c.id] ? `${c.color}14` : "#f8fafc",
+                          background: catsTitulo[c.id]
+                            ? `${c.color}14`
+                            : "#f8fafc",
                           cursor: "pointer",
                           userSelect: "none",
                         }}
@@ -1791,9 +1795,9 @@ const Usuarios = () => {
                     <CheckCircle size={16} /> Módulos activos
                   </h4>
                   <p className="seccion-desc">
-                    Define qué módulos de la plataforma puede usar este
-                    título. Los desactivados desaparecen del Home y sus
-                    páginas quedan bloqueadas (el ADMIN siempre ve todo).
+                    Define qué módulos de la plataforma puede usar este título.
+                    Los desactivados desaparecen del Home y sus páginas quedan
+                    bloqueadas (el ADMIN siempre ve todo).
                   </p>
                   {GRUPOS_MODULOS.map((g) => (
                     <div key={g.id} style={{ marginTop: "0.75rem" }}>

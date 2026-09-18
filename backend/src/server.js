@@ -257,18 +257,18 @@ app.post("/api/auth/login", async (req, res) => {
         .json({ success: false, message: "Email o contraseña incorrectos" });
     }
 
-    if (!usuario.activo) {
-      return res.status(403).json({
-        success: false,
-        message: "Usuario desactivado. Contacte al administrador",
-      });
-    }
-
     const passwordValida = await bcrypt.compare(password, usuario.password);
     if (!passwordValida) {
       return res
         .status(401)
         .json({ success: false, message: "Email o contraseña incorrectos" });
+    }
+
+    if (!usuario.activo) {
+      return res.status(403).json({
+        success: false,
+        message: "Usuario desactivado. Contacte al administrador",
+      });
     }
 
     const token = jwt.sign(
@@ -582,6 +582,11 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
       await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
@@ -798,8 +803,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIInventarios.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -998,8 +1008,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIParadas.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -1214,8 +1229,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIEjecucion.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -1420,8 +1440,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIMaquinaria.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -1637,8 +1662,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIRegalias.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -1851,8 +1881,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRICapacidad.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -2080,8 +2115,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIProyecciones.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
@@ -2284,8 +2324,13 @@ app.delete(
           .status(404)
           .json({ success: false, message: "FRI no encontrado" });
       if (bloquearSiAprobado(friExistente, res)) return;
+      if (!puedeAccederATitulo(req.user, friExistente.tituloMineroId)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "No autorizado" });
+      }
 
-      await prisma.fRIInventarioMaquinaria.delete({ where: { id } });
+      await prisma.fRIProduccion.delete({ where: { id } });
       res.json({ success: true, message: "✅ FRI eliminado" });
     } catch (error) {
       res.status(500).json({
