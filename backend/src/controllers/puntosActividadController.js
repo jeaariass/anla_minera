@@ -1,5 +1,5 @@
 // backend/src/controllers/puntosActividadController.js
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient, Prisma } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
@@ -170,32 +170,29 @@ const registrarPunto = async (req, res) => {
     const fechaColombiaStr = toColombiaStr(new Date());
     const diaStr = fechaColombiaStr.split(" ")[0]; // "YYYY-MM-DD"
 
-    await prisma.$executeRawUnsafe(
-      `
-        INSERT INTO puntos_actividad (
-          usuario_id, titulo_minero_id,
-          latitud, longitud, categoria,
-          item_id, item_nombre, item_otro,
-          maquinaria_id, maquinaria_nombre, maquinaria_otro,
-          descripcion, volumen_m3,
-          fecha, dia
-        ) VALUES (
-          '${usuarioId}', '${tituloMineroId}',
-          ${latitud}, ${longitud}, '${categoria}',
-          ${itemId ? `'${itemId}'::UUID` : "NULL"},
-          $1, $2,
-          ${maquinariaId ? `'${maquinariaId}'::UUID` : "NULL"},
-          $3, $4,
-          $5, ${volumenM3 ?? null},
-          '${fechaColombiaStr}'::TIMESTAMP, '${diaStr}'::DATE
-        )
-      `,
-      itemNombre,
-      itemOtro || null,
-      maquinariaNombre,
-      maquinariaOtro || null,
-      descripcion || null,
-    );
+    if (!CATEGORIAS_VALIDAS.includes(categoria)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Categoría inválida" });
+    }
+
+    await prisma.$executeRaw`
+      INSERT INTO puntos_actividad (
+        usuario_id, titulo_minero_id,
+        latitud, longitud, categoria,
+        item_id, item_nombre, item_otro,
+        maquinaria_id, maquinaria_nombre, maquinaria_otro,
+        descripcion, volumen_m3,
+        fecha, dia
+      ) VALUES (
+        ${usuarioId}, ${tituloMineroId},
+        ${parseFloat(latitud)}, ${parseFloat(longitud)}, ${categoria},
+        ${itemId || null}::UUID, ${itemNombre}, ${itemOtro || null},
+        ${maquinariaId || null}::UUID, ${maquinariaNombre}, ${maquinariaOtro || null},
+        ${descripcion || null}, ${volumenM3 ?? null},
+        ${fechaColombiaStr}::TIMESTAMP, ${diaStr}::DATE
+      )
+    `;
 
     res.json({ success: true, message: "📍 Punto registrado exitosamente" });
   } catch (error) {
@@ -222,37 +219,39 @@ const getPuntos = async (req, res) => {
       });
     }
 
-    const filtroOperario =
-      req.user.rol === "OPERARIO" ? `AND pa.usuario_id = '${req.user.id}'` : "";
+    const condiciones = [Prisma.sql`pa.titulo_minero_id = ${tituloMineroId}`];
+    if (req.user.rol === "OPERARIO") {
+      condiciones.push(Prisma.sql`pa.usuario_id = ${req.user.id}`);
+    }
+    const where = Prisma.join(condiciones, " AND ");
 
-    const puntos = await prisma.$queryRawUnsafe(`
-        SELECT
-          pa.id::TEXT                                           AS id,
-          pa.usuario_id                                         AS "usuarioId",
-          pa.titulo_minero_id                                   AS "tituloMineroId",
-          pa.latitud,
-          pa.longitud,
-          pa.categoria,
-          pa.item_id::TEXT                                      AS "itemId",
-          pa.item_nombre                                        AS "itemNombre",
-          pa.item_otro                                          AS "itemOtro",
-          COALESCE(
-            CASE WHEN pic.codigo = 'OTRO' THEN pa.item_otro ELSE pic.nombre END,
-            pa.item_nombre
-          )                                                     AS "itemDisplay",
-          pa.maquinaria_id::TEXT                                AS "maquinariaId",
-          pa.maquinaria_nombre                                  AS "maquinariaNombre",
-          pa.maquinaria_otro                                    AS "maquinariaOtro",
-          pa.descripcion,
-          pa.volumen_m3                                         AS "volumenM3",
-          TO_CHAR(pa.fecha, 'YYYY-MM-DD"T"HH24:MI:SS')         AS fecha,
-          TO_CHAR(pa.dia,   'YYYY-MM-DD')                       AS dia
-        FROM puntos_actividad pa
-        LEFT JOIN puntos_items_catalogo pic ON pic.id = pa.item_id
-        WHERE pa.titulo_minero_id = '${tituloMineroId}'
-        ${filtroOperario}
-        ORDER BY pa.fecha DESC
-      `);
+    const puntos = await prisma.$queryRaw`
+      SELECT
+        pa.id::TEXT                                           AS id,
+        pa.usuario_id                                         AS "usuarioId",
+        pa.titulo_minero_id                                   AS "tituloMineroId",
+        pa.latitud,
+        pa.longitud,
+        pa.categoria,
+        pa.item_id::TEXT                                      AS "itemId",
+        pa.item_nombre                                        AS "itemNombre",
+        pa.item_otro                                          AS "itemOtro",
+        COALESCE(
+          CASE WHEN pic.codigo = 'OTRO' THEN pa.item_otro ELSE pic.nombre END,
+          pa.item_nombre
+        )                                                     AS "itemDisplay",
+        pa.maquinaria_id::TEXT                                AS "maquinariaId",
+        pa.maquinaria_nombre                                  AS "maquinariaNombre",
+        pa.maquinaria_otro                                    AS "maquinariaOtro",
+        pa.descripcion,
+        pa.volumen_m3                                         AS "volumenM3",
+        TO_CHAR(pa.fecha, 'YYYY-MM-DD"T"HH24:MI:SS')         AS fecha,
+        TO_CHAR(pa.dia,   'YYYY-MM-DD')                       AS dia
+      FROM puntos_actividad pa
+      LEFT JOIN puntos_items_catalogo pic ON pic.id = pa.item_id
+      WHERE ${where}
+      ORDER BY pa.fecha DESC
+    `;
 
     res.json({ success: true, data: puntos, total: puntos.length });
   } catch (error) {
@@ -416,27 +415,20 @@ const editarPunto = async (req, res) => {
 
     const updatedAtStr = toColombiaStr(new Date());
 
-    await prisma.$executeRawUnsafe(
-      `
-        UPDATE puntos_actividad SET
-          categoria         = '${categoria}',
-          item_id           = ${itemId ? `'${itemId}'::UUID` : "NULL"},
-          item_nombre       = $1,
-          item_otro         = $2,
-          maquinaria_id     = ${maquinariaId ? `'${maquinariaId}'::UUID` : "NULL"},
-          maquinaria_nombre = $3,
-          maquinaria_otro   = $4,
-          descripcion       = $5,
-          volumen_m3        = ${volumenM3 ?? null},
-          updated_at        = '${updatedAtStr}'::TIMESTAMP
-        WHERE id = '${id}'::UUID
-      `,
-      itemNombre,
-      itemOtro || null,
-      maquinariaNombre,
-      maquinariaOtro || null,
-      descripcion || null,
-    );
+    await prisma.$executeRaw`
+      UPDATE puntos_actividad SET
+        categoria         = ${categoria},
+        item_id           = ${itemId || null}::UUID,
+        item_nombre       = ${itemNombre},
+        item_otro         = ${itemOtro || null},
+        maquinaria_id     = ${maquinariaId || null}::UUID,
+        maquinaria_nombre = ${maquinariaNombre},
+        maquinaria_otro   = ${maquinariaOtro || null},
+        descripcion       = ${descripcion || null},
+        volumen_m3        = ${volumenM3 ?? null},
+        updated_at        = ${updatedAtStr}::TIMESTAMP
+      WHERE id = ${id}::UUID
+    `;
 
     res.json({ success: true, message: "✅ Punto actualizado correctamente." });
   } catch (error) {

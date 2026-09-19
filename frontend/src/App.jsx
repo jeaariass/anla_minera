@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/App.jsx
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -105,7 +106,10 @@ function App() {
           <Route
             path="/reportes"
             element={
-              <RoleProtectedRoute permiso="VER_PAGINA_REPORTES" modulo="reportes">
+              <RoleProtectedRoute
+                permiso="VER_PAGINA_REPORTES"
+                modulo="reportes"
+              >
                 <Reportes />
               </RoleProtectedRoute>
             }
@@ -171,7 +175,10 @@ function App() {
           <Route
             path="/usuarios"
             element={
-              <RoleProtectedRoute permiso="VER_PAGINA_USUARIOS" modulo="usuarios">
+              <RoleProtectedRoute
+                permiso="VER_PAGINA_USUARIOS"
+                modulo="usuarios"
+              >
                 <Usuarios />
               </RoleProtectedRoute>
             }

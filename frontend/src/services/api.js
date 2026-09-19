@@ -38,7 +38,11 @@ api.interceptors.request.use(
 // CIERRE AUTOMÁTICO POR EXPIRACIÓN DE TOKEN
 // ============================================
 const mostrarMensajeExpiracion = () => {
-  if (window.location.pathname === "/TU_MINA/" || window.location.pathname === "/TU_MINA") return;
+  if (
+    window.location.pathname === "/TU_MINA/" ||
+    window.location.pathname === "/TU_MINA"
+  )
+    return;
 
   localStorage.removeItem("token");
   localStorage.removeItem("usuario");
@@ -123,7 +127,14 @@ export const authService = {
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
-    window.dispatchEvent(new Event("storage")); // ← agregar esta línea
+    localStorage.removeItem("tituloActivoId");
+    Object.keys(localStorage)
+      .filter(
+        (k) =>
+          k.startsWith("categoriasActivas:") || k.startsWith("modulosActivos:"),
+      )
+      .forEach((k) => localStorage.removeItem(k));
+    window.dispatchEvent(new Event("storage"));
   },
 };
 
@@ -202,9 +213,18 @@ export const friService = {
 
 // SERVICIO DE REPORTES
 export const reportService = {
-  getPreview:    (params) => api.get('/reports/preview', { params }),
-  exportarExcel: (params) => api.get('/reports/export', { params, responseType: 'blob', headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } }),
-  exportarPdf:   (params) => api.get('/reports/pdf',    { params, responseType: 'blob' }),
+  getPreview: (params) => api.get("/reports/preview", { params }),
+  exportarExcel: (params) =>
+    api.get("/reports/export", {
+      params,
+      responseType: "blob",
+      headers: {
+        Accept:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    }),
+  exportarPdf: (params) =>
+    api.get("/reports/pdf", { params, responseType: "blob" }),
 };
 
 export const androidService = {
@@ -217,7 +237,7 @@ export const androidService = {
       const params = new URLSearchParams(filtros).toString();
       const url = `/actividad/puntos/${tituloMineroId}${params ? "?" + params : ""}`;
 
-      console.log("🔵 URL:", `${API_BASE_URL}${url}`);
+      console.log("🔵 URL:", `${API_URL}${url}`);
 
       const response = await api.get(url);
 

@@ -1,3 +1,4 @@
+// anla_minera/frontend/src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, programarCierreSesion } from "../services/api";
