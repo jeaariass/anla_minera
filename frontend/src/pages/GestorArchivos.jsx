@@ -95,7 +95,7 @@ const GestorArchivos = () => {
       const token = localStorage.getItem("token");
       const base = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
       const res = await fetch(
-        `${base}/archivos/descargar?ruta=${encodeURIComponent(rutaRel)}`,
+        `${base}/archivos/descargar?ruta=${encodeURIComponent(rutaRel)}&tituloMineroId=${tituloActivoId}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!res.ok) throw new Error("Error en descarga");
@@ -123,7 +123,7 @@ const GestorArchivos = () => {
       const token = localStorage.getItem("token");
       const base = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
       const res = await fetch(
-        `${base}/archivos/descargar-mes?titulo=${titulo}&anio=${anio}&mes=${mes}`,
+        `${base}/archivos/descargar-mes?titulo=${titulo}&anio=${anio}&mes=${mes}&tituloMineroId=${tituloActivoId}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!res.ok) throw new Error("Error en descarga");

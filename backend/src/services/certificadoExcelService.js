@@ -3,6 +3,8 @@ const ExcelJS = require("exceljs");
 const path = require("path");
 const fs = require("fs");
 
+const { sanitizarCelda } = require("../utils/excelSanitize");
+
 const TEMPLATE_PATH = path.join(
   __dirname,
   "../templates/certificado_origen.xlsx",
@@ -11,7 +13,9 @@ const FIRMA_PATH = path.join(__dirname, "../templates/firma.png");
 
 function dato(ws, coord, valor) {
   ws.getCell(coord).value =
-    valor !== null && valor !== undefined && valor !== "" ? valor : null;
+    valor !== null && valor !== undefined && valor !== ""
+      ? sanitizarCelda(valor)
+      : null;
 }
 
 function tachar(ws, coord) {
