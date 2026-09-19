@@ -1,5 +1,6 @@
 // anla_minera/backend/src/services/simpleExporter.js
 const ExcelJS = require("exceljs");
+const { sanitizarFila } = require("../utils/excelSanitize");
 
 class simpleExporter {
   // Exportar Producción - FORMATO EXACTO ANM
@@ -32,23 +33,25 @@ class simpleExporter {
 
     // AGREGAR DATOS
     datos.forEach((dato) => {
-      worksheet.addRow({
-        fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-        mineral: dato.mineral || "",
-        titulo: dato.tituloMinero?.numeroTitulo || "",
-        municipio: dato.tituloMinero?.municipio || "",
-        codigo: dato.tituloMinero?.codigoMunicipio || "",
-        horas: parseFloat(dato.horasOperativas) || 0,
-        cantidad: parseFloat(dato.cantidadProduccion) || 0,
-        unidad: dato.unidadMedida || "",
-        entra: dato.materialEntraPlanta
-          ? parseFloat(dato.materialEntraPlanta)
-          : "",
-        sale: dato.materialSalePlanta
-          ? parseFloat(dato.materialSalePlanta)
-          : "",
-        masa: dato.masaUnitaria ? parseFloat(dato.masaUnitaria) : "",
-      });
+      worksheet.addRow(
+        sanitizarFila({
+          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+          mineral: dato.mineral || "",
+          titulo: dato.tituloMinero?.numeroTitulo || "",
+          municipio: dato.tituloMinero?.municipio || "",
+          codigo: dato.tituloMinero?.codigoMunicipio || "",
+          horas: parseFloat(dato.horasOperativas) || 0,
+          cantidad: parseFloat(dato.cantidadProduccion) || 0,
+          unidad: dato.unidadMedida || "",
+          entra: dato.materialEntraPlanta
+            ? parseFloat(dato.materialEntraPlanta)
+            : "",
+          sale: dato.materialSalePlanta
+            ? parseFloat(dato.materialSalePlanta)
+            : "",
+          masa: dato.masaUnitaria ? parseFloat(dato.masaUnitaria) : "",
+        }),
+      );
     });
 
     return workbook;
@@ -73,18 +76,20 @@ class simpleExporter {
     ];
 
     datos.forEach((dato) => {
-      worksheet.addRow({
-        fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-        mineral: dato.mineral || "",
-        titulo: dato.tituloMinero?.numeroTitulo || "",
-        municipio: dato.tituloMinero?.municipio || "",
-        codigo: dato.tituloMinero?.codigoMunicipio || "",
-        unidad: dato.unidadMedida || "",
-        inicial: parseFloat(dato.inventarioInicialAcopio) || 0,
-        ingreso: parseFloat(dato.ingresoAcopio) || 0,
-        salida: parseFloat(dato.salidaAcopio) || 0,
-        final: parseFloat(dato.inventarioFinalAcopio) || 0,
-      });
+      worksheet.addRow(
+        sanitizarFila({
+          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+          mineral: dato.mineral || "",
+          titulo: dato.tituloMinero?.numeroTitulo || "",
+          municipio: dato.tituloMinero?.municipio || "",
+          codigo: dato.tituloMinero?.codigoMunicipio || "",
+          unidad: dato.unidadMedida || "",
+          inicial: parseFloat(dato.inventarioInicialAcopio) || 0,
+          ingreso: parseFloat(dato.ingresoAcopio) || 0,
+          salida: parseFloat(dato.salidaAcopio) || 0,
+          final: parseFloat(dato.inventarioFinalAcopio) || 0,
+        }),
+      );
     });
 
     return workbook;
@@ -107,18 +112,20 @@ class simpleExporter {
     ];
 
     datos.forEach((dato) => {
-      worksheet.addRow({
-        fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-        titulo: dato.tituloMinero?.numeroTitulo || "",
-        municipio: dato.tituloMinero?.municipio || "",
-        tipo: dato.tipoParada || "",
-        inicio: new Date(dato.fechaInicio).toLocaleString("es-CO"),
-        fin: dato.fechaFin
-          ? new Date(dato.fechaFin).toLocaleString("es-CO")
-          : "En curso",
-        horas: parseFloat(dato.horasParadas) || 0,
-        motivo: dato.motivo || "",
-      });
+      worksheet.addRow(
+        sanitizarFila({
+          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+          titulo: dato.tituloMinero?.numeroTitulo || "",
+          municipio: dato.tituloMinero?.municipio || "",
+          tipo: dato.tipoParada || "",
+          inicio: new Date(dato.fechaInicio).toLocaleString("es-CO"),
+          fin: dato.fechaFin
+            ? new Date(dato.fechaFin).toLocaleString("es-CO")
+            : "En curso",
+          horas: parseFloat(dato.horasParadas) || 0,
+          motivo: dato.motivo || "",
+        }),
+      );
     });
 
     return workbook;
@@ -141,16 +148,18 @@ class simpleExporter {
     ];
 
     datos.forEach((dato) => {
-      worksheet.addRow({
-        fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-        mineral: dato.mineral || "",
-        titulo: dato.tituloMinero?.numeroTitulo || "",
-        municipio: dato.tituloMinero?.municipio || "",
-        frente: dato.frenteExplotacion || "",
-        metodo: dato.metodoExplotacion || "",
-        avance: parseFloat(dato.avanceMetros) || 0,
-        volumen: parseFloat(dato.volumenExplotado) || 0,
-      });
+      worksheet.addRow(
+        sanitizarFila({
+          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+          mineral: dato.mineral || "",
+          titulo: dato.tituloMinero?.numeroTitulo || "",
+          municipio: dato.tituloMinero?.municipio || "",
+          frente: dato.frenteExplotacion || "",
+          metodo: dato.metodoExplotacion || "",
+          avance: parseFloat(dato.avanceMetros) || 0,
+          volumen: parseFloat(dato.volumenExplotado) || 0,
+        }),
+      );
     });
 
     return workbook;
@@ -171,14 +180,16 @@ class simpleExporter {
     ];
 
     datos.forEach((dato) => {
-      worksheet.addRow({
-        fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-        titulo: dato.tituloMinero?.numeroTitulo || "",
-        tipo: dato.tipoMaquinaria || "",
-        cantidad: parseInt(dato.cantidad) || 0,
-        horas: parseFloat(dato.horasUtilizadas) || 0,
-        capacidad: parseFloat(dato.capacidad) || 0,
-      });
+      worksheet.addRow(
+        sanitizarFila({
+          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+          titulo: dato.tituloMinero?.numeroTitulo || "",
+          tipo: dato.tipoMaquinaria || "",
+          cantidad: parseInt(dato.cantidad) || 0,
+          horas: parseFloat(dato.horasUtilizadas) || 0,
+          capacidad: parseFloat(dato.capacidad) || 0,
+        }),
+      );
     });
 
     return workbook;
@@ -199,14 +210,16 @@ class simpleExporter {
     ];
 
     datos.forEach((dato) => {
-      worksheet.addRow({
-        fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-        mineral: dato.mineral || "",
-        titulo: dato.tituloMinero?.numeroTitulo || "",
-        cantidad: parseFloat(dato.cantidad) || 0,
-        unidad: dato.unidadMedida || "",
-        valor: parseFloat(dato.valorDeclaracion) || 0,
-      });
+      worksheet.addRow(
+        sanitizarFila({
+          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+          mineral: dato.mineral || "",
+          titulo: dato.tituloMinero?.numeroTitulo || "",
+          cantidad: parseFloat(dato.cantidad) || 0,
+          unidad: dato.unidadMedida || "",
+          valor: parseFloat(dato.valorDeclaracion) || 0,
+        }),
+      );
     });
 
     return workbook;
@@ -248,23 +261,25 @@ class simpleExporter {
         { header: "Masa_unitaria", key: "masa", width: 15 },
       ];
       datosPorTipo.produccion.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-          mineral: dato.mineral || "",
-          titulo: dato.tituloMinero?.numeroTitulo || "",
-          municipio: dato.tituloMinero?.municipio || "",
-          codigo: dato.tituloMinero?.codigoMunicipio || "",
-          horas: parseFloat(dato.horasOperativas) || 0,
-          cantidad: parseFloat(dato.cantidadProduccion) || 0,
-          unidad: dato.unidadMedida || "",
-          entra: dato.materialEntraPlanta
-            ? parseFloat(dato.materialEntraPlanta)
-            : "",
-          sale: dato.materialSalePlanta
-            ? parseFloat(dato.materialSalePlanta)
-            : "",
-          masa: dato.masaUnitaria ? parseFloat(dato.masaUnitaria) : "",
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+            mineral: dato.mineral || "",
+            titulo: dato.tituloMinero?.numeroTitulo || "",
+            municipio: dato.tituloMinero?.municipio || "",
+            codigo: dato.tituloMinero?.codigoMunicipio || "",
+            horas: parseFloat(dato.horasOperativas) || 0,
+            cantidad: parseFloat(dato.cantidadProduccion) || 0,
+            unidad: dato.unidadMedida || "",
+            entra: dato.materialEntraPlanta
+              ? parseFloat(dato.materialEntraPlanta)
+              : "",
+            sale: dato.materialSalePlanta
+              ? parseFloat(dato.materialSalePlanta)
+              : "",
+            masa: dato.masaUnitaria ? parseFloat(dato.masaUnitaria) : "",
+          }),
+        );
       });
     }
 
@@ -288,18 +303,20 @@ class simpleExporter {
         { header: "Inventario_final_acopio", key: "final", width: 25 },
       ];
       datosPorTipo.inventarios.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-          mineral: dato.mineral || "",
-          titulo: dato.tituloMinero?.numeroTitulo || "",
-          municipio: dato.tituloMinero?.municipio || "",
-          codigo: dato.tituloMinero?.codigoMunicipio || "",
-          unidad: dato.unidadMedida || "",
-          inicial: parseFloat(dato.inventarioInicialAcopio) || 0,
-          ingreso: parseFloat(dato.ingresoAcopio) || 0,
-          salida: parseFloat(dato.salidaAcopio) || 0,
-          final: parseFloat(dato.inventarioFinalAcopio) || 0,
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+            mineral: dato.mineral || "",
+            titulo: dato.tituloMinero?.numeroTitulo || "",
+            municipio: dato.tituloMinero?.municipio || "",
+            codigo: dato.tituloMinero?.codigoMunicipio || "",
+            unidad: dato.unidadMedida || "",
+            inicial: parseFloat(dato.inventarioInicialAcopio) || 0,
+            ingreso: parseFloat(dato.ingresoAcopio) || 0,
+            salida: parseFloat(dato.salidaAcopio) || 0,
+            final: parseFloat(dato.inventarioFinalAcopio) || 0,
+          }),
+        );
       });
     }
 
@@ -321,18 +338,20 @@ class simpleExporter {
         { header: "Motivo", key: "motivo", width: 40 },
       ];
       datosPorTipo.paradas.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-          titulo: dato.tituloMinero?.numeroTitulo || "",
-          municipio: dato.tituloMinero?.municipio || "",
-          tipo: dato.tipoParada || "",
-          inicio: new Date(dato.fechaInicio).toLocaleString("es-CO"),
-          fin: dato.fechaFin
-            ? new Date(dato.fechaFin).toLocaleString("es-CO")
-            : "En curso",
-          horas: parseFloat(dato.horasParadas) || 0,
-          motivo: dato.motivo || "",
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+            titulo: dato.tituloMinero?.numeroTitulo || "",
+            municipio: dato.tituloMinero?.municipio || "",
+            tipo: dato.tipoParada || "",
+            inicio: new Date(dato.fechaInicio).toLocaleString("es-CO"),
+            fin: dato.fechaFin
+              ? new Date(dato.fechaFin).toLocaleString("es-CO")
+              : "En curso",
+            horas: parseFloat(dato.horasParadas) || 0,
+            motivo: dato.motivo || "",
+          }),
+        );
       });
     }
 
@@ -354,16 +373,18 @@ class simpleExporter {
         { header: "Volumen_ejecutado", key: "volumen", width: 20 },
       ];
       datosPorTipo.ejecucion.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-          mineral: dato.mineral || "",
-          titulo: dato.tituloMinero?.numeroTitulo || "",
-          municipio: dato.tituloMinero?.municipio || "",
-          frente: dato.denominacionFrente || "",
-          metodo: dato.metodoExplotacion || "",
-          avance: parseFloat(dato.avanceEjecutado) || 0,
-          volumen: parseFloat(dato.volumenEjecutado) || 0,
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+            mineral: dato.mineral || "",
+            titulo: dato.tituloMinero?.numeroTitulo || "",
+            municipio: dato.tituloMinero?.municipio || "",
+            frente: dato.denominacionFrente || "",
+            metodo: dato.metodoExplotacion || "",
+            avance: parseFloat(dato.avanceEjecutado) || 0,
+            volumen: parseFloat(dato.volumenEjecutado) || 0,
+          }),
+        );
       });
     }
 
@@ -383,16 +404,18 @@ class simpleExporter {
         { header: "Capacidad_transporte", key: "capacidad", width: 20 },
       ];
       datosPorTipo.maquinaria.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-          titulo: dato.tituloMinero?.numeroTitulo || "",
-          tipo: dato.tipoMaquinaria || "",
-          cantidad: parseInt(dato.cantidad) || 0,
-          horas: parseFloat(dato.horasOperacion) || 0,
-          capacidad: dato.capacidadTransporte
-            ? parseFloat(dato.capacidadTransporte)
-            : "",
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+            titulo: dato.tituloMinero?.numeroTitulo || "",
+            tipo: dato.tipoMaquinaria || "",
+            cantidad: parseInt(dato.cantidad) || 0,
+            horas: parseFloat(dato.horasOperacion) || 0,
+            capacidad: dato.capacidadTransporte
+              ? parseFloat(dato.capacidadTransporte)
+              : "",
+          }),
+        );
       });
     }
 
@@ -412,14 +435,16 @@ class simpleExporter {
         { header: "Valor_declaracion", key: "valor", width: 20 },
       ];
       datosPorTipo.regalias.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
-          mineral: dato.mineral || "",
-          titulo: dato.tituloMinero?.numeroTitulo || "",
-          cantidad: parseFloat(dato.cantidadExtraida) || 0,
-          unidad: dato.unidadMedida || "",
-          valor: parseFloat(dato.valorDeclaracion) || 0,
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fechaCorte).toLocaleDateString("es-CO"),
+            mineral: dato.mineral || "",
+            titulo: dato.tituloMinero?.numeroTitulo || "",
+            cantidad: parseFloat(dato.cantidadExtraida) || 0,
+            unidad: dato.unidadMedida || "",
+            valor: parseFloat(dato.valorDeclaracion) || 0,
+          }),
+        );
       });
     }
 
@@ -437,16 +462,18 @@ class simpleExporter {
         { header: "Descripcion", key: "descripcion", width: 35 },
       ];
       datosPorTipo.puntosActividad.forEach((dato) => {
-        ws.addRow({
-          fecha: new Date(dato.fecha).toLocaleDateString("es-CO"),
-          titulo: dato.tituloMineroId || "",
-          categoria: dato.categoria || "",
-          latitud: parseFloat(dato.latitud) || 0,
-          longitud: parseFloat(dato.longitud) || 0,
-          maquinaria: dato.maquinaria || "",
-          volumen: dato.volumenM3 ? parseFloat(dato.volumenM3) : "",
-          descripcion: dato.descripcion || "",
-        });
+        ws.addRow(
+          sanitizarFila({
+            fecha: new Date(dato.fecha).toLocaleDateString("es-CO"),
+            titulo: dato.tituloMineroId || "",
+            categoria: dato.categoria || "",
+            latitud: parseFloat(dato.latitud) || 0,
+            longitud: parseFloat(dato.longitud) || 0,
+            maquinaria: dato.maquinaria || "",
+            volumen: dato.volumenM3 ? parseFloat(dato.volumenM3) : "",
+            descripcion: dato.descripcion || "",
+          }),
+        );
       });
     }
     return workbook;

@@ -91,12 +91,28 @@ function listarArbol(tituloFiltro = null) {
 
 // ─── Resolver ruta absoluta desde relativa ────────────────────────────────────
 function resolverAbsoluta(rutaRel) {
-  return path.join(STORAGE_ROOT, rutaRel);
+  const abs = path.resolve(STORAGE_ROOT, rutaRel);
+  if (abs !== STORAGE_ROOT && !abs.startsWith(STORAGE_ROOT + path.sep)) {
+    throw new Error("Ruta fuera del directorio permitido");
+  }
+  return abs;
 }
 
 // ─── Ruta absoluta de una carpeta de mes ─────────────────────────────────────
 function resolverCarpetaMes(titulo, anio, mes) {
-  return path.join(STORAGE_ROOT, titulo, anio, mes);
+  const tituloSan = String(titulo || "")
+    .replace(/[^a-zA-Z0-9_\-]/g, "_")
+    .toUpperCase();
+  const anioSan = String(anio || "").replace(/[^0-9]/g, "");
+  const mesSan = String(mes || "")
+    .replace(/[^0-9]/g, "")
+    .padStart(2, "0");
+
+  const abs = path.resolve(STORAGE_ROOT, tituloSan, anioSan, mesSan);
+  if (abs !== STORAGE_ROOT && !abs.startsWith(STORAGE_ROOT + path.sep)) {
+    throw new Error("Ruta fuera del directorio permitido");
+  }
+  return abs;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

@@ -27,6 +27,16 @@ function chk(activo, texto) {
   return box + texto;
 }
 
+function escapeHtml(valor) {
+  if (valor === null || valor === undefined) return "";
+  return String(valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function generarHTML(datos) {
   const {
     consecutivo,
@@ -176,7 +186,7 @@ td { vertical-align:middle; font-family:'Calibri',Arial,sans-serif; font-size:8p
   <td class="s-light" style="text-align:center;border-top:1px solid #000;border-bottom:none;border-right:1px solid #000;border-left:1px solid #000;">MM</td>
   <td class="s-light" style="text-align:center;border-top:1px solid #000;border-bottom:none;border-right:1px solid #000;border-left:1px solid #000;">AAAA</td>
   <td colspan="2" rowspan="2" class="s-light" style="text-align:center;border-left:1px solid #000;border-bottom:2px solid #000;">&nbsp;No. Consecutivo del certificado de origen</td>
-  <td colspan="2" rowspan="2" class="s-val-grey" style="text-align:center;font-size:8pt;">${consecutivo || ""}</td>
+  <td colspan="2" rowspan="2" class="s-val-grey" style="text-align:center;font-size:8pt;">${escapeHtml(consecutivo)}</td>
 </tr>
 <tr style="height:13.5pt">
   <td class="s-light" style="text-align:center;font-weight:bold;font-size:10pt;border-top:none;border-bottom:2px solid #000;border-left:1px solid #000;border-right:1px solid #000;">${dd}</td>
@@ -203,13 +213,13 @@ td { vertical-align:middle; font-family:'Calibri',Arial,sans-serif; font-size:8p
 <!-- ═══ FILA 7: Código expediente ═══ -->
 <tr class="row7">
   <td colspan="5" class="s-white">CÓDIGO EXPEDIENTE</td>
-  <td colspan="4" class="s-val-grey" style="text-align:left;color:#000">${titulo?.numeroTitulo || ""}</td>
+  <td colspan="4" class="s-val-grey" style="text-align:left;color:#000">${escapeHtml(titulo?.numeroTitulo)}</td>
 </tr>
 
 <!-- ═══ FILA 8: Nombres titular ═══ -->
 <tr class="row8">
   <td colspan="5" class="s-white">NOMBRES Y APELLIDOS O RAZON SOCIAL DEL EXPLOTADOR MINERO AUTORIZADO</td>
-  <td colspan="4" class="s-val">${titulo?.nombreTitular || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(titulo?.nombreTitular)}</td>
 </tr>
 
 <!-- ═══ FILA 9: Tipo ID titular ═══ -->
@@ -224,37 +234,37 @@ td { vertical-align:middle; font-family:'Calibri',Arial,sans-serif; font-size:8p
 <!-- ═══ FILA 10: No. documento titular ═══ -->
 <tr class="row10">
   <td colspan="5" class="s-white">No. DOCUMENTO DE IDENTIDAD DEL EXPLOTADOR MINERO AUTORIZADO</td>
-  <td colspan="4" class="s-val">${titulo?.cedulaTitular || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(titulo?.cedulaTitular)}</td>
 </tr>
 
 <!-- ═══ FILA 11: Departamento ═══ -->
 <tr class="row11">
   <td colspan="5" class="s-white">DEPARTAMENTO (S) DONDE REALIZA LA EXPLOTACIÓN</td>
-  <td colspan="4" class="s-val">${titulo?.departamento || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(titulo?.departamento)}</td>
 </tr>
 
 <!-- ═══ FILA 12: Municipio ═══ -->
 <tr class="row12">
   <td colspan="5" class="s-white">MUNICIPIO(S) DONDE SE REALIZA LA EXPLOTACION</td>
-  <td colspan="4" class="s-val">${titulo?.municipio || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(titulo?.municipio)}</td>
 </tr>
 
 <!-- ═══ FILA 13: Mineral ═══ -->
 <tr class="row13">
   <td colspan="5" class="s-white">MINERAL EXPLOTADO</td>
-  <td colspan="4" class="s-val">${mineralExplotado || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(mineralExplotado)}</td>
 </tr>
 
 <!-- ═══ FILA 14: Cantidad ═══ -->
 <tr class="row14">
   <td colspan="5" class="s-white">CANTIDAD MINERAL COMERCIALIZADO</td>
-  <td colspan="4" class="s-val">${cant}</td>
+  <td colspan="4" class="s-val">${escapeHtml(cant)}</td>
 </tr>
 
 <!-- ═══ FILA 15: Unidad ═══ -->
 <tr class="row15">
   <td colspan="5" class="s-white-b2">UNIDAD DE MEDIDA</td>
-  <td colspan="4" class="s-val-b2">${unidadMedida || ""}</td>
+  <td colspan="4" class="s-val-b2">${escapeHtml(unidadMedida)}</td>
 </tr>
 
 <!-- ═══ FILA 16: Encabezado comprador ═══ -->
@@ -265,7 +275,7 @@ td { vertical-align:middle; font-family:'Calibri',Arial,sans-serif; font-size:8p
 <!-- ═══ FILA 17: Nombres comprador ═══ -->
 <tr class="row17">
   <td colspan="5" class="s-light" style="border-left:2px solid #000;border-right:1px solid #000;">NOMBRES Y APELLIDOS O RAZON SOCIAL</td>
-  <td colspan="4" class="s-val">${cliente?.nombre || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(cliente?.nombre)}</td>
 </tr>
 
 <!-- ═══ FILA 18: Tipo ID comprador ═══ -->
@@ -287,13 +297,13 @@ td { vertical-align:middle; font-family:'Calibri',Arial,sans-serif; font-size:8p
 <!-- ═══ FILA 20: No. documento comprador ═══ -->
 <tr class="row20">
   <td colspan="5" class="s-light" style="border-left:2px solid #000;border-right:1px solid #000;">No. DOCUMENTO DE IDENTIDAD</td>
-  <td colspan="4" class="s-val">${cliente?.cedula || ""}</td>
+  <td colspan="4" class="s-val">${escapeHtml(cliente?.cedula)}</td>
 </tr>
 
 <!-- ═══ FILA 21: RUCOM ═══ -->
 <tr class="row21">
   <td colspan="5" class="s-light" style="border-left:2px solid #000;border-right:1px solid #000;">No. RUCOM</td>
-  <td colspan="4" class="s-val" style="text-align:left">${cliente?.rucom ? "RUCOM-" + cliente.rucom : "RUCOM-"}</td>
+  <td colspan="4" class="s-val" style="text-align:left">${escapeHtml(cliente?.rucom ? "RUCOM-" + cliente.rucom : "RUCOM-")}</td>
 </tr>
 
 <!-- ═══ FILA 22: Firma ═══ -->
@@ -341,6 +351,7 @@ async function generarCertificadoPdf(datos, outputPath) {
   });
   try {
     const page = await browser.newPage();
+    await page.setJavaScriptEnabled(false); // bloquea cualquier script aunque algo se escape sin querer
     await page.setContent(html, { waitUntil: "networkidle0" });
     await page.pdf({
       path: outputPath,

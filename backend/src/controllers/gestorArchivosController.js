@@ -8,26 +8,44 @@ const {
   resolverCarpetaMes,
 } = require("../services/storageService");
 
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+const { puedeAccederATitulo, esRolGlobal } = require("../utils/permissions");
+
 // ============================================
 // GET /api/archivos
 // Devuelve el árbol completo de archivos
 // ============================================
 const listar = async (req, res) => {
   try {
-    const { tituloMineroId } = req.query;
+    let { tituloMineroId } = req.query;
 
-    let tituloFiltro = null;
-    if (tituloMineroId) {
-      const { PrismaClient } = require("@prisma/client");
-      const prisma = new PrismaClient();
-      const titulo = await prisma.tituloMinero.findUnique({
-        where: { id: tituloMineroId },
-        select: { numeroTitulo: true },
-      });
-      if (titulo) tituloFiltro = titulo.numeroTitulo;
+    // Roles locales: siempre su propio título, sin importar qué manden en el query
+    if (!esRolGlobal(req.user)) {
+      tituloMineroId = req.user.tituloMineroId;
     }
 
-    const arbol = listarArbol(tituloFiltro);
+    if (!tituloMineroId) {
+      // Rol global sin título seleccionado: no permitir listar todo
+      return res.status(400).json({
+        success: false,
+        message: "Debes seleccionar un título minero para ver sus archivos",
+      });
+    }
+
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+
+    const titulo = await prisma.tituloMinero.findUnique({
+      where: { id: tituloMineroId },
+      select: { numeroTitulo: true },
+    });
+
+    const arbol = listarArbol(titulo ? titulo.numeroTitulo : null);
     res.json({ success: true, data: arbol });
   } catch (error) {
     console.error("❌ Error listando archivos:", error);
@@ -45,14 +63,47 @@ const listar = async (req, res) => {
 // ============================================
 const descargarArchivo = async (req, res) => {
   try {
-    const { ruta } = req.query;
-    if (!ruta)
+    const { ruta, tituloMineroId } = req.query;
+    if (!ruta) {
       return res
         .status(400)
         .json({ success: false, message: "Falta el parámetro ruta." });
+    }
+    if (!tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Falta el parámetro tituloMineroId.",
+      });
+    }
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
 
-    // Sanitizar — evitar path traversal
+    const titulo = await prisma.tituloMinero.findUnique({
+      where: { id: tituloMineroId },
+      select: { numeroTitulo: true },
+    });
+    if (!titulo) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Título minero no encontrado." });
+    }
+
+    const carpetaEsperada = titulo.numeroTitulo
+      .replace(/[^a-zA-Z0-9_\-]/g, "_")
+      .toUpperCase();
     const rutaSanitizada = ruta.replace(/\.\./g, "").replace(/^\/+/, "");
+
+    // La ruta pedida debe vivir dentro de la carpeta del título al que el usuario tiene acceso
+    if (!rutaSanitizada.toUpperCase().startsWith(carpetaEsperada + "/")) {
+      return res
+        .status(403)
+        .json({ success: false, message: "No tienes acceso a este archivo." });
+    }
+
     const absPath = resolverAbsoluta(rutaSanitizada);
 
     if (!fs.existsSync(absPath)) {
@@ -87,12 +138,43 @@ const descargarArchivo = async (req, res) => {
 // ============================================
 const descargarMes = async (req, res) => {
   try {
-    const { titulo, anio, mes } = req.query;
+    const { titulo, anio, mes, tituloMineroId } = req.query;
     if (!titulo || !anio || !mes) {
       return res.status(400).json({
         success: false,
         message: "Faltan parámetros: titulo, anio, mes.",
       });
+    }
+    if (!tituloMineroId) {
+      return res.status(400).json({
+        success: false,
+        message: "Falta el parámetro tituloMineroId.",
+      });
+    }
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero",
+      });
+    }
+
+    const tituloDb = await prisma.tituloMinero.findUnique({
+      where: { id: tituloMineroId },
+      select: { numeroTitulo: true },
+    });
+    if (!tituloDb) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Título minero no encontrado." });
+    }
+
+    const carpetaEsperada = tituloDb.numeroTitulo
+      .replace(/[^a-zA-Z0-9_\-]/g, "_")
+      .toUpperCase();
+    if (String(titulo).toUpperCase() !== carpetaEsperada) {
+      return res
+        .status(403)
+        .json({ success: false, message: "No tienes acceso a esta carpeta." });
     }
 
     const carpeta = resolverCarpetaMes(titulo, anio, mes);
