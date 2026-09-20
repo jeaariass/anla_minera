@@ -3069,7 +3069,11 @@ app.put(
         });
       }
 
-      const dataToUpdate = { nombre, tituloMineroId };
+      const dataToUpdate = { nombre };
+      // Solo ADMIN puede reasignar el título minero de un usuario
+      if (tituloMineroId !== undefined && req.user.rol === "ADMIN") {
+        dataToUpdate.tituloMineroId = tituloMineroId;
+      }
       if (rol && tienePermiso(req.user, "ASIGNAR_ROL")) dataToUpdate.rol = rol;
       if (password) {
         if (
@@ -3318,6 +3322,19 @@ app.post(
           success: false,
           message:
             "El usuario seleccionado como Jefe de Planta no tiene el rol JEFE_PLANTA",
+        });
+      }
+
+      if (titular.tituloMineroId) {
+        return res.status(400).json({
+          success: false,
+          message: `El usuario ${titular.nombre} ya está asignado a otro título minero. Desasígnalo primero desde "Editar usuario" o elige un titular distinto.`,
+        });
+      }
+      if (jefePlanta.tituloMineroId) {
+        return res.status(400).json({
+          success: false,
+          message: `El usuario ${jefePlanta.nombre} ya está asignado a otro título minero. Desasígnalo primero desde "Editar usuario" o elige un jefe de planta distinto.`,
         });
       }
 
