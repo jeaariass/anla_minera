@@ -7,6 +7,7 @@ const {
 } = require("../services/certificadoExcelService");
 const { generarCertificadoPdf } = require("../services/certificadoPdfService");
 const { resolverRuta } = require("../services/storageService");
+const { esRolGlobal, puedeAccederATitulo } = require("../utils/permissions");
 
 function generarConsecutivo() {
   const d = new Date(Date.now() - 5 * 60 * 60 * 1000);
@@ -77,6 +78,22 @@ const buscarCliente = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "No se encontró ningún cliente." });
+
+    // Si el cliente existe pero no tiene relación con
+    // el título minero del usuario, responder igual que si no existiera
+    // (no revelamos que el cliente existe en otro título).
+    if (!esRolGlobal(req.user)) {
+      const relacion = await prisma.$queryRaw`
+        SELECT 1 FROM certificados_origen
+        WHERE "clienteId" = ${rows[0].id} AND "tituloMineroId" = ${req.user.tituloMineroId}
+        LIMIT 1
+      `;
+      if (!relacion || relacion.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "No se encontró ningún cliente." });
+      }
+    }
 
     res.json({ success: true, data: rows[0] });
   } catch (error) {
@@ -159,6 +176,25 @@ const crearCliente = async (req, res) => {
 const actualizarCliente = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Solo se puede editar un cliente con el que el
+    // usuario ya tiene una relación (un certificado emitido a su
+    // propio título minero). Los roles globales (ADMIN/ASESOR) no
+    // tienen esta restricción.
+    if (!esRolGlobal(req.user)) {
+      const relacion = await prisma.$queryRaw`
+        SELECT 1 FROM certificados_origen
+        WHERE "clienteId" = ${id} AND "tituloMineroId" = ${req.user.tituloMineroId}
+        LIMIT 1
+      `;
+      if (!relacion || relacion.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "No tienes acceso a este cliente.",
+        });
+      }
+    }
+
     const {
       nombre,
       correo,
@@ -217,17 +253,22 @@ const actualizarCliente = async (req, res) => {
 // ============================================
 const crearCertificado = async (req, res) => {
   try {
-    const {
-      tituloMineroId,
-      clienteId,
-      mineralExplotado,
-      cantidadM3,
-      unidadMedida,
-    } = req.body;
+    const { clienteId, mineralExplotado, cantidadM3, unidadMedida } = req.body;
+    const tituloMineroId = esRolGlobal(req.user)
+      ? req.body.tituloMineroId
+      : req.user.tituloMineroId;
+
     if (!tituloMineroId || !clienteId || !mineralExplotado)
       return res
         .status(400)
         .json({ success: false, message: "Faltan campos obligatorios." });
+
+    if (!puedeAccederATitulo(req.user, tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este título minero.",
+      });
+    }
 
     const consecutivo = generarConsecutivo();
 
@@ -270,6 +311,13 @@ const descargarExcel = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Certificado no encontrado." });
+
+    if (!puedeAccederATitulo(req.user, datos.cert.tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este certificado.",
+      });
+    }
 
     const { cert, titulo, cliente, consecutivo, mineralNombre } = datos;
 
@@ -346,6 +394,13 @@ const descargarPdf = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Certificado no encontrado." });
 
+    if (!puedeAccederATitulo(req.user, datos.cert.tituloMineroId)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes acceso a este certificado.",
+      });
+    }
+
     const { cert, titulo, cliente, consecutivo, mineralNombre } = datos;
 
     const datosCert = {
@@ -403,7 +458,10 @@ const descargarPdf = async (req, res) => {
 // ============================================
 const listarCertificados = async (req, res) => {
   try {
-    const { tituloMineroId, limit = 200 } = req.query;
+    let { tituloMineroId, limit = 200 } = req.query;
+    if (!esRolGlobal(req.user)) {
+      tituloMineroId = req.user.tituloMineroId; // roles locales: siempre su propio título, ignora lo que manden
+    }
     const limitNum = parseInt(limit, 10) || 200;
 
     const condicion = tituloMineroId
@@ -441,13 +499,11 @@ const listarCertificados = async (req, res) => {
     res.json({ success: true, data, total: data.length });
   } catch (error) {
     console.error("❌ Error listando certificados:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error al listar certificados",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error al listar certificados",
+      error: error.message,
+    });
   }
 };
 
