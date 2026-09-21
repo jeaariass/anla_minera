@@ -251,14 +251,18 @@ app.post("/api/auth/login", async (req, res) => {
       },
     });
 
-    if (!usuario) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Email o contraseña incorrectos" });
-    }
+    // Hash señuelo fijo — se usa solo para que bcrypt.compare tarde lo mismo
+    // cuando el correo no existe, y así el tiempo de respuesta no delate
+    // si un correo está o no registrado en el sistema.
+    const HASH_SENUELO =
+      "$2a$10$CwTycUXWue0Thq9StjUM0uJ8mQBmXP9DDb.Lp0v3xdEfoQeYX9RIS";
 
-    const passwordValida = await bcrypt.compare(password, usuario.password);
-    if (!passwordValida) {
+    const passwordValida = await bcrypt.compare(
+      password,
+      usuario ? usuario.password : HASH_SENUELO,
+    );
+
+    if (!usuario || !passwordValida) {
       return res
         .status(401)
         .json({ success: false, message: "Email o contraseña incorrectos" });
@@ -2851,9 +2855,14 @@ app.get(
   moduloMiddleware("usuarios"),
   async (req, res) => {
     try {
-      const filtro = esRolGlobal(req.user)
-        ? {}
-        : { tituloMineroId: req.user.tituloMineroId };
+      let filtro;
+      if (esRolGlobal(req.user)) {
+        filtro = {};
+      } else if (req.user.rol === "JEFE_PLANTA") {
+        filtro = { tituloMineroId: req.user.tituloMineroId, rol: "OPERARIO" };
+      } else {
+        filtro = { tituloMineroId: req.user.tituloMineroId };
+      }
 
       const usuarios = await prisma.usuario.findMany({
         where: filtro,
